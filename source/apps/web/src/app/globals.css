@@ -1,0 +1,257 @@
+@import "tailwindcss";
+@import "@fontsource/syne/800.css";
+@import "@fontsource/syne/700.css";
+@import "@fontsource/space-grotesk/400.css";
+@import "@fontsource/space-grotesk/600.css";
+@import "@fontsource/plus-jakarta-sans/400.css";
+@import "@fontsource/plus-jakarta-sans/500.css";
+@import "@fontsource/plus-jakarta-sans/600.css";
+@import "@fontsource/rubik-mono-one/400.css";
+
+/* ========================================
+   PREMIUM ATHLETIC THEME (Default)
+   Luxury minimalist, forest green accent
+   ======================================== */
+:root {
+  /* Colors */
+  --color-primary: #0fa560;
+  --color-secondary: #1f1f28;
+  --color-accent: #00d464;
+  --color-bg: #000000;
+  --color-text: #f5f5f7;
+  --color-text-secondary: #a1a1a6;
+  --color-text-muted: rgba(255, 255, 255, 0.3);
+  --color-surface: #131315;
+  --color-surface-2: #1a1a24;
+  --color-border: rgba(255, 255, 255, 0.08);
+
+  /* Typography */
+  --font-display: "Syne", sans-serif;
+  --font-heading: "Space Grotesk", sans-serif;
+  --font-body: "Plus Jakarta Sans", sans-serif;
+  --font-number: "Rubik Mono One", sans-serif;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.15);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.25);
+  --shadow-glow: 0 0 20px rgba(15, 165, 96, 0.15);
+}
+
+/* ========================================
+   CYBER ATHLETE THEME
+   Bold maximalist, neon cyan + violet
+   Apply via: [data-theme="cyber-athlete"]
+   ======================================== */
+[data-theme="cyber-athlete"] {
+  --color-primary: #00d9ff;
+  --color-secondary: #b024ff;
+  --color-accent: #ff006b;
+  --color-text: #ffffff;
+  --color-text-secondary: #a0e7e5;
+  --color-text-muted: rgba(255, 255, 255, 0.25);
+  --color-surface: #0a0a14;
+  --color-border: rgba(0, 217, 255, 0.2);
+
+  --font-heading: "Space Grotesk", sans-serif;
+
+  --shadow-sm: 0 0 8px rgba(0, 217, 255, 0.2);
+  --shadow-md: 0 0 16px rgba(0, 217, 255, 0.3), 0 0 24px rgba(176, 36, 255, 0.15);
+  --shadow-lg: 0 0 32px rgba(0, 217, 255, 0.4), 0 0 48px rgba(176, 36, 255, 0.2);
+  --shadow-glow: 0 0 20px rgba(0, 217, 255, 0.4);
+}
+
+/* ========================================
+   ORGANIC PERFORMANCE THEME
+   Warm earth tones, gold + brown
+   Apply via: [data-theme="organic-performance"]
+   ======================================== */
+[data-theme="organic-performance"] {
+  --color-primary: #e8a542;
+  --color-secondary: #c67c3f;
+  --color-accent: #f5b55f;
+  --color-text: #f5e6d3;
+  --color-text-secondary: #b8945f;
+  --color-text-muted: rgba(255, 255, 255, 0.25);
+  --color-surface: #1b1812;
+  --color-border: rgba(232, 165, 66, 0.15);
+
+  --font-heading: "Plus Jakarta Sans", sans-serif;
+
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(232, 165, 66, 0.08);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.3), inset 0 2px 4px rgba(232, 165, 66, 0.1);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.35), inset 0 2px 6px rgba(232, 165, 66, 0.12);
+  --shadow-glow: 0 0 24px rgba(232, 165, 66, 0.2);
+}
+
+@theme inline {
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-text);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-2);
+  border-radius: 2px;
+}
+
+/* Typography utilities */
+.font-display {
+  font-family: var(--font-display);
+}
+.font-heading {
+  font-family: var(--font-heading);
+}
+.font-body {
+  font-family: var(--font-body);
+}
+.font-number {
+  font-family: var(--font-number);
+}
+
+/* Animations */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+@keyframes countdown {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: 283;
+  }
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* PREMIUM ATHLETIC: Smooth refined entrance */
+@keyframes premium-slide {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* CYBER ATHLETE: Neon pulse effect */
+@keyframes cyber-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 10px rgba(0, 217, 255, 0.4),
+      inset 0 0 10px rgba(0, 217, 255, 0.1);
+  }
+  50% {
+    box-shadow:
+      0 0 20px rgba(0, 217, 255, 0.8),
+      inset 0 0 20px rgba(0, 217, 255, 0.2);
+  }
+}
+
+/* CYBER ATHLETE: Glitch effect */
+@keyframes glitch {
+  0% {
+    clip-path: inset(40% 0 61% 0);
+    transform: translate(-2px, -2px);
+  }
+  20% {
+    clip-path: inset(92% 0 1% 0);
+    transform: translate(2px, 2px);
+  }
+  40% {
+    clip-path: inset(43% 0 1% 0);
+    transform: translate(-2px, 2px);
+  }
+  60% {
+    clip-path: inset(25% 0 58% 0);
+    transform: translate(2px, -2px);
+  }
+  80% {
+    clip-path: inset(54% 0 7% 0);
+    transform: translate(-2px, -2px);
+  }
+  100% {
+    clip-path: inset(58% 0 43% 0);
+    transform: translate(2px, 2px);
+  }
+}
+
+/* ORGANIC PERFORMANCE: Breathing effect */
+@keyframes organic-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.02);
+    opacity: 1;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease forwards;
+}
+.animate-slideUp {
+  animation: slideUp 0.5s ease forwards;
+}
+.animate-premium-slide {
+  animation: premium-slide 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.animate-cyber-pulse {
+  animation: cyber-pulse 3s ease-in-out infinite;
+}
+.animate-glitch {
+  animation: glitch 0.4s infinite;
+}
+.animate-organic-breathe {
+  animation: organic-breathe 2.5s ease-in-out infinite;
+}

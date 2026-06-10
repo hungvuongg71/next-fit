@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Project Tailwind CSS Design System Presets",
+  "description": "Bộ quy chuẩn về giao diện, màu sắc và khoảng cách bắt buộc Agent phải áp dụng khi sinh mã nguồn.",
+  "design_tokens": {
+    "color_palette": {
+      "brand_primary": "text-blue-600 bg-blue-600 hover:bg-blue-700 focus:ring-blue-500",
+      "brand_secondary": "text-slate-600 bg-slate-100 hover:bg-slate-200 focus:ring-slate-400",
+      "status_success": "text-emerald-600 bg-emerald-50 hover:bg-emerald-100",
+      "status_danger": "text-rose-600 bg-rose-600 hover:bg-rose-700 focus:ring-rose-500",
+      "status_warning": "text-amber-600 bg-amber-50"
+    },
+    "typography": {
+      "heading_1": "text-3xl font-extrabold tracking-tight text-slate-900 md:text-4xl",
+      "heading_2": "text-2xl font-bold tracking-tight text-slate-900",
+      "heading_3": "text-lg font-semibold text-slate-900",
+      "body_text": "text-base text-slate-600 leading-relaxed",
+      "small_text": "text-sm text-slate-500"
+    },
+    "border_radius": {
+      "component": "rounded-lg",
+      "button": "rounded-md",
+      "card": "rounded-xl",
+      "badge": "rounded-full"
+    },
+    "spacing_and_layout": {
+      "page_container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+      "card_padding": "p-5 sm:p-6",
+      "form_gap": "space-y-4",
+      "grid_standard": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+    }
+  },
+  "constraints": {
+    "strict_mode": true,
+    "forbidden_patterns": ["text-\\[#.*\\]", "bg-\\[#.*\\]", "p-\\[.*px\\]", "m-\\[.*px\\]"],
+    "explanation": "Nghiêm cấm Agent sử dụng mã màu Hex ngẫu nhiên hoặc kích thước pixel cứng (Arbitrary values) trừ khi không có class Tailwind tương đương. Luôn ưu tiên dùng hệ Token đã định nghĩa ở trên."
+  }
+}
