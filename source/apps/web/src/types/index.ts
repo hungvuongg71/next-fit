@@ -42,6 +42,9 @@ export interface Exercise {
   trainer?: string
   image?: string
   video?: string
+  exerciseDbId?: string
+  exerciseDbGif?: string
+  exerciseDbInstructions?: string[]
 }
 
 export interface WorkoutSet extends SetData {

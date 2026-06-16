@@ -10,7 +10,8 @@ import BottomNav from "@/components/layout/BottomNav"
 import ExerciseCard from "@/components/ui/ExerciseCard"
 import ExerciseModal from "@/components/ui/ExerciseModal"
 import CookieConsent from "@/components/ui/CookieConsent"
-import { MOCK_EXERCISES, DEFAULT_EXERCISES } from "@/lib/data"
+import { MOCK_EXERCISES } from "@/lib/data"
+import { generateProgressiveExercises, getTodaySuggestion, getExerciseCount } from "@/lib/split"
 
 const MUSCLE_GROUPS: MuscleGroup[] = ["Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Cardio"]
 const DURATIONS: Duration[] = ["15 min", "30 min", "45 min", "60+ min"]
@@ -69,20 +70,14 @@ export default function HomePage() {
   const toggleEquipment = (e: Equipment) =>
     setSelectedEquipment((prev) => (prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]))
 
-  const generateExercisesForCriteria = (criteria: UserCriteria | null) => {
-    if (!criteria) return DEFAULT_EXERCISES
+  const todaySuggestion = useMemo(() => {
+    if (!state.criteria?.frequency) return null
+    return getTodaySuggestion(state.criteria.frequency)
+  }, [state.criteria?.frequency])
 
-    const filtered = MOCK_EXERCISES.filter(
-      (ex) =>
-        (criteria.muscleGroups.length === 0 || criteria.muscleGroups.includes(ex.muscleGroup)) &&
-        (criteria.equipment.length === 0 || criteria.equipment.includes(ex.equipment)) &&
-        (!criteria.level || ex.level === criteria.level),
-    )
-
-    if (filtered.length >= 8) return filtered.slice(0, 8)
-    if (filtered.length > 0) return filtered
-    return DEFAULT_EXERCISES
-  }
+  const suggestedCount = useMemo(() => {
+    return getExerciseCount(state.criteria?.duration)
+  }, [state.criteria?.duration])
 
   const criteriaPlan = useMemo(() => {
     if (!state.criteria) return null
@@ -116,7 +111,7 @@ export default function HomePage() {
       equipment: selectedEquipment,
     }
     setCriteria(newCriteria)
-    setTodayExercises(generateExercisesForCriteria(newCriteria))
+    setTodayExercises(generateProgressiveExercises(newCriteria, state.workoutHistory))
     setShowCriteriaPanel(false)
   }
 
@@ -126,8 +121,10 @@ export default function HomePage() {
   }
 
   const handleReplace = (id: string) => {
-    const available = MOCK_EXERCISES.filter((e) => !state.todayExercises.find((t) => t.id === e.id))
-    if (available.length > 0) replaceExercise(id, available[0])
+    const currentIds = new Set(state.todayExercises.map((t) => t.id))
+    const fresh = generateProgressiveExercises(state.criteria, state.workoutHistory)
+    const next = fresh.find((e) => !currentIds.has(e.id))
+    if (next) replaceExercise(id, next)
   }
 
   const handleStartWorkout = () => {
@@ -189,6 +186,36 @@ export default function HomePage() {
         {/* Criteria panel */}
          {showCriteriaPanel && (
            <div className="mb-6 animate-fadeIn">
+             {/* Split suggestion */}
+             {state.criteria?.frequency && todaySuggestion && todaySuggestion.length > 0 && (
+               <div
+                 className="mb-5 p-4 rounded-2xl"
+                 style={{
+                   background: "rgba(var(--color-primary-rgb), 0.06)",
+                   border: "1px solid rgba(var(--color-primary-rgb), 0.12)",
+                 }}
+               >
+                 <p className="font-heading font-semibold text-xs mb-1.5" style={{ color: "var(--color-text)" }}>
+                   Gợi ý hôm nay
+                 </p>
+                 <p className="font-body text-sm mb-3" style={{ color: "var(--color-text-secondary)" }}>
+                   Theo lịch <strong>{state.criteria.frequency}</strong> hôm nay nên tập:{" "}
+                   <strong className="font-heading font-semibold" style={{ color: "var(--color-text)" }}>
+                     {todaySuggestion.join(", ")}
+                   </strong>
+                   {" · "}
+                   <strong>{suggestedCount} bài</strong>
+                 </p>
+                 <button
+                   onClick={() => setSelectedMuscles(todaySuggestion)}
+                   className="px-4 py-2 rounded-xl font-heading font-semibold text-xs transition-all active:scale-95"
+                   style={{ background: "var(--color-primary)", color: "#fff" }}
+                 >
+                   Áp dụng gợi ý
+                 </button>
+               </div>
+             )}
+
              {/* Nhóm Cơ */}
              <div className="mb-5">
 

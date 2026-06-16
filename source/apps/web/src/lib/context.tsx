@@ -61,11 +61,20 @@ function initProgress(exercises: Exercise[]): ExerciseProgress[] {
   }))
 }
 
+function dedupeExercises(arr: Exercise[]): Exercise[] {
+  const seen = new Set<string>()
+  return arr.filter((ex) => {
+    if (seen.has(ex.id)) return false
+    seen.add(ex.id)
+    return true
+  })
+}
+
 function mergeSaved(parsed: Partial<AppState>): AppState {
   return {
     ...defaultState,
     ...parsed,
-    todayExercises: parsed.todayExercises?.length ? parsed.todayExercises : defaultState.todayExercises,
+    todayExercises: parsed.todayExercises?.length ? dedupeExercises(parsed.todayExercises) : defaultState.todayExercises,
     exerciseProgress: parsed.exerciseProgress ?? defaultState.exerciseProgress,
     workoutHistory: parsed.workoutHistory ?? defaultState.workoutHistory,
     storagePreferenceAnswered: parsed.storagePreferenceAnswered ?? parsed.cookiesAccepted !== undefined,

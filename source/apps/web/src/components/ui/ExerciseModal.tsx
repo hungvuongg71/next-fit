@@ -109,15 +109,16 @@ export default function ExerciseModal({ exercise, onClose }: ExerciseModalProps)
                   color: tab === t ? "#fff" : "var(--color-text-secondary)",
                 }}
               >
-                {t === "gif" ? <ImageIcon size={14} aria-hidden="true" /> : <Play size={14} aria-hidden="true" />}
+                {t === "gif" && <ImageIcon size={14} aria-hidden="true" />}
+                {t === "video" && <Play size={14} aria-hidden="true" />}
                 {t === "gif" ? "Hình ảnh" : "Video"}
               </button>
             ))}
           </div>
           <div id="gif-panel" role="tabpanel" hidden={tab !== "gif"} aria-hidden={tab !== "gif"}>
-            {exercise.image && !imgErr ? (
+            {exercise.image || exercise.exerciseDbGif ? (
               <img
-                src={exercise.image}
+                src={exercise.image || exercise.exerciseDbGif}
                 alt={exercise.name}
                 className="w-full rounded-2xl object-cover"
                 style={{ height: "220px" }}
@@ -179,7 +180,29 @@ export default function ExerciseModal({ exercise, onClose }: ExerciseModalProps)
           )}
         </div>
 
-        {/* Section 3: Related exercises */}
+        {/* Section 3: Instructions (from ExerciseDB) */}
+        {exercise.exerciseDbInstructions && exercise.exerciseDbInstructions.length > 0 && (
+          <div className="px-5 mb-5">
+            <h3 className="font-heading font-semibold text-sm mb-2" style={{ color: "var(--color-text-secondary)" }}>
+              HƯỚNG DẪN THỰC HIỆN
+            </h3>
+            <ol className="space-y-2">
+              {exercise.exerciseDbInstructions.map((step, i) => (
+                <li key={i} className="flex gap-2 font-body text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
+                  <span
+                    className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center font-number text-[10px] mt-0.5"
+                    style={{ background: "rgba(var(--color-primary-rgb), 0.15)", color: "var(--color-primary)" }}
+                  >
+                    {i + 1}
+                  </span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+
+        {/* Section 4: Related exercises */}
         {related.length > 0 && (
           <div className="px-5 pb-8">
             <h3 className="font-heading font-semibold text-sm mb-3" style={{ color: "var(--color-text-secondary)" }}>
@@ -193,27 +216,12 @@ export default function ExerciseModal({ exercise, onClose }: ExerciseModalProps)
                   className="flex-shrink-0 w-28 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] focus-visible:ring-[var(--color-primary)]"
                   aria-label={`View ${ex.name}`}
                 >
-                  {ex.image ? (
-                    <img
-                      src={ex.image}
-                      alt={ex.name}
-                      className="w-28 rounded-xl mb-2 object-cover"
-                      style={{ height: "80px" }}
-                    />
-                  ) : (
-                    <div
-                      className="w-28 rounded-xl mb-2 flex items-center justify-center"
-                      style={{
-                        height: "80px",
-                        background: "linear-gradient(135deg, var(--color-surface-2) 0%, var(--color-surface) 100%)",
-                        border: "1px solid var(--color-border)",
-                      }}
-                    >
-                      <span className="font-heading text-xs" style={{ color: "rgba(255,255,255,0.15)" }}>
-                        {ex.muscleGroup}
-                      </span>
-                    </div>
-                  )}
+                  <img
+                    src={ex.image || ex.exerciseDbGif}
+                    alt={ex.name}
+                    className="w-28 rounded-xl mb-2 object-cover"
+                    style={{ height: "80px" }}
+                  />
                   <p
                     className="font-heading text-xs font-semibold leading-tight"
                     style={{ color: "var(--color-text)" }}

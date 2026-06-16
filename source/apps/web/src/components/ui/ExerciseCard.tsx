@@ -39,30 +39,16 @@ export default function ExerciseCard({
         className="relative flex-shrink-0 w-16 h-16 overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] focus-visible:ring-[var(--color-primary)]"
         aria-label={`View ${exercise.name} details`}
       >
-        {exercise.image && !imgErr ? (
+        {!imgErr && (exercise.image || exercise.exerciseDbGif) ? (
           <img
-            src={exercise.image}
+            src={exercise.image || exercise.exerciseDbGif}
             alt={exercise.name}
             className="h-full w-full object-cover"
             onError={() => setImgErr(true)}
           />
         ) : (
-          <div
-            className="h-full w-full flex items-center justify-center"
-            style={{
-              background: "linear-gradient(135deg, var(--color-surface-2) 0%, var(--color-surface) 100%)",
-            }}
-          >
-            <svg
-              className="absolute inset-0 w-full h-full"
-              viewBox="0 0 100 100"
-              preserveAspectRatio="none"
-              fill="none"
-              aria-hidden="true"
-            >
-              <line x1="0" y1="0" x2="100" y2="100" stroke="rgba(255,255,255,0.08)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-              <line x1="100" y1="0" x2="0" y2="100" stroke="rgba(255,255,255,0.08)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-            </svg>
+          <div className="h-full w-full flex items-center justify-center" style={{ background: "var(--color-surface)" }}>
+            <span className="text-[10px] font-heading" style={{ color: "rgba(255,255,255,0.15)" }}>No img</span>
           </div>
         )}
       </button>

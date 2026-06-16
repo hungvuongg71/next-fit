@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "gym-training-expert": {
+      "source": "frankxai/claude-skills-library",
+      "sourceType": "github",
+      "skillPath": "free-skills/gym-training-expert/SKILL.md",
+      "computedHash": "e8472520acbe3c519f649abeb6eab477a2f1c447c80937f3b6a5bf8e8df78ef1"
+    }
+  }
+}

@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Check, ChevronLeft, Dumbbell, Pause, Play, Plus, Trophy, AlertTriangle } from "lucide-react"
 import ExerciseModal from "@/components/ui/ExerciseModal"
-import PlaceholderImage from "@/components/ui/PlaceholderImage"
 import RestTimer from "@/components/ui/RestTimer"
 import { useApp } from "@/lib/context"
 import { Exercise, ExerciseProgress } from "@/types"
@@ -295,10 +294,14 @@ export default function WorkoutPage() {
                 <button
                   type="button"
                   onClick={() => setSelectedExercise(item.exercise)}
-                  className="shrink-0 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                  className="shrink-0 rounded-2xl overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                   aria-label={`Xem chi tiết ${item.exercise.name}`}
                 >
-                  <PlaceholderImage className="w-16 rounded-2xl" label="" style={{ height: "64px" }} />
+                  <img
+                    src={item.exercise.image || item.exercise.exerciseDbGif}
+                    alt={item.exercise.name}
+                    className="w-16 h-16 object-cover"
+                  />
                 </button>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-3">
