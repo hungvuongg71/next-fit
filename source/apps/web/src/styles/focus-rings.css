@@ -1,0 +1,14 @@
+/* Tailwind CSS fixes for focus ring offset */
+@layer components {
+  .focus-ring-offset {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary)];
+  }
+
+  .focus-ring-offset-dark {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] focus-visible:ring-[var(--color-primary)];
+  }
+
+  .focus-ring-offset-transparent {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:ring-[var(--color-primary)];
+  }
+}

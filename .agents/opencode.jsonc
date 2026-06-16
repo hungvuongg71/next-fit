@@ -1,0 +1,4 @@
+{
+  "permissions": [{ "pattern": "source/apps/web/**", "action": "allow", "type": "edit" }],
+  "skillsDirectory": ".agents/skills",
+}
