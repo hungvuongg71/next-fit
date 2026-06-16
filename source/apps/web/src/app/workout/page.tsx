@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Check, ChevronLeft, Dumbbell, Pause, Play, Plus, Trophy, AlertTriangle } from "lucide-react"
+import { Check, ChevronLeft, Dumbbell, Minus, Pause, Play, Plus, Trophy, AlertTriangle } from "lucide-react"
 import ExerciseModal from "@/components/ui/ExerciseModal"
 import RestTimer from "@/components/ui/RestTimer"
 import { useApp } from "@/lib/context"
@@ -118,9 +118,13 @@ export default function WorkoutPage() {
     replaceProgress(
       progress.map((item, itemIndex) => {
         if (itemIndex !== exerciseIndex) return item
-        const sets = item.sets.map((set, currentSetIndex) =>
-          currentSetIndex === setIndex ? { ...set, [field]: value } : set,
-        )
+        const sets = item.sets.map((set, currentSetIndex) => {
+          if (currentSetIndex !== setIndex) return set
+          if (field !== "completed" && set.completed) {
+            return { ...set, [field]: value, completed: false }
+          }
+          return { ...set, [field]: value }
+        })
         return {
           ...item,
           sets,
@@ -138,6 +142,21 @@ export default function WorkoutPage() {
           ? { ...item, sets: [...item.sets, { reps: null, weight: null, completed: false }] }
           : item,
       ),
+    )
+  }
+
+  const removeSet = (exerciseIndex: number, setIndex: number) => {
+    replaceProgress(
+      progress.map((item, itemIndex) => {
+        if (itemIndex !== exerciseIndex) return item
+        const sets = item.sets.filter((_, i) => i !== setIndex)
+        return {
+          ...item,
+          sets,
+          currentSet: sets.findIndex((s) => !s.completed) === -1 ? sets.length - 1 : sets.findIndex((s) => !s.completed),
+          completed: sets.every((s) => s.completed),
+        }
+      }),
     )
   }
 
@@ -308,7 +327,7 @@ export default function WorkoutPage() {
                     <div className="min-w-0">
                       <h2 className="font-heading text-sm font-semibold leading-tight">{item.exercise.name}</h2>
                       <p className="mt-1 font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                        {item.exercise.equipment} · {item.exercise.muscleGroup} · {item.exercise.restSeconds}s nghỉ
+                        {item.exercise.equipment} · {item.exercise.muscleGroup_vi ?? item.exercise.muscleGroup} · {item.exercise.restSeconds}s nghỉ
                       </p>
                     </div>
                     <span
@@ -325,19 +344,22 @@ export default function WorkoutPage() {
               </div>
 
               <div className="px-4 pb-4">
-                <div className="mb-2 grid grid-cols-[32px_1fr_1fr_52px_44px] items-center gap-2 px-1 font-heading text-[10px] uppercase tracking-[0.18em]" style={{ color: "var(--color-text-secondary)" }}>
+                <div className="mb-2 grid grid-cols-[32px_1fr_1fr_44px_36px_44px] items-center gap-2 px-1 font-heading text-[10px] uppercase tracking-[0.18em]" style={{ color: "var(--color-text-secondary)" }}>
                   <span>#</span>
                   <span className="text-center">Số reps</span>
                   <span className="text-center">Kg</span>
                   <span className="text-center">Nghỉ</span>
                   <span />
+                  <span />
                 </div>
 
                 <div className="grid gap-2">
-                  {item.sets.map((set, setIndex) => (
+                  {item.sets.map((set, setIndex) => {
+                    const canCheck = !set.completed && set.reps !== null && set.weight !== null
+                    return (
                     <div
                       key={`${item.exercise.id}-${setIndex}`}
-                      className="grid grid-cols-[32px_1fr_1fr_52px_44px] items-center gap-2 rounded-2xl p-2"
+                      className="grid grid-cols-[32px_1fr_1fr_44px_36px_44px] items-center gap-2 rounded-2xl p-2"
                       style={{
                         background: set.completed ? "rgba(var(--color-primary-rgb), 0.08)" : "rgba(255,255,255,0.035)",
                         border: `1px solid ${set.completed ? "rgba(var(--color-primary-rgb), 0.2)" : "rgba(255,255,255,0.045)"}`,
@@ -351,7 +373,6 @@ export default function WorkoutPage() {
                         inputMode="numeric"
                         min={0}
                         value={set.reps ?? ""}
-                        disabled={set.completed}
                         aria-label={`${item.exercise.name} hiệp ${setIndex + 1} số reps`}
                         onChange={(event) =>
                           updateSet(exerciseIndex, setIndex, "reps", event.target.value === "" ? null : Number(event.target.value))
@@ -367,7 +388,6 @@ export default function WorkoutPage() {
                         inputMode="decimal"
                         min={0}
                         value={set.weight ?? ""}
-                        disabled={set.completed}
                         aria-label={`${item.exercise.name} hiệp ${setIndex + 1} kg`}
                         onChange={(event) =>
                           updateSet(exerciseIndex, setIndex, "weight", event.target.value === "" ? null : Number(event.target.value))
@@ -381,21 +401,34 @@ export default function WorkoutPage() {
                       <span className="text-center font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
                         {item.exercise.restSeconds}s
                       </span>
+                      {item.sets.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeSet(exerciseIndex, setIndex)}
+                          aria-label={`Xóa hiệp ${setIndex + 1}`}
+                          className="flex h-9 w-9 items-center justify-center rounded-xl transition-all active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                          style={{ background: "rgba(214,69,69,0.12)" }}
+                        >
+                          <Minus size={14} style={{ color: "#ff6b6b" }} aria-hidden="true" />
+                        </button>
+                      )}
                       <button
                         type="button"
-                        onClick={() => !set.completed && handleCheckSet(exerciseIndex, setIndex)}
-                        disabled={set.completed}
+                        onClick={() => canCheck && handleCheckSet(exerciseIndex, setIndex)}
+                        disabled={!canCheck}
                         aria-label={`Hoàn tất ${item.exercise.name} hiệp ${setIndex + 1}`}
                         className="flex h-11 w-11 items-center justify-center rounded-2xl transition-all active:scale-90 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                         style={{
-                          background: set.completed ? "rgba(var(--color-primary-rgb), 0.2)" : "var(--color-primary)",
+                          background: set.completed ? "rgba(var(--color-primary-rgb), 0.2)" : "rgba(var(--color-primary-rgb), 0.4)",
                           color: "#fff",
+                          opacity: !canCheck && !set.completed ? 0.5 : 1,
                         }}
                       >
                         <Check size={16} aria-hidden="true" />
                       </button>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
 
                 <button

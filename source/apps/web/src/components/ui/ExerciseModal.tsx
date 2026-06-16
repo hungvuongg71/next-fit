@@ -1,19 +1,22 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { X, Play, Image as ImageIcon } from "lucide-react"
+import { X, Play, ChevronLeft, Image as ImageIcon } from "lucide-react"
 import { Exercise } from "@/types"
 import { MOCK_EXERCISES } from "@/lib/data"
 
 interface ExerciseModalProps {
   exercise: Exercise | null
   onClose: () => void
+  onReplace?: (newExercise: Exercise) => void
 }
 
-export default function ExerciseModal({ exercise, onClose }: ExerciseModalProps) {
+export default function ExerciseModal({ exercise, onClose, onReplace }: ExerciseModalProps) {
   const [tab, setTab] = useState<"gif" | "video">("gif")
   const [imgErr, setImgErr] = useState(false)
   const [vidErr, setVidErr] = useState(false)
+  const [currentExercise, setCurrentExercise] = useState<Exercise | null>(exercise)
+  const [history, setHistory] = useState<Exercise[]>([])
   const modalRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
 
@@ -36,14 +39,24 @@ export default function ExerciseModal({ exercise, onClose }: ExerciseModalProps)
     setTab("gif")
     setImgErr(false)
     setVidErr(false)
+    if (exercise) {
+      setCurrentExercise(exercise)
+      setHistory([])
+    }
   }, [exercise?.id])
 
-  if (!exercise) return null
+  if (!exercise || !currentExercise) return null
 
-  const related = MOCK_EXERCISES.filter((e) => e.id !== exercise.id && e.muscleGroup === exercise.muscleGroup).slice(
-    0,
-    3,
-  )
+  const handleBack = () => {
+    if (history.length === 0) return
+    const prev = history[history.length - 1]
+    setHistory((h) => h.slice(0, -1))
+    setCurrentExercise(prev)
+  }
+
+  const related = MOCK_EXERCISES.filter(
+    (e) => e.id !== currentExercise.id && e.muscleGroup === currentExercise.muscleGroup,
+  ).slice(0, 3)
 
   return (
     <div
@@ -68,23 +81,34 @@ export default function ExerciseModal({ exercise, onClose }: ExerciseModalProps)
 
         {/* Header */}
         <div className="flex items-start justify-between px-5 pb-4">
-          <div>
+          {history.length > 0 && (
+            <button
+              onClick={handleBack}
+              aria-label="Quay lại"
+              className="w-8 h-8 rounded-full flex items-center justify-center mt-1 mr-2 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] focus-visible:ring-[var(--color-primary)]"
+              style={{ background: "var(--color-surface-subtle)" }}
+            >
+              <ChevronLeft size={16} style={{ color: "var(--color-text-secondary)" }} aria-hidden="true" />
+            </button>
+          )}
+          <div className="flex-1 min-w-0">
             <p className="text-xs font-heading mb-1" style={{ color: "var(--color-text-secondary)" }}>
-              {exercise.muscleGroup} • {exercise.level}
+              {currentExercise.muscleGroup_vi ?? currentExercise.muscleGroup} •{" "}
+              {currentExercise.level_vi ?? currentExercise.level}
             </p>
             <h2
               id="exercise-title"
-              className="font-display font-bold text-xl leading-tight"
+              className="font-display font-bold text-xl leading-tight truncate"
               style={{ color: "var(--color-text)" }}
             >
-              {exercise.name}
+              {currentExercise.name}
             </h2>
           </div>
           <button
             ref={closeButtonRef}
             onClick={onClose}
             aria-label="Close exercise details"
-            className="w-8 h-8 rounded-full flex items-center justify-center mt-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] focus-visible:ring-[var(--color-primary)]"
+            className="w-8 h-8 rounded-full flex items-center justify-center mt-1 ml-2 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] focus-visible:ring-[var(--color-primary)]"
             style={{
               background: "var(--color-surface-subtle)",
             }}
@@ -116,10 +140,10 @@ export default function ExerciseModal({ exercise, onClose }: ExerciseModalProps)
             ))}
           </div>
           <div id="gif-panel" role="tabpanel" hidden={tab !== "gif"} aria-hidden={tab !== "gif"}>
-            {exercise.image || exercise.exerciseDbGif ? (
+            {currentExercise.image || currentExercise.exerciseDbGif ? (
               <img
-                src={exercise.image || exercise.exerciseDbGif}
-                alt={exercise.name}
+                src={currentExercise.image || currentExercise.exerciseDbGif}
+                alt={currentExercise.name}
                 className="w-full rounded-2xl object-cover"
                 style={{ height: "220px" }}
                 onError={() => setImgErr(true)}
@@ -140,9 +164,9 @@ export default function ExerciseModal({ exercise, onClose }: ExerciseModalProps)
             )}
           </div>
           <div id="video-panel" role="tabpanel" hidden={tab !== "video"} aria-hidden={tab !== "video"}>
-            {exercise.video && !vidErr ? (
+            {currentExercise.video && !vidErr ? (
               <video
-                src={exercise.video}
+                src={currentExercise.video}
                 controls
                 className="w-full rounded-2xl"
                 style={{ height: "220px" }}
@@ -171,23 +195,23 @@ export default function ExerciseModal({ exercise, onClose }: ExerciseModalProps)
             MÔ TẢ ĐỘNG TÁC
           </h3>
           <p className="font-body text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
-            {exercise.description}
+            {currentExercise.description}
           </p>
-          {exercise.trainer && (
+          {currentExercise.trainer && (
             <p className="font-body text-xs mt-2" style={{ color: "var(--color-primary)" }}>
-              Huấn luyện viên: {exercise.trainer}
+              Huấn luyện viên: {currentExercise.trainer}
             </p>
           )}
         </div>
 
         {/* Section 3: Instructions (from ExerciseDB) */}
-        {exercise.exerciseDbInstructions && exercise.exerciseDbInstructions.length > 0 && (
+        {currentExercise.exerciseDbInstructions && currentExercise.exerciseDbInstructions.length > 0 && (
           <div className="px-5 mb-5">
             <h3 className="font-heading font-semibold text-sm mb-2" style={{ color: "var(--color-text-secondary)" }}>
               HƯỚNG DẪN THỰC HIỆN
             </h3>
             <ol className="space-y-2">
-              {exercise.exerciseDbInstructions.map((step, i) => (
+              {(currentExercise.exerciseDbInstructions_vi ?? currentExercise.exerciseDbInstructions).map((step, i) => (
                 <li key={i} className="flex gap-2 font-body text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
                   <span
                     className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center font-number text-[10px] mt-0.5"
@@ -204,7 +228,7 @@ export default function ExerciseModal({ exercise, onClose }: ExerciseModalProps)
 
         {/* Section 4: Related exercises */}
         {related.length > 0 && (
-          <div className="px-5 pb-8">
+          <div className="px-5 pb-6">
             <h3 className="font-heading font-semibold text-sm mb-3" style={{ color: "var(--color-text-secondary)" }}>
               BÀI TẬP LIÊN QUAN
             </h3>
@@ -212,9 +236,12 @@ export default function ExerciseModal({ exercise, onClose }: ExerciseModalProps)
               {related.map((ex) => (
                 <button
                   key={ex.id}
-                  onClick={() => {}} // Would navigate to that exercise
+                  onClick={() => {
+                    setHistory((prev) => [...prev, currentExercise])
+                    setCurrentExercise(ex)
+                  }}
                   className="flex-shrink-0 w-28 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] focus-visible:ring-[var(--color-primary)]"
-                  aria-label={`View ${ex.name}`}
+                  aria-label={`Xem ${ex.name}`}
                 >
                   <img
                     src={ex.image || ex.exerciseDbGif}
@@ -231,6 +258,22 @@ export default function ExerciseModal({ exercise, onClose }: ExerciseModalProps)
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Replace button */}
+        {onReplace && history.length > 0 && (
+          <div className="px-5 pb-8">
+            <button
+              onClick={() => {
+                onReplace(currentExercise)
+                onClose()
+              }}
+              className="w-full py-3.5 rounded-2xl font-heading font-semibold text-sm transition-all active:scale-[0.98]"
+              style={{ background: "var(--color-primary)", color: "#fff" }}
+            >
+              Thay &ldquo;{exercise.name}&rdquo; bằng &ldquo;{currentExercise.name}&rdquo;
+            </button>
           </div>
         )}
       </div>

@@ -9,6 +9,7 @@ import TopHeader from "@/components/layout/TopHeader"
 import BottomNav from "@/components/layout/BottomNav"
 import ExerciseCard from "@/components/ui/ExerciseCard"
 import ExerciseModal from "@/components/ui/ExerciseModal"
+import ExercisePicker from "@/components/ui/ExercisePicker"
 import CookieConsent from "@/components/ui/CookieConsent"
 import { MOCK_EXERCISES } from "@/lib/data"
 import { generateProgressiveExercises, getTodaySuggestion, getExerciseCount } from "@/lib/split"
@@ -49,6 +50,7 @@ export default function HomePage() {
   } = useApp()
   const [showCriteriaPanel, setShowCriteriaPanel] = useState(false)
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null)
+  const [showPicker, setShowPicker] = useState(false)
   const [selectedMuscles, setSelectedMuscles] = useState<MuscleGroup[]>(state.criteria?.muscleGroups ?? [])
   const [selectedDuration, setSelectedDuration] = useState<Duration | null>(state.criteria?.duration ?? null)
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment[]>(state.criteria?.equipment ?? [])
@@ -64,6 +66,22 @@ export default function HomePage() {
       setSelectedEquipment(state.criteria.equipment)
     if (!selectedDuration && state.criteria.duration) setSelectedDuration(state.criteria.duration)
   }, [state.criteria, state.isFirstVisit, router])
+
+  // Auto-apply criteria changes with debounce
+  useEffect(() => {
+    if (!showCriteriaPanel) return
+    const timer = setTimeout(() => {
+      const newCriteria: UserCriteria = {
+        ...(state.criteria ?? {}),
+        muscleGroups: selectedMuscles,
+        duration: selectedDuration ?? undefined,
+        equipment: selectedEquipment,
+      }
+      setCriteria(newCriteria)
+      setTodayExercises(generateProgressiveExercises(newCriteria, state.workoutHistory))
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [selectedMuscles, selectedDuration, selectedEquipment, showCriteriaPanel])
 
   const toggleMuscle = (m: MuscleGroup) =>
     setSelectedMuscles((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]))
@@ -103,22 +121,7 @@ export default function HomePage() {
     }
   }, [state.criteria])
 
-  const handleSaveCriteria = () => {
-    const newCriteria: UserCriteria = {
-      ...(state.criteria ?? {}),
-      muscleGroups: selectedMuscles,
-      duration: selectedDuration ?? undefined,
-      equipment: selectedEquipment,
-    }
-    setCriteria(newCriteria)
-    setTodayExercises(generateProgressiveExercises(newCriteria, state.workoutHistory))
-    setShowCriteriaPanel(false)
-  }
-
-  const handleAddExercise = () => {
-    const available = MOCK_EXERCISES.filter((e) => !state.todayExercises.find((t) => t.id === e.id))
-    if (available.length > 0) addExercise(available[0])
-  }
+  const handleAddExercise = () => setShowPicker(true)
 
   const handleReplace = (id: string) => {
     const currentIds = new Set(state.todayExercises.map((t) => t.id))
@@ -315,20 +318,10 @@ export default function HomePage() {
                 ))}
               </div>
             </div>
-
-            {showCriteriaPanel && (
-              <button
-                onClick={handleSaveCriteria}
-                className="w-full py-3.5 rounded-2xl font-heading font-semibold text-sm transition-all active:scale-[0.98]"
-                style={{ background: "var(--color-primary)", color: "#fff" }}
-              >
-                Lưu tiêu chí
-              </button>
-            )}
           </div>
         )}
 
-          {/* Exercise list */}
+        {/* Exercise list */}
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3">
             <div>
@@ -402,7 +395,19 @@ export default function HomePage() {
       </div>
 
       <BottomNav />
-      {selectedExercise && <ExerciseModal exercise={selectedExercise} onClose={() => setSelectedExercise(null)} />}
+      {selectedExercise && (
+        <ExerciseModal
+          exercise={selectedExercise}
+          onClose={() => setSelectedExercise(null)}
+          onReplace={(newEx) => replaceExercise(selectedExercise.id, newEx)}
+        />
+      )}
+      <ExercisePicker
+        isOpen={showPicker}
+        onClose={() => setShowPicker(false)}
+        onSelect={addExercise}
+        excludeIds={new Set(state.todayExercises.map((e) => e.id))}
+      />
       <CookieConsent />
     </div>
   )

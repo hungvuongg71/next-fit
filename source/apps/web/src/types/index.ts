@@ -27,14 +27,18 @@ export interface Exercise {
   name: string
   name_vi?: string
   muscleGroup: MuscleGroup
+  muscleGroup_vi?: string
   muscles?: string[]
   muscles_vi?: string[]
   musclesSecondary?: string[]
   musclesSecondary_vi?: string[]
   level: Level
+  level_vi?: string
   equipment: Equipment
   equipmentList?: string[]
+  equipmentList_vi?: string[]
   category?: string
+  category_vi?: string
   sets: number
   reps: string
   restSeconds: number
@@ -45,6 +49,7 @@ export interface Exercise {
   exerciseDbId?: string
   exerciseDbGif?: string
   exerciseDbInstructions?: string[]
+  exerciseDbInstructions_vi?: string[]
 }
 
 export interface WorkoutSet extends SetData {
