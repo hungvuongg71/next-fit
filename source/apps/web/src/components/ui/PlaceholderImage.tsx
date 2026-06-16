@@ -1,5 +1,4 @@
 import React from "react"
-import { THEME } from "@/lib/theme"
 
 interface PlaceholderImageProps {
   className?: string
@@ -18,8 +17,8 @@ export default function PlaceholderImage({
     <div
       className={`${aspectRatio} ${className} flex items-center justify-center relative overflow-hidden`}
       style={{
-        background: `linear-gradient(135deg, #1A1A24 0%, ${THEME.colors.bg.primary} 100%)`,
-        border: `1px solid ${THEME.colors.border.subtle}`,
+        background: "linear-gradient(135deg, var(--color-surface-2) 0%, var(--color-surface) 100%)",
+        border: "1px solid var(--color-border)",
         ...style,
       }}
       role="img"

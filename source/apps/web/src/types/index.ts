@@ -1,9 +1,10 @@
-export type Gender = 'Nam' | 'Nữ' | 'Khác'
-export type Level = 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert'
-export type Goal = 'Strength' | 'Hypertrophy' | 'Endurance'
-export type MuscleGroup = 'Chest' | 'Back' | 'Legs' | 'Shoulders' | 'Arms' | 'Core'
-export type Duration = '15 min' | '30 min' | '45 min' | '60+ min'
-export type Equipment = 'Barbell' | 'Dumbbell' | 'Bodyweight' | 'Cable'
+export type Gender = "Nam" | "Nữ" | "Khác"
+export type Level = "Beginner" | "Intermediate" | "Advanced" | "Expert"
+export type Goal = "Strength" | "Hypertrophy" | "Endurance"
+export type MuscleGroup = "Chest" | "Back" | "Legs" | "Shoulders" | "Arms" | "Core" | "Abs" | "Cardio"
+export type Duration = "15 min" | "30 min" | "45 min" | "60+ min"
+export type Equipment = "Barbell" | "Dumbbell" | "Bodyweight" | "Cable" | "Kettlebell" | "Pull-up bar" | "Machine" | "EZ Curl Bar" | "Resistance Band" | "TRX / Suspension" | "Gym mat" | "Swiss Ball" | "Bench" | "Incline bench" | "Foam Roll"
+export type Frequency = "3 ngày" | "4 ngày" | "5 ngày" | "6 ngày"
 
 export interface UserCriteria {
   gender?: Gender
@@ -12,6 +13,7 @@ export interface UserCriteria {
   muscleGroups: MuscleGroup[]
   duration?: Duration
   equipment: Equipment[]
+  frequency?: Frequency
 }
 
 export interface SetData {
@@ -23,15 +25,23 @@ export interface SetData {
 export interface Exercise {
   id: string
   name: string
+  name_vi?: string
   muscleGroup: MuscleGroup
+  muscles?: string[]
+  muscles_vi?: string[]
+  musclesSecondary?: string[]
+  musclesSecondary_vi?: string[]
   level: Level
   equipment: Equipment
+  equipmentList?: string[]
+  category?: string
   sets: number
   reps: string
   restSeconds: number
   description: string
   trainer?: string
   image?: string
+  video?: string
 }
 
 export interface WorkoutSet extends SetData {
@@ -45,13 +55,26 @@ export interface ExerciseProgress {
   completed: boolean
 }
 
+export interface WorkoutHistoryEntry {
+  id: string
+  completedAt: string
+  durationSeconds: number
+  exercises: Exercise[]
+  totalSets: number
+  completedSets: number
+  totalVolume: number
+  criteria: UserCriteria | null
+}
+
 export interface AppState {
   isFirstVisit: boolean
   cookiesAccepted: boolean
+  storagePreferenceAnswered: boolean
   criteria: UserCriteria | null
   todayExercises: Exercise[]
   workoutStarted: boolean
   workoutCompleted: boolean
   currentExerciseIndex: number
   exerciseProgress: ExerciseProgress[]
+  workoutHistory: WorkoutHistoryEntry[]
 }

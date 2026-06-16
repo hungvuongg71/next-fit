@@ -27,17 +27,17 @@ const THEMES: Array<{ id: ThemeName; label: string; description: string }> = [
 ]
 
 export default function ThemeSwitcher({ className = "" }: ThemeSwitcherProps) {
-  const [currentTheme, setCurrentTheme] = useState<ThemeName>("premium-athletic")
-  const [mounted, setMounted] = useState(false)
+  const [currentTheme, setCurrentTheme] = useState<ThemeName>(() => {
+    if (typeof window === "undefined") return "premium-athletic"
+    const saved = localStorage.getItem("nextfit-theme") as ThemeName | null
+    return saved && ["premium-athletic", "cyber-athlete", "organic-performance"].includes(saved)
+      ? saved
+      : "premium-athletic"
+  })
 
   useEffect(() => {
-    setMounted(true)
-    const saved = localStorage.getItem("nextfit-theme") as ThemeName | null
-    if (saved && ["premium-athletic", "cyber-athlete", "organic-performance"].includes(saved)) {
-      setCurrentTheme(saved)
-      applyTheme(saved)
-    }
-  }, [])
+    applyTheme(currentTheme)
+  }, [currentTheme])
 
   const handleThemeChange = (themeId: ThemeName) => {
     setCurrentTheme(themeId)
@@ -45,14 +45,12 @@ export default function ThemeSwitcher({ className = "" }: ThemeSwitcherProps) {
     localStorage.setItem("nextfit-theme", themeId)
   }
 
-  if (!mounted) return null
-
   return (
     <div className={`flex flex-col gap-3 ${className}`}>
       <div className="flex items-center gap-2">
         <Palette size={18} style={{ color: "var(--color-text-secondary)" }} />
         <h3 className="font-heading font-semibold text-sm" style={{ color: "var(--color-text-primary)" }}>
-          Themes
+          Chủ đề
         </h3>
       </div>
 
@@ -86,7 +84,7 @@ export default function ThemeSwitcher({ className = "" }: ThemeSwitcherProps) {
         style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
       >
         <p className="font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
-          Theme preference is saved in your browser
+          Tùy chọn giao diện được lưu trong trình duyệt
         </p>
       </div>
     </div>

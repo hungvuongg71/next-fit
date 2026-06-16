@@ -2,7 +2,6 @@
 
 import { User } from "lucide-react"
 import Link from "next/link"
-import { THEME } from "@/lib/theme"
 
 interface TopHeaderProps {
   title?: string
@@ -18,14 +17,14 @@ export default function TopHeader({ title, subtitle, rightAction }: TopHeaderPro
       style={{
         background: "rgba(0,0,0,0.9)",
         backdropFilter: "blur(20px)",
-        borderBottom: `1px solid ${THEME.colors.border.subtle}`,
+        borderBottom: "1px solid var(--color-border)",
       }}
     >
       {/* Logo */}
       <div className="flex items-center gap-2">
         <div
           className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ background: THEME.colors.primary }}
+          style={{ background: "var(--color-primary)" }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <rect x="3" y="8" width="4" height="8" rx="1" fill="white" />
@@ -33,7 +32,7 @@ export default function TopHeader({ title, subtitle, rightAction }: TopHeaderPro
             <rect x="7" y="10" width="10" height="4" rx="1" fill="white" />
           </svg>
         </div>
-        <span className="font-display font-bold text-lg tracking-tight" style={{ color: THEME.colors.text.primary }}>
+        <span className="font-display font-bold text-lg tracking-tight" style={{ color: "var(--color-text)" }}>
           {title || "NextFit"}
         </span>
       </div>
@@ -41,7 +40,7 @@ export default function TopHeader({ title, subtitle, rightAction }: TopHeaderPro
       {subtitle && (
         <p
           className="text-xs font-body absolute left-1/2 -translate-x-1/2 hidden sm:block"
-          style={{ color: THEME.colors.text.secondary }}
+          style={{ color: "var(--color-text-secondary)" }}
         >
           {subtitle}
         </p>
@@ -52,10 +51,10 @@ export default function TopHeader({ title, subtitle, rightAction }: TopHeaderPro
         <Link
           href="/profile"
           aria-label="View profile"
-          className="w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:ring-blue-400"
-          style={{ background: THEME.colors.bg.subtle }}
+          className="w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] focus-visible:ring-[var(--color-primary)]"
+          style={{ background: "var(--color-surface-subtle)" }}
         >
-          <User size={18} style={{ color: THEME.colors.text.secondary }} aria-hidden="true" />
+          <User size={18} style={{ color: "var(--color-text-secondary)" }} aria-hidden="true" />
         </Link>
       )}
     </header>

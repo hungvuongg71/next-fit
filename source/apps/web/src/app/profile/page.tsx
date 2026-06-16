@@ -1,59 +1,125 @@
 "use client"
-import TopHeader from "@/components/layout/TopHeader"
+
+import { useRouter } from "next/navigation"
+import { Activity, Clock3, Dumbbell, Settings2, User } from "lucide-react"
 import BottomNav from "@/components/layout/BottomNav"
+import TopHeader from "@/components/layout/TopHeader"
 import ThemeSwitcher from "@/components/ui/ThemeSwitcher"
-import { User } from "lucide-react"
 import { useApp } from "@/lib/context"
-import { THEME } from "@/lib/theme"
 
 export default function ProfilePage() {
+  const router = useRouter()
   const { state } = useApp()
+  const criteria = state.criteria
+  const latestWorkout = state.workoutHistory[0]
+
+  const rows = [
+    { label: "Giới tính", value: criteria?.gender ?? "Chưa chọn" },
+    { label: "Trình độ", value: criteria?.level ?? "Chưa chọn" },
+    { label: "Mục tiêu", value: criteria?.goal ?? "Chưa chọn" },
+    { label: "Thời lượng", value: criteria?.duration ?? "Chưa chọn" },
+    { label: "Tần suất", value: criteria?.frequency ?? "Chưa chọn" },
+    { label: "Dụng cụ", value: criteria?.equipment.length ? criteria.equipment.join(", ") : "Chưa chọn" },
+  ]
+
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: THEME.colors.bg.dark }}>
-      <TopHeader />
-      <main className="flex-1 px-4 pt-8 pb-24">
-        <div className="flex flex-col items-center mb-8">
-          <div
-            className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
-            style={{ background: THEME.colors.bg.subtle, border: `2px solid ${THEME.colors.border.subtle}` }}
-          >
-            <User size={32} style={{ color: THEME.colors.text.secondary }} />
-          </div>
-          <h1 className="font-display font-bold text-2xl mb-1" style={{ color: THEME.colors.text.primary }}>
-            Gymer NextFit
-          </h1>
-          <p className="font-body text-sm" style={{ color: THEME.colors.text.secondary }}>
-            {state.criteria?.level || "Beginner"} · {state.criteria?.goal || "Strength"}
-          </p>
-        </div>
-        <div
-          className="p-5 rounded-2xl mb-6"
-          style={{ background: THEME.colors.bg.primary, border: `1px solid ${THEME.colors.border.subtle}` }}
+    <div className="min-h-dvh" style={{ background: "var(--color-bg)", color: "var(--color-text)" }}>
+      <TopHeader title="Hồ sơ" subtitle="Tiêu chí & tùy chỉnh" />
+
+      <main className="mx-auto grid w-full max-w-4xl gap-5 px-4 pb-28 pt-5 md:px-6">
+        <section
+          className="relative overflow-hidden rounded-[30px] p-5"
+          style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
         >
-          <h2 className="font-heading font-semibold text-sm mb-4" style={{ color: THEME.colors.text.secondary }}>
-            THÔNG TIN
-          </h2>
-          {[
-            { label: "Giới tính", value: state.criteria?.gender || "—" },
-            { label: "Trình độ", value: state.criteria?.level || "—" },
-            { label: "Mục tiêu", value: state.criteria?.goal || "—" },
-          ].map((row) => (
+          <div
+            className="pointer-events-none absolute -right-14 -top-16 h-44 w-44 rounded-full blur-3xl"
+            style={{ background: "rgba(var(--color-primary-rgb), 0.2)" }}
+            aria-hidden="true"
+          />
+          <div className="relative flex items-center gap-4">
             <div
-              key={row.label}
-              className="flex justify-between py-3"
-              style={{ borderBottom: `1px solid ${THEME.colors.border.subtle}` }}
+              className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[28px]"
+              style={{ background: "rgba(var(--color-primary-rgb), 0.14)", border: "1px solid rgba(var(--color-primary-rgb), 0.28)" }}
             >
-              <span className="font-body text-sm" style={{ color: THEME.colors.text.secondary }}>
-                {row.label}
-              </span>
-              <span className="font-heading font-semibold text-sm" style={{ color: THEME.colors.text.primary }}>
-                {row.value}
-              </span>
+              <User size={34} style={{ color: "var(--color-primary)" }} aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="font-display text-3xl font-extrabold leading-tight">Gymer NextFit</h1>
+              <p className="mt-1 font-body text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                {criteria?.level ?? "Beginner"} · {criteria?.goal ?? "Strength"}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="grid grid-cols-3 gap-3">
+          {[
+            { icon: Dumbbell, label: "Buổi tập", value: state.workoutHistory.length.toString() },
+            { icon: Activity, label: "Hiệp", value: state.workoutHistory.reduce((sum, entry) => sum + entry.completedSets, 0).toString() },
+            { icon: Clock3, label: "Gần nhất", value: latestWorkout ? `${Math.round(latestWorkout.durationSeconds / 60)}m` : "--" },
+          ].map(({ icon: Icon, label, value }) => (
+            <div
+              key={label}
+              className="rounded-[24px] p-4"
+              style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+            >
+              <Icon size={18} style={{ color: "var(--color-primary)" }} aria-hidden="true" />
+              <p className="mt-3 font-number text-lg" style={{ color: "var(--color-primary)" }}>
+                {value}
+              </p>
+              <p className="mt-1 font-body text-[11px]" style={{ color: "var(--color-text-secondary)" }}>
+                {label}
+              </p>
             </div>
           ))}
-        </div>
-        <ThemeSwitcher />
+        </section>
+
+        <section
+          className="rounded-[28px] p-5"
+          style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+        >
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-heading text-base font-semibold">Thông tin tập luyện</h2>
+              <p className="mt-1 font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                Dữ liệu được lưu trong Local Storage.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="flex min-h-11 items-center gap-2 rounded-2xl px-3 font-heading text-xs font-semibold transition-all active:scale-95"
+              style={{ background: "rgba(var(--color-primary-rgb), 0.14)", color: "var(--color-primary)" }}
+            >
+              <Settings2 size={15} aria-hidden="true" />
+              Chỉnh
+            </button>
+          </div>
+
+          <div className="grid gap-1">
+            {rows.map((row) => (
+              <div
+                key={row.label}
+                className="flex items-start justify-between gap-4 py-3"
+                style={{ borderBottom: "1px solid var(--color-border)" }}
+              >
+                <span className="font-body text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                  {row.label}
+                </span>
+                <span className="max-w-[58%] text-right font-heading text-sm font-semibold">{row.value}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section
+          className="rounded-[28px] p-5"
+          style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+        >
+          <ThemeSwitcher />
+        </section>
       </main>
+
       <BottomNav />
     </div>
   )

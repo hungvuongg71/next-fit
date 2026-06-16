@@ -1,9 +1,8 @@
 "use client"
 
+import { useState } from "react"
 import { RefreshCw, X, ChevronRight } from "lucide-react"
 import { Exercise } from "@/types"
-import PlaceholderImage from "./PlaceholderImage"
-import { THEME } from "@/lib/theme"
 
 interface ExerciseCardProps {
   exercise: Exercise
@@ -22,23 +21,50 @@ export default function ExerciseCard({
   onReplace,
   showActions = true,
 }: ExerciseCardProps) {
+  const [imgErr, setImgErr] = useState(false)
+
   return (
     <div
       className="flex items-center gap-3 p-3 rounded-2xl animate-fadeIn transition-all duration-200"
       style={{
-        background: THEME.colors.bg.primary,
-        border: `1px solid ${THEME.colors.border.subtle}`,
+        background: "var(--color-surface)",
+        border: "1px solid var(--color-border)",
         animationDelay: `${index * 80}ms`,
         animationFillMode: "both",
       }}
     >
-      {/* Placeholder image */}
+      {/* Image */}
       <button
         onClick={() => onView(exercise)}
-        className="flex-shrink-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:ring-blue-400"
+        className="relative flex-shrink-0 w-16 h-16 overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] focus-visible:ring-[var(--color-primary)]"
         aria-label={`View ${exercise.name} details`}
       >
-        <PlaceholderImage className="w-16 rounded-xl" label="" style={{ height: "64px" } as React.CSSProperties} />
+        {exercise.image && !imgErr ? (
+          <img
+            src={exercise.image}
+            alt={exercise.name}
+            className="h-full w-full object-cover"
+            onError={() => setImgErr(true)}
+          />
+        ) : (
+          <div
+            className="h-full w-full flex items-center justify-center"
+            style={{
+              background: "linear-gradient(135deg, var(--color-surface-2) 0%, var(--color-surface) 100%)",
+            }}
+          >
+            <svg
+              className="absolute inset-0 w-full h-full"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+              fill="none"
+              aria-hidden="true"
+            >
+              <line x1="0" y1="0" x2="100" y2="100" stroke="rgba(255,255,255,0.08)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+              <line x1="100" y1="0" x2="0" y2="100" stroke="rgba(255,255,255,0.08)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+            </svg>
+          </div>
+        )}
       </button>
 
       {/* Info */}
@@ -56,14 +82,14 @@ export default function ExerciseCard({
       >
         <p
           className="font-heading font-semibold text-sm leading-tight mb-0.5 truncate"
-          style={{ color: THEME.colors.text.primary }}
+          style={{ color: "var(--color-text)" }}
         >
           {exercise.name}
         </p>
-        <p className="font-body text-xs mb-1.5" style={{ color: THEME.colors.text.secondary }}>
+        <p className="font-body text-xs mb-1.5" style={{ color: "var(--color-text-secondary)" }}>
           {exercise.muscleGroup} · {exercise.level}
         </p>
-        <p className="font-body text-xs" style={{ color: THEME.colors.text.secondary }}>
+        <p className="font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
           {exercise.sets} Sets · {exercise.reps} Reps · {exercise.restSeconds}s Rest
         </p>
       </div>
@@ -75,24 +101,24 @@ export default function ExerciseCard({
             <button
               onClick={() => onReplace(exercise.id)}
               aria-label="Replace exercise"
-              className="w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:ring-blue-400"
+              className="w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] focus-visible:ring-[var(--color-primary)]"
               style={{
-                background: THEME.colors.bg.subtle,
+                background: "var(--color-surface-subtle)",
               }}
             >
-              <RefreshCw size={14} style={{ color: THEME.colors.text.secondary }} aria-hidden="true" />
+              <RefreshCw size={14} style={{ color: "var(--color-text-secondary)" }} aria-hidden="true" />
             </button>
           )}
           {onRemove && (
             <button
               onClick={() => onRemove(exercise.id)}
               aria-label="Remove exercise"
-              className="w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:ring-blue-400"
+              className="w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] focus-visible:ring-[var(--color-primary)]"
               style={{
-                background: THEME.colors.bg.error,
+                background: "rgba(214,69,69,0.12)",
               }}
             >
-              <X size={14} style={{ color: "#FF007F" }} aria-hidden="true" />
+              <X size={14} style={{ color: "#ff6b6b" }} aria-hidden="true" />
             </button>
           )}
         </div>
@@ -100,9 +126,9 @@ export default function ExerciseCard({
         <button
           onClick={() => onView(exercise)}
           aria-label={`View ${exercise.name} details`}
-          className="rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:ring-blue-400"
+          className="rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] focus-visible:ring-[var(--color-primary)]"
         >
-          <ChevronRight size={18} style={{ color: THEME.colors.text.secondary }} aria-hidden="true" />
+          <ChevronRight size={18} style={{ color: "var(--color-text-secondary)" }} aria-hidden="true" />
         </button>
       )}
     </div>

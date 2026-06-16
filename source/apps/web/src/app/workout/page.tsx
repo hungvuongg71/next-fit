@@ -1,383 +1,490 @@
-'use client'
+"use client"
 
-import { useState, useCallback, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Pause, Play, ChevronLeft, Check, Plus, Trophy } from 'lucide-react'
-import { useApp } from '@/lib/context'
-import { Exercise } from '@/types'
-import PlaceholderImage from '@/components/ui/PlaceholderImage'
-import ExerciseModal from '@/components/ui/ExerciseModal'
-import RestTimer from '@/components/ui/RestTimer'
+import { useEffect, useMemo, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
+import { Check, ChevronLeft, Dumbbell, Pause, Play, Plus, Trophy, AlertTriangle } from "lucide-react"
+import ExerciseModal from "@/components/ui/ExerciseModal"
+import PlaceholderImage from "@/components/ui/PlaceholderImage"
+import RestTimer from "@/components/ui/RestTimer"
+import { useApp } from "@/lib/context"
+import { Exercise, ExerciseProgress } from "@/types"
 
-interface SetRow {
-  setIndex: number
-  reps: string
-  weight: string
-  completed: boolean
-  showRest: boolean
+function formatElapsed(seconds: number) {
+  const minutes = Math.floor(seconds / 60)
+  const rest = seconds % 60
+  return `${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`
 }
 
-interface ExerciseState {
-  sets: SetRow[]
+function buildProgress(exercises: Exercise[]): ExerciseProgress[] {
+  return exercises.map((exercise) => ({
+    exercise,
+    currentSet: 0,
+    completed: false,
+    sets: Array.from({ length: exercise.sets }, () => ({ reps: null, weight: null, completed: false })),
+  }))
 }
 
 export default function WorkoutPage() {
   const router = useRouter()
-  const { state, completeWorkout, resetWorkout } = useApp()
-
-  const exercises = state.todayExercises
+  const { state, updateExerciseProgress, completeWorkout, resetWorkout, startWorkout } = useApp()
   const [isPaused, setIsPaused] = useState(false)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null)
   const [showCompleted, setShowCompleted] = useState(false)
-
-  // Rest timer state
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+  const cancelDialogRef = useRef<HTMLDivElement>(null)
+  const continueBtnRef = useRef<HTMLButtonElement>(null)
   const [restState, setRestState] = useState<{
     active: boolean
     exerciseName: string
     setNumber: number
     restSeconds: number
-  }>({ active: false, exerciseName: '', setNumber: 0, restSeconds: 60 })
+  }>({ active: false, exerciseName: "", setNumber: 0, restSeconds: 60 })
 
-  // Per-exercise set states
-  const [exerciseStates, setExerciseStates] = useState<ExerciseState[]>(() =>
-    exercises.map(ex => ({
-      sets: Array.from({ length: ex.sets }, (_, i) => ({
-        setIndex: i,
-        reps: '',
-        weight: '',
-        completed: false,
-        showRest: false,
-      })),
-    }))
-  )
+  const progress = useMemo(() => {
+    if (state.exerciseProgress.length) return state.exerciseProgress
+    return buildProgress(state.todayExercises)
+  }, [state.exerciseProgress, state.todayExercises])
 
-  // Scroll to active exercise
-  const [elapsedSeconds, setElapsedSeconds] = useState(0)
   useEffect(() => {
-    if (isPaused) return
-    const t = setInterval(() => setElapsedSeconds(s => s + 1), 1000)
-    return () => clearInterval(t)
-  }, [isPaused])
+    if (!state.workoutStarted && !state.exerciseProgress.length) return
+    if (!state.exerciseProgress.length && state.todayExercises.length) {
+      updateExerciseProgress(buildProgress(state.todayExercises))
+    }
+  }, [state.exerciseProgress.length, state.todayExercises, state.workoutStarted, updateExerciseProgress])
 
-  const formatElapsed = () => {
-    const m = Math.floor(elapsedSeconds / 60)
-    const s = elapsedSeconds % 60
-    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+  useEffect(() => {
+    if (isPaused || showCompleted || !state.workoutStarted) return
+    const timer = window.setInterval(() => setElapsedSeconds((seconds) => seconds + 1), 1000)
+    return () => window.clearInterval(timer)
+  }, [isPaused, showCompleted, state.workoutStarted])
+
+  useEffect(() => {
+    if (state.workoutStarted && !showCompleted) {
+      const handler = (e: BeforeUnloadEvent) => {
+        e.preventDefault()
+        e.returnValue = ""
+      }
+      window.addEventListener("beforeunload", handler)
+      return () => window.removeEventListener("beforeunload", handler)
+    }
+  }, [state.workoutStarted, showCompleted])
+
+  useEffect(() => {
+    if (!state.todayExercises.length && !showCompleted) {
+      router.replace("/")
+    }
+  }, [state.todayExercises.length, showCompleted, router])
+
+  useEffect(() => {
+    if (showCancelConfirm) {
+      continueBtnRef.current?.focus()
+      const handleKey = (e: KeyboardEvent) => {
+        if (e.key === "Escape") setShowCancelConfirm(false)
+      }
+      document.addEventListener("keydown", handleKey)
+      return () => document.removeEventListener("keydown", handleKey)
+    }
+  }, [showCancelConfirm])
+
+  const totals = useMemo(() => {
+    const totalSets = progress.reduce((sum, item) => sum + item.sets.length, 0)
+    const completedSets = progress.reduce((sum, item) => sum + item.sets.filter((set) => set.completed).length, 0)
+    const totalVolume = progress.reduce(
+      (sum, item) =>
+        sum +
+        item.sets.reduce((setSum, set) => {
+          if (!set.completed) return setSum
+          return setSum + (set.reps ?? 0) * (set.weight ?? 0)
+        }, 0),
+      0,
+    )
+    return {
+      totalSets,
+      completedSets,
+      totalVolume,
+      progressPct: totalSets ? Math.round((completedSets / totalSets) * 100) : 0,
+      allCompleted: totalSets > 0 && completedSets === totalSets,
+    }
+  }, [progress])
+
+  const replaceProgress = (next: ExerciseProgress[]) => updateExerciseProgress(next)
+
+  const updateSet = (
+    exerciseIndex: number,
+    setIndex: number,
+    field: "reps" | "weight" | "completed",
+    value: number | boolean | null,
+  ) => {
+    replaceProgress(
+      progress.map((item, itemIndex) => {
+        if (itemIndex !== exerciseIndex) return item
+        const sets = item.sets.map((set, currentSetIndex) =>
+          currentSetIndex === setIndex ? { ...set, [field]: value } : set,
+        )
+        return {
+          ...item,
+          sets,
+          currentSet: sets.findIndex((set) => !set.completed) === -1 ? sets.length - 1 : sets.findIndex((set) => !set.completed),
+          completed: sets.every((set) => set.completed),
+        }
+      }),
+    )
   }
 
-  const updateSet = (exIdx: number, setIdx: number, field: keyof SetRow, value: string | boolean) => {
-    setExerciseStates(prev => {
-      const next = [...prev]
-      const sets = [...next[exIdx].sets]
-      sets[setIdx] = { ...sets[setIdx], [field]: value }
-      next[exIdx] = { ...next[exIdx], sets }
-      return next
-    })
+  const addSet = (exerciseIndex: number) => {
+    replaceProgress(
+      progress.map((item, itemIndex) =>
+        itemIndex === exerciseIndex
+          ? { ...item, sets: [...item.sets, { reps: null, weight: null, completed: false }] }
+          : item,
+      ),
+    )
   }
 
-  const handleCheckSet = (exIdx: number, setIdx: number) => {
-    updateSet(exIdx, setIdx, 'completed', true)
-    updateSet(exIdx, setIdx, 'showRest', true)
-    // Show rest timer
+  const handleCheckSet = (exerciseIndex: number, setIndex: number) => {
+    updateSet(exerciseIndex, setIndex, "completed", true)
+    const exercise = progress[exerciseIndex].exercise
     setRestState({
       active: true,
-      exerciseName: exercises[exIdx].name,
-      setNumber: setIdx + 1,
-      restSeconds: exercises[exIdx].restSeconds,
+      exerciseName: exercise.name,
+      setNumber: setIndex + 1,
+      restSeconds: exercise.restSeconds,
     })
   }
-
-  const handleRestComplete = () => {
-    setRestState(prev => ({ ...prev, active: false }))
-  }
-
-  const addSet = (exIdx: number) => {
-    setExerciseStates(prev => {
-      const next = [...prev]
-      const sets = [...next[exIdx].sets]
-      sets.push({ setIndex: sets.length, reps: '', weight: '', completed: false, showRest: false })
-      next[exIdx] = { ...next[exIdx], sets }
-      return next
-    })
-  }
-
-  const allCompleted = exerciseStates.every(ex => ex.sets.every(s => s.completed))
 
   const handleComplete = () => {
-    completeWorkout()
+    completeWorkout(elapsedSeconds, progress)
     setShowCompleted(true)
   }
 
   const handleCancel = () => {
     resetWorkout()
-    router.push('/')
+    router.push("/")
   }
 
-  // Completion screen
-  if (showCompleted) {
+  if (!state.workoutStarted && !state.exerciseProgress.length && !showCompleted) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center"
-        style={{ background: '#000000' }}>
-        <div className="mb-6 relative">
-          <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto"
-            style={{ background: 'rgba(41,121,255,0.15)', border: '2px solid #2979FF' }}>
-            <Trophy size={40} style={{ color: '#2979FF' }} />
-          </div>
-          <div className="absolute -inset-4 rounded-full opacity-20 blur-2xl"
-            style={{ background: '#2979FF' }} />
+      <div className="flex min-h-dvh flex-col items-center justify-center px-5 text-center" style={{ background: "var(--color-bg)", color: "var(--color-text)" }}>
+        <div
+          className="mb-5 flex h-20 w-20 items-center justify-center rounded-[28px]"
+          style={{ background: "rgba(var(--color-primary-rgb), 0.14)", border: "1px solid rgba(var(--color-primary-rgb), 0.28)" }}
+        >
+          <Dumbbell size={34} style={{ color: "var(--color-primary)" }} aria-hidden="true" />
         </div>
-        <h1 className="font-display font-extrabold text-4xl mb-3" style={{ color: '#E0E0E0' }}>
-          Xuất sắc! 🎉
-        </h1>
-        <p className="font-body text-base mb-2" style={{ color: '#6B6B7A' }}>
-          Bạn đã hoàn thành buổi tập hôm nay
+        <h1 className="font-display text-3xl font-extrabold">Chưa có buổi tập</h1>
+        <p className="mt-3 max-w-sm font-body text-sm leading-6" style={{ color: "var(--color-text-secondary)" }}>
+          Về trang chủ để chọn bài tập rồi bắt đầu buổi tập.
         </p>
-        <p className="font-number text-2xl mb-10" style={{ color: '#2979FF' }}>
-          {formatElapsed()}
-        </p>
-        <div className="flex flex-col gap-3 w-full max-w-sm">
-          <div className="grid grid-cols-3 gap-3 mb-2">
-            {exercises.map(ex => (
-              <div key={ex.id} className="p-3 rounded-2xl text-center"
-                style={{ background: '#0F0F14', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <p className="font-heading font-bold text-lg" style={{ color: '#2979FF' }}>
-                  {ex.sets}
-                </p>
-                <p className="font-body text-xs leading-tight" style={{ color: '#6B6B7A' }}>
-                  {ex.name.split(' ')[0]}
-                </p>
-              </div>
-            ))}
-          </div>
-          <button onClick={() => router.push('/')}
-            className="w-full py-4 rounded-2xl font-heading font-bold text-base"
-            style={{ background: '#2979FF', color: '#fff' }}>
-            Về Trang Chính
+        <div className="mt-7 grid w-full max-w-sm gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              startWorkout()
+              setElapsedSeconds(0)
+            }}
+            className="min-h-14 rounded-2xl font-heading font-bold"
+            style={{ background: "var(--color-primary)", color: "#fff", boxShadow: "var(--shadow-glow)" }}
+          >
+            Bắt đầu với danh sách hiện tại
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="min-h-12 rounded-2xl font-heading font-semibold"
+            style={{ background: "var(--color-surface-subtle)", color: "var(--color-text-secondary)" }}
+          >
+            Về trang chủ
           </button>
         </div>
       </div>
     )
   }
 
-  const totalSets = exerciseStates.reduce((s, e) => s + e.sets.length, 0)
-  const completedSets = exerciseStates.reduce((s, e) => s + e.sets.filter(x => x.completed).length, 0)
-  const progressPct = totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0
+  if (showCompleted) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center px-5 text-center" style={{ background: "var(--color-bg)", color: "var(--color-text)" }}>
+        <div className="relative mb-7">
+          <div
+            className="flex h-28 w-28 items-center justify-center rounded-full"
+            style={{ background: "rgba(var(--color-primary-rgb), 0.16)", border: "2px solid var(--color-primary)" }}
+          >
+            <Trophy size={44} style={{ color: "var(--color-primary)" }} aria-hidden="true" />
+          </div>
+          <div className="absolute -inset-5 rounded-full blur-3xl opacity-25" style={{ background: "var(--color-primary)" }} aria-hidden="true" />
+        </div>
+        <h1 className="font-display text-4xl font-extrabold">Buổi tập đã lưu</h1>
+        <p className="mt-3 font-body text-sm" style={{ color: "var(--color-text-secondary)" }}>
+          {totals.completedSets}/{totals.totalSets} hiệp · {Math.round(totals.totalVolume).toLocaleString("vi-VN")} kg
+        </p>
+        <p className="mt-4 font-number text-3xl" style={{ color: "var(--color-primary)" }}>
+          {formatElapsed(elapsedSeconds)}
+        </p>
+        <button
+          type="button"
+          onClick={() => router.push("/")}
+          className="mt-9 min-h-14 w-full max-w-sm rounded-2xl font-heading font-bold"
+          style={{ background: "var(--color-primary)", color: "#fff", boxShadow: "var(--shadow-glow)" }}
+        >
+          Về trang chủ
+        </button>
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#000000' }}>
-      {/* Top bar */}
-      <div className="sticky top-0 z-30 px-4 pt-4 pb-3"
-        style={{ background: 'rgba(0,0,0,0.95)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-        <div className="flex items-center justify-between mb-3">
-          <button onClick={handleCancel}
-            className="w-9 h-9 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <ChevronLeft size={20} style={{ color: '#6B6B7A' }} />
+    <div className="min-h-dvh" style={{ background: "var(--color-bg)", color: "var(--color-text)" }}>
+      <header
+        className="sticky top-0 z-30 px-4 pb-3 pt-4"
+        style={{ background: "rgba(0,0,0,0.92)", borderBottom: "1px solid var(--color-border)", backdropFilter: "blur(20px)" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setShowCancelConfirm(true)}
+            aria-label="Hủy buổi tập"
+            className="flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+            style={{ background: "rgba(255,255,255,0.06)" }}
+          >
+            <ChevronLeft size={21} style={{ color: "var(--color-text-secondary)" }} aria-hidden="true" />
           </button>
           <div className="text-center">
-            <p className="font-display font-bold text-base" style={{ color: '#E0E0E0' }}>Buổi Tập Hôm Nay</p>
-            <p className="font-body text-xs" style={{ color: '#6B6B7A' }}>Tập trung vào sức mạnh</p>
+            <p className="font-display text-base font-bold">Buổi tập hôm nay</p>
+            <p className="font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
+              {totals.completedSets}/{totals.totalSets} sets · {formatElapsed(elapsedSeconds)}
+            </p>
           </div>
-          <button onClick={() => setIsPaused(!isPaused)}
-            className="w-9 h-9 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.06)' }}>
-            {isPaused ? <Play size={16} style={{ color: '#2979FF' }} /> : <Pause size={16} style={{ color: '#6B6B7A' }} />}
+          <button
+            type="button"
+            onClick={() => setIsPaused((value) => !value)}
+            aria-label={isPaused ? "Tiếp tục timer" : "Tạm dừng timer"}
+            aria-pressed={isPaused}
+            className="flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+            style={{ background: "rgba(255,255,255,0.06)" }}
+          >
+            {isPaused ? <Play size={17} style={{ color: "var(--color-primary)" }} aria-hidden="true" /> : <Pause size={17} style={{ color: "var(--color-text-secondary)" }} aria-hidden="true" />}
           </button>
         </div>
 
-        {/* Progress bar */}
         <div className="flex items-center gap-3">
-          <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-            <div className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${progressPct}%`, background: '#2979FF' }} />
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full" style={{ background: "rgba(255,255,255,0.08)" }}>
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{ width: `${totals.progressPct}%`, background: "var(--color-primary)" }}
+            />
           </div>
-          <span className="font-number text-sm" style={{ color: '#2979FF' }}>
-            {progressPct}%
+          <span className="font-number text-xs" style={{ color: "var(--color-primary)" }}>
+            {totals.progressPct}%
           </span>
         </div>
+      </header>
 
-        <div className="flex items-center justify-between mt-2">
-          <p className="font-body text-xs" style={{ color: '#6B6B7A' }}>
-            {exercises.length} bài tập · {completedSets}/{totalSets} sets
-          </p>
-          <p className="font-number text-xs" style={{ color: '#6B6B7A' }}>
-            {formatElapsed()}
-          </p>
-        </div>
-      </div>
-
-      {/* Exercise list */}
-      <main className="flex-1 px-4 pt-4 pb-36 overflow-y-auto">
-        <div className="flex flex-col gap-4">
-          {exercises.map((ex, exIdx) => {
-            const exState = exerciseStates[exIdx]
-            const exCompleted = exState.sets.every(s => s.completed)
-
-            return (
-              <div key={ex.id}
-                className="rounded-2xl overflow-hidden transition-all duration-300"
-                style={{
-                  background: '#0F0F14',
-                  border: `1px solid ${exCompleted ? 'rgba(41,121,255,0.3)' : 'rgba(255,255,255,0.06)'}`,
-                }}>
-                {/* Exercise header */}
-                <div className="flex items-start gap-3 p-4 pb-3">
-                  <button onClick={() => setSelectedExercise(ex)} className="flex-shrink-0">
-                    <PlaceholderImage className="w-16 rounded-xl" label=""
-                      style={{ height: '64px' } as React.CSSProperties} />
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-heading font-semibold text-sm leading-tight" style={{ color: '#E0E0E0' }}>
-                          {ex.name}
-                        </p>
-                        <p className="font-body text-xs mt-0.5" style={{ color: '#6B6B7A' }}>
-                          {ex.equipment} · {ex.trainer ? `HLV ${ex.trainer}` : ex.level}
-                        </p>
-                      </div>
-                      <span className="font-number text-xs flex-shrink-0 px-2 py-1 rounded-lg"
-                        style={{
-                          background: exCompleted ? 'rgba(41,121,255,0.15)' : 'rgba(255,255,255,0.06)',
-                          color: exCompleted ? '#2979FF' : '#6B6B7A',
-                        }}>
-                        {exState.sets.length} sets
-                      </span>
+      <main className="mx-auto grid w-full max-w-4xl gap-4 px-4 pb-36 pt-4">
+        {progress.map((item, exerciseIndex) => {
+          const exerciseCompleted = item.sets.every((set) => set.completed)
+          return (
+            <section
+              key={item.exercise.id}
+              className="overflow-hidden rounded-[28px]"
+              style={{
+                background: "var(--color-surface)",
+                border: `1px solid ${exerciseCompleted ? "rgba(var(--color-primary-rgb), 0.36)" : "var(--color-border)"}`,
+              }}
+            >
+              <div className="flex items-start gap-3 p-4">
+                <button
+                  type="button"
+                  onClick={() => setSelectedExercise(item.exercise)}
+                  className="shrink-0 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                  aria-label={`Xem chi tiết ${item.exercise.name}`}
+                >
+                  <PlaceholderImage className="w-16 rounded-2xl" label="" style={{ height: "64px" }} />
+                </button>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h2 className="font-heading text-sm font-semibold leading-tight">{item.exercise.name}</h2>
+                      <p className="mt-1 font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                        {item.exercise.equipment} · {item.exercise.muscleGroup} · {item.exercise.restSeconds}s nghỉ
+                      </p>
                     </div>
+                    <span
+                      className="shrink-0 rounded-xl px-2 py-1 font-number text-[10px]"
+                      style={{
+                        background: exerciseCompleted ? "rgba(var(--color-primary-rgb), 0.16)" : "var(--color-surface-subtle)",
+                        color: exerciseCompleted ? "var(--color-primary)" : "var(--color-text-secondary)",
+                      }}
+                    >
+                      {item.sets.filter((set) => set.completed).length}/{item.sets.length}
+                    </span>
                   </div>
                 </div>
+              </div>
 
-                {/* Sets */}
-                <div className="px-4 pb-2">
-                  {/* Column headers */}
-                  <div className="flex items-center gap-2 mb-2 px-1">
-                    <div className="w-7" />
-                    <div className="flex-1 text-center">
-                      <span className="font-heading text-xs uppercase tracking-wider" style={{ color: '#6B6B7A' }}>Reps</span>
-                    </div>
-                    <div className="flex-1 text-center">
-                      <span className="font-heading text-xs uppercase tracking-wider" style={{ color: '#6B6B7A' }}>Kg</span>
-                    </div>
-                    <div className="w-10 text-center">
-                      <span className="font-heading text-xs uppercase tracking-wider" style={{ color: '#6B6B7A' }}>Rest</span>
-                    </div>
-                    <div className="w-8" />
-                  </div>
+              <div className="px-4 pb-4">
+                <div className="mb-2 grid grid-cols-[32px_1fr_1fr_52px_44px] items-center gap-2 px-1 font-heading text-[10px] uppercase tracking-[0.18em]" style={{ color: "var(--color-text-secondary)" }}>
+                  <span>#</span>
+                  <span className="text-center">Số reps</span>
+                  <span className="text-center">Kg</span>
+                  <span className="text-center">Nghỉ</span>
+                  <span />
+                </div>
 
-                  {exState.sets.map((s, sIdx) => (
-                    <div key={sIdx}
-                      className="flex items-center gap-2 mb-2 p-2 rounded-xl transition-all"
+                <div className="grid gap-2">
+                  {item.sets.map((set, setIndex) => (
+                    <div
+                      key={`${item.exercise.id}-${setIndex}`}
+                      className="grid grid-cols-[32px_1fr_1fr_52px_44px] items-center gap-2 rounded-2xl p-2"
                       style={{
-                        background: s.completed ? 'rgba(41,121,255,0.06)' : 'rgba(255,255,255,0.03)',
-                        border: `1px solid ${s.completed ? 'rgba(41,121,255,0.15)' : 'rgba(255,255,255,0.04)'}`,
-                      }}>
-                      {/* Set number */}
-                      <div className="w-7 text-center">
-                        <span className="font-number text-xs" style={{ color: s.completed ? '#2979FF' : '#6B6B7A' }}>
-                          {sIdx + 1}
-                        </span>
-                      </div>
-
-                      {/* Reps input */}
+                        background: set.completed ? "rgba(var(--color-primary-rgb), 0.08)" : "rgba(255,255,255,0.035)",
+                        border: `1px solid ${set.completed ? "rgba(var(--color-primary-rgb), 0.2)" : "rgba(255,255,255,0.045)"}`,
+                      }}
+                    >
+                      <span className="text-center font-number text-xs" style={{ color: set.completed ? "var(--color-primary)" : "var(--color-text-secondary)" }}>
+                        {setIndex + 1}
+                      </span>
                       <input
-                        type="number" placeholder="0" value={s.reps}
-                        disabled={s.completed}
-                        onChange={e => updateSet(exIdx, sIdx, 'reps', e.target.value)}
-                        className="flex-1 text-center py-2 rounded-lg text-sm font-number font-bold outline-none transition-all"
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        value={set.reps ?? ""}
+                        disabled={set.completed}
+                        aria-label={`${item.exercise.name} hiệp ${setIndex + 1} số reps`}
+                        onChange={(event) =>
+                          updateSet(exerciseIndex, setIndex, "reps", event.target.value === "" ? null : Number(event.target.value))
+                        }
+                        className="min-h-10 min-w-0 rounded-xl text-center font-number text-sm outline-none disabled:opacity-100"
                         style={{
-                          background: s.completed ? 'transparent' : 'rgba(255,255,255,0.06)',
-                          color: s.completed ? '#2979FF' : '#E0E0E0',
-                          border: 'none',
-                          width: 0,
+                          background: set.completed ? "transparent" : "rgba(255,255,255,0.06)",
+                          color: set.completed ? "var(--color-primary)" : "var(--color-text)",
                         }}
                       />
-
-                      {/* Weight input */}
                       <input
-                        type="number" placeholder="0" value={s.weight}
-                        disabled={s.completed}
-                        onChange={e => updateSet(exIdx, sIdx, 'weight', e.target.value)}
-                        className="flex-1 text-center py-2 rounded-lg text-sm font-number font-bold outline-none transition-all"
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        value={set.weight ?? ""}
+                        disabled={set.completed}
+                        aria-label={`${item.exercise.name} hiệp ${setIndex + 1} kg`}
+                        onChange={(event) =>
+                          updateSet(exerciseIndex, setIndex, "weight", event.target.value === "" ? null : Number(event.target.value))
+                        }
+                        className="min-h-10 min-w-0 rounded-xl text-center font-number text-sm outline-none disabled:opacity-100"
                         style={{
-                          background: s.completed ? 'transparent' : 'rgba(255,255,255,0.06)',
-                          color: s.completed ? '#2979FF' : '#E0E0E0',
-                          border: 'none',
-                          width: 0,
+                          background: set.completed ? "transparent" : "rgba(255,255,255,0.06)",
+                          color: set.completed ? "var(--color-primary)" : "var(--color-text)",
                         }}
                       />
-
-                      {/* Rest badge */}
-                      <div className="w-10 text-center">
-                        <span className="font-body text-xs" style={{ color: '#6B6B7A' }}>
-                          {ex.restSeconds}s
-                        </span>
-                      </div>
-
-                      {/* Check button */}
+                      <span className="text-center font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                        {item.exercise.restSeconds}s
+                      </span>
                       <button
-                        onClick={() => !s.completed && handleCheckSet(exIdx, sIdx)}
-                        disabled={s.completed}
-                        className="w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-90"
+                        type="button"
+                        onClick={() => !set.completed && handleCheckSet(exerciseIndex, setIndex)}
+                        disabled={set.completed}
+                        aria-label={`Hoàn tất ${item.exercise.name} hiệp ${setIndex + 1}`}
+                        className="flex h-11 w-11 items-center justify-center rounded-2xl transition-all active:scale-90 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                         style={{
-                          background: s.completed ? 'rgba(41,121,255,0.2)' : '#2979FF',
-                          opacity: s.completed ? 1 : 1,
-                        }}>
-                        <Check size={14} color="white" />
+                          background: set.completed ? "rgba(var(--color-primary-rgb), 0.2)" : "var(--color-primary)",
+                          color: "#fff",
+                        }}
+                      >
+                        <Check size={16} aria-hidden="true" />
                       </button>
                     </div>
                   ))}
-
-                  {/* Add set */}
-                  <button onClick={() => addSet(exIdx)}
-                    className="w-full py-2.5 rounded-xl flex items-center justify-center gap-1.5 font-heading font-semibold text-xs transition-all active:scale-[0.98] mb-3"
-                    style={{ background: 'rgba(255,255,255,0.04)', color: '#6B6B7A' }}>
-                    <Plus size={13} />
-                    Thêm set
-                  </button>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => addSet(exerciseIndex)}
+                  className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl font-heading text-xs font-semibold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                  style={{ background: "rgba(255,255,255,0.045)", color: "var(--color-text-secondary)" }}
+                >
+                  <Plus size={14} aria-hidden="true" />
+                  Thêm hiệp
+                </button>
               </div>
-            )
-          })}
-        </div>
+            </section>
+          )
+        })}
       </main>
 
-      {/* Bottom actions */}
-      <div className="fixed bottom-0 left-0 right-0 flex gap-3 px-4 pb-8 pt-4"
-        style={{ background: 'linear-gradient(to top, #000 60%, transparent)' }}>
-        <button onClick={handleCancel}
-          className="flex-1 py-4 rounded-2xl font-heading font-semibold text-sm transition-all active:scale-[0.98]"
-          style={{ background: 'rgba(255,255,255,0.06)', color: '#6B6B7A' }}>
-          Hủy bỏ
+      <div
+        className="fixed inset-x-0 bottom-0 z-30 flex gap-3 px-4 pb-8 pt-5"
+        style={{ background: "linear-gradient(to top, var(--color-bg) 70%, transparent)" }}
+      >
+        <button
+          type="button"
+          onClick={() => setShowCancelConfirm(true)}
+          className="min-h-14 flex-1 rounded-2xl font-heading text-sm font-semibold transition-all active:scale-[0.98]"
+          style={{ background: "var(--color-surface-subtle)", color: "var(--color-text-secondary)" }}
+        >
+          Hủy
         </button>
         <button
+          type="button"
           onClick={handleComplete}
-          disabled={!allCompleted}
-          className="flex-[2] py-4 rounded-2xl font-heading font-bold text-base transition-all active:scale-[0.97]"
+          disabled={!totals.allCompleted}
+          className="min-h-14 flex-[2] rounded-2xl font-heading text-base font-bold transition-all active:scale-[0.98] disabled:active:scale-100"
           style={{
-            background: allCompleted ? '#2979FF' : 'rgba(255,255,255,0.06)',
-            color: allCompleted ? '#fff' : '#6B6B7A',
-            cursor: allCompleted ? 'pointer' : 'not-allowed',
-            boxShadow: allCompleted ? '0 0 30px rgba(41,121,255,0.35)' : 'none',
-          }}>
-          Hoàn Thành
+            background: totals.allCompleted ? "var(--color-primary)" : "var(--color-surface-subtle)",
+            color: totals.allCompleted ? "#fff" : "var(--color-text-secondary)",
+            boxShadow: totals.allCompleted ? "var(--shadow-glow)" : "none",
+          }}
+        >
+          Hoàn thành
         </button>
       </div>
 
-      {/* Rest timer overlay */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 px-4 pb-5" role="dialog" aria-modal="true" aria-labelledby="cancel-title" ref={cancelDialogRef}>
+          <div className="w-full max-w-md rounded-[28px] p-5 animate-slideUp" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl" style={{ background: "rgba(214,69,69,0.14)" }}>
+                <AlertTriangle size={20} style={{ color: "#D64545" }} aria-hidden="true" />
+              </div>
+              <h2 id="cancel-title" className="font-display text-2xl font-extrabold">
+                Hủy buổi tập?
+              </h2>
+            </div>
+            <p className="font-body text-sm leading-6" style={{ color: "var(--color-text-secondary)" }}>
+              Tiến trình hiện tại sẽ bị xóa. Chỉ nhấn &quot;Hoàn thành&quot; nếu bạn muốn lưu kết quả.
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button
+                ref={continueBtnRef}
+                type="button"
+                onClick={() => setShowCancelConfirm(false)}
+                className="min-h-12 rounded-2xl font-heading font-semibold transition-all active:scale-95"
+                style={{ background: "var(--color-surface-subtle)", color: "var(--color-text)" }}
+              >
+                Tiếp tục tập
+              </button>
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="min-h-12 rounded-2xl font-heading font-semibold transition-all active:scale-95"
+                style={{ background: "#D64545", color: "#fff" }}
+              >
+                Hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {restState.active && (
         <RestTimer
           exerciseName={restState.exerciseName}
           setNumber={restState.setNumber}
           defaultSeconds={restState.restSeconds}
-          onComplete={handleRestComplete}
-          onSkip={handleRestComplete}
+          onComplete={() => setRestState((prev) => ({ ...prev, active: false }))}
+          onSkip={() => setRestState((prev) => ({ ...prev, active: false }))}
         />
       )}
 
-      {/* Exercise modal */}
-      {selectedExercise && (
-        <ExerciseModal exercise={selectedExercise} onClose={() => setSelectedExercise(null)} />
-      )}
+      {selectedExercise && <ExerciseModal exercise={selectedExercise} onClose={() => setSelectedExercise(null)} />}
     </div>
   )
 }

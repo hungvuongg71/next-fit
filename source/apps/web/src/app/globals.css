@@ -15,14 +15,18 @@
 :root {
   /* Colors */
   --color-primary: #0fa560;
+  --color-primary-rgb: 15, 165, 96;
   --color-secondary: #1f1f28;
   --color-accent: #00d464;
   --color-bg: #000000;
+  --color-bg-rgb: 0, 0, 0;
   --color-text: #f5f5f7;
+  --color-text-primary: #f5f5f7;
   --color-text-secondary: #a1a1a6;
   --color-text-muted: rgba(255, 255, 255, 0.3);
   --color-surface: #131315;
   --color-surface-2: #1a1a24;
+  --color-surface-subtle: rgba(255, 255, 255, 0.06);
   --color-border: rgba(255, 255, 255, 0.08);
 
   /* Typography */
@@ -45,12 +49,15 @@
    ======================================== */
 [data-theme="cyber-athlete"] {
   --color-primary: #00d9ff;
+  --color-primary-rgb: 0, 217, 255;
   --color-secondary: #b024ff;
   --color-accent: #ff006b;
   --color-text: #ffffff;
+  --color-text-primary: #ffffff;
   --color-text-secondary: #a0e7e5;
   --color-text-muted: rgba(255, 255, 255, 0.25);
   --color-surface: #0a0a14;
+  --color-surface-subtle: rgba(0, 217, 255, 0.08);
   --color-border: rgba(0, 217, 255, 0.2);
 
   --font-heading: "Space Grotesk", sans-serif;
@@ -68,12 +75,15 @@
    ======================================== */
 [data-theme="organic-performance"] {
   --color-primary: #e8a542;
+  --color-primary-rgb: 232, 165, 66;
   --color-secondary: #c67c3f;
   --color-accent: #f5b55f;
   --color-text: #f5e6d3;
+  --color-text-primary: #f5e6d3;
   --color-text-secondary: #b8945f;
   --color-text-muted: rgba(255, 255, 255, 0.25);
   --color-surface: #1b1812;
+  --color-surface-subtle: rgba(232, 165, 66, 0.08);
   --color-border: rgba(232, 165, 66, 0.15);
 
   --font-heading: "Plus Jakarta Sans", sans-serif;
@@ -254,4 +264,62 @@ body {
 }
 .animate-organic-breathe {
   animation: organic-breathe 2.5s ease-in-out infinite;
+}
+
+@keyframes sparkle-spin {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.15); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+.animate-sparkle {
+  animation: sparkle-spin 3s linear infinite;
+}
+
+@keyframes shimmer-slide {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.02) 25%,
+    rgba(255,255,255,0.06) 50%,
+    rgba(255,255,255,0.02) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-slide 2.5s ease-in-out infinite;
+}
+
+@keyframes dot-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.3; }
+  40% { transform: translateY(-4px); opacity: 1; }
+}
+.animate-dot:nth-child(1) { animation: dot-bounce 1.4s ease-in-out infinite; }
+.animate-dot:nth-child(2) { animation: dot-bounce 1.4s ease-in-out 0.2s infinite; }
+.animate-dot:nth-child(3) { animation: dot-bounce 1.4s ease-in-out 0.4s infinite; }
+
+@keyframes border-glow {
+  0%, 100% { border-color: rgba(var(--color-primary-rgb), 0.2); }
+  50% { border-color: rgba(var(--color-primary-rgb), 0.6); }
+}
+.animate-border-glow {
+  animation: border-glow 2s ease-in-out infinite;
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 2s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

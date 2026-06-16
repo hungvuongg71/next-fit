@@ -3,9 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { X, Play, Image as ImageIcon } from "lucide-react"
 import { Exercise } from "@/types"
-import PlaceholderImage from "./PlaceholderImage"
 import { MOCK_EXERCISES } from "@/lib/data"
-import { THEME } from "@/lib/theme"
 
 interface ExerciseModalProps {
   exercise: Exercise | null
@@ -14,13 +12,14 @@ interface ExerciseModalProps {
 
 export default function ExerciseModal({ exercise, onClose }: ExerciseModalProps) {
   const [tab, setTab] = useState<"gif" | "video">("gif")
+  const [imgErr, setImgErr] = useState(false)
+  const [vidErr, setVidErr] = useState(false)
   const modalRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (!exercise) return
 
-    // Handle Escape key
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose()
@@ -28,11 +27,16 @@ export default function ExerciseModal({ exercise, onClose }: ExerciseModalProps)
     }
 
     document.addEventListener("keydown", handleKeyDown)
-    // Focus close button
     closeButtonRef.current?.focus()
 
     return () => document.removeEventListener("keydown", handleKeyDown)
   }, [exercise, onClose])
+
+  useEffect(() => {
+    setTab("gif")
+    setImgErr(false)
+    setVidErr(false)
+  }, [exercise?.id])
 
   if (!exercise) return null
 
@@ -50,7 +54,7 @@ export default function ExerciseModal({ exercise, onClose }: ExerciseModalProps)
     >
       <div
         className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-t-3xl animate-slideUp"
-        style={{ background: THEME.colors.bg.primary }}
+        style={{ background: "var(--color-surface)" }}
         onClick={(e) => e.stopPropagation()}
         ref={modalRef}
         role="dialog"
@@ -65,13 +69,13 @@ export default function ExerciseModal({ exercise, onClose }: ExerciseModalProps)
         {/* Header */}
         <div className="flex items-start justify-between px-5 pb-4">
           <div>
-            <p className="text-xs font-heading mb-1" style={{ color: THEME.colors.text.secondary }}>
+            <p className="text-xs font-heading mb-1" style={{ color: "var(--color-text-secondary)" }}>
               {exercise.muscleGroup} • {exercise.level}
             </p>
             <h2
               id="exercise-title"
               className="font-display font-bold text-xl leading-tight"
-              style={{ color: THEME.colors.text.primary }}
+              style={{ color: "var(--color-text)" }}
             >
               {exercise.name}
             </h2>
@@ -80,12 +84,12 @@ export default function ExerciseModal({ exercise, onClose }: ExerciseModalProps)
             ref={closeButtonRef}
             onClick={onClose}
             aria-label="Close exercise details"
-            className="w-8 h-8 rounded-full flex items-center justify-center mt-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:ring-blue-400"
+            className="w-8 h-8 rounded-full flex items-center justify-center mt-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] focus-visible:ring-[var(--color-primary)]"
             style={{
-              background: THEME.colors.bg.subtle,
+              background: "var(--color-surface-subtle)",
             }}
           >
-            <X size={16} style={{ color: THEME.colors.text.secondary }} aria-hidden="true" />
+            <X size={16} style={{ color: "var(--color-text-secondary)" }} aria-hidden="true" />
           </button>
         </div>
 
@@ -99,45 +103,77 @@ export default function ExerciseModal({ exercise, onClose }: ExerciseModalProps)
                 role="tab"
                 aria-selected={tab === t}
                 aria-controls={`${t}-panel`}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-heading font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:ring-blue-400"
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-heading font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] focus-visible:ring-[var(--color-primary)]"
                 style={{
-                  background: tab === t ? THEME.colors.primary : "transparent",
-                  color: tab === t ? "#fff" : THEME.colors.text.secondary,
+                  background: tab === t ? "var(--color-primary)" : "transparent",
+                  color: tab === t ? "#fff" : "var(--color-text-secondary)",
                 }}
               >
                 {t === "gif" ? <ImageIcon size={14} aria-hidden="true" /> : <Play size={14} aria-hidden="true" />}
-                {t === "gif" ? "Hình ảnh GIF" : "Video"}
+                {t === "gif" ? "Hình ảnh" : "Video"}
               </button>
             ))}
           </div>
           <div id="gif-panel" role="tabpanel" hidden={tab !== "gif"} aria-hidden={tab !== "gif"}>
-            <PlaceholderImage
-              aspectRatio=""
-              className="w-full rounded-2xl"
-              label="GIF động tác"
-              style={{ height: "220px" } as React.CSSProperties}
-            />
+            {exercise.image && !imgErr ? (
+              <img
+                src={exercise.image}
+                alt={exercise.name}
+                className="w-full rounded-2xl object-cover"
+                style={{ height: "220px" }}
+                onError={() => setImgErr(true)}
+              />
+            ) : (
+              <div
+                className="w-full rounded-2xl flex items-center justify-center"
+                style={{
+                  height: "220px",
+                  background: "linear-gradient(135deg, var(--color-surface-2) 0%, var(--color-surface) 100%)",
+                  border: "1px solid var(--color-border)",
+                }}
+              >
+                <span className="font-heading text-xs" style={{ color: "rgba(255,255,255,0.2)" }}>
+                  Không có hình ảnh
+                </span>
+              </div>
+            )}
           </div>
           <div id="video-panel" role="tabpanel" hidden={tab !== "video"} aria-hidden={tab !== "video"}>
-            <PlaceholderImage
-              aspectRatio=""
-              className="w-full rounded-2xl"
-              label="Video hướng dẫn"
-              style={{ height: "220px" } as React.CSSProperties}
-            />
+            {exercise.video && !vidErr ? (
+              <video
+                src={exercise.video}
+                controls
+                className="w-full rounded-2xl"
+                style={{ height: "220px" }}
+                onError={() => setVidErr(true)}
+              />
+            ) : (
+              <div
+                className="w-full rounded-2xl flex items-center justify-center"
+                style={{
+                  height: "220px",
+                  background: "linear-gradient(135deg, var(--color-surface-2) 0%, var(--color-surface) 100%)",
+                  border: "1px solid var(--color-border)",
+                }}
+              >
+                <span className="font-heading text-xs" style={{ color: "rgba(255,255,255,0.2)" }}>
+                  Không có video
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Section 2: Description */}
         <div className="px-5 mb-5">
-          <h3 className="font-heading font-semibold text-sm mb-2" style={{ color: THEME.colors.text.secondary }}>
+          <h3 className="font-heading font-semibold text-sm mb-2" style={{ color: "var(--color-text-secondary)" }}>
             MÔ TẢ ĐỘNG TÁC
           </h3>
-          <p className="font-body text-sm leading-relaxed" style={{ color: THEME.colors.text.primary }}>
+          <p className="font-body text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
             {exercise.description}
           </p>
           {exercise.trainer && (
-            <p className="font-body text-xs mt-2" style={{ color: THEME.colors.primary }}>
+            <p className="font-body text-xs mt-2" style={{ color: "var(--color-primary)" }}>
               Huấn luyện viên: {exercise.trainer}
             </p>
           )}
@@ -146,7 +182,7 @@ export default function ExerciseModal({ exercise, onClose }: ExerciseModalProps)
         {/* Section 3: Related exercises */}
         {related.length > 0 && (
           <div className="px-5 pb-8">
-            <h3 className="font-heading font-semibold text-sm mb-3" style={{ color: THEME.colors.text.secondary }}>
+            <h3 className="font-heading font-semibold text-sm mb-3" style={{ color: "var(--color-text-secondary)" }}>
               BÀI TẬP LIÊN QUAN
             </h3>
             <div className="flex gap-3 overflow-x-auto pb-2">
@@ -154,18 +190,33 @@ export default function ExerciseModal({ exercise, onClose }: ExerciseModalProps)
                 <button
                   key={ex.id}
                   onClick={() => {}} // Would navigate to that exercise
-                  className="flex-shrink-0 w-28 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:ring-blue-400"
+                  className="flex-shrink-0 w-28 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] focus-visible:ring-[var(--color-primary)]"
                   aria-label={`View ${ex.name}`}
                 >
-                  <PlaceholderImage
-                    aspectRatio=""
-                    className="w-28 rounded-xl mb-2"
-                    label={ex.muscleGroup}
-                    style={{ height: "80px" } as React.CSSProperties}
-                  />
+                  {ex.image ? (
+                    <img
+                      src={ex.image}
+                      alt={ex.name}
+                      className="w-28 rounded-xl mb-2 object-cover"
+                      style={{ height: "80px" }}
+                    />
+                  ) : (
+                    <div
+                      className="w-28 rounded-xl mb-2 flex items-center justify-center"
+                      style={{
+                        height: "80px",
+                        background: "linear-gradient(135deg, var(--color-surface-2) 0%, var(--color-surface) 100%)",
+                        border: "1px solid var(--color-border)",
+                      }}
+                    >
+                      <span className="font-heading text-xs" style={{ color: "rgba(255,255,255,0.15)" }}>
+                        {ex.muscleGroup}
+                      </span>
+                    </div>
+                  )}
                   <p
                     className="font-heading text-xs font-semibold leading-tight"
-                    style={{ color: THEME.colors.text.primary }}
+                    style={{ color: "var(--color-text)" }}
                   >
                     {ex.name}
                   </p>
