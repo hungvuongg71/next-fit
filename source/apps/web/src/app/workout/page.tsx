@@ -6,6 +6,7 @@ import { Check, ChevronLeft, Dumbbell, Minus, Pause, Play, Plus, Trophy, AlertTr
 import ExerciseModal from "@/components/ui/ExerciseModal"
 import RestTimer from "@/components/ui/RestTimer"
 import { useApp } from "@/lib/context"
+import ExerciseThumbnail from "@/components/ui/ExerciseThumbnail"
 import { Exercise, ExerciseProgress } from "@/types"
 
 function formatElapsed(seconds: number) {
@@ -316,9 +317,8 @@ export default function WorkoutPage() {
                   className="shrink-0 rounded-2xl overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                   aria-label={`Xem chi tiết ${item.exercise.name}`}
                 >
-                  <img
-                    src={item.exercise.image || item.exercise.exerciseDbGif}
-                    alt={item.exercise.name}
+                  <ExerciseThumbnail
+                    exercise={item.exercise}
                     className="w-16 h-16 object-cover"
                   />
                 </button>

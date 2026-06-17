@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react"
 import { Search, X } from "lucide-react"
 import { Exercise, MuscleGroup, Equipment } from "@/types"
 import { MOCK_EXERCISES } from "@/lib/data"
+import ExerciseThumbnail from "./ExerciseThumbnail"
 
 const MUSCLE_GROUPS: MuscleGroup[] = ["Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Cardio"]
 const EQUIPMENTS: Equipment[] = ["Barbell", "Dumbbell", "Bodyweight", "Cable", "Kettlebell", "Pull-up bar", "Machine", "EZ Curl Bar"]
@@ -186,13 +187,9 @@ export default function ExercisePicker({ isOpen, onClose, onSelect, excludeIds }
                 className="flex items-center gap-3 p-2.5 rounded-2xl w-full text-left transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                 style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
               >
-                <img
-                  src={ex.image || ex.exerciseDbGif}
-                  alt={ex.name}
+                <ExerciseThumbnail
+                  exercise={ex}
                   className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).style.display = "none"
-                  }}
                 />
                 <div className="min-w-0 flex-1">
                   <p className="font-heading font-semibold text-sm truncate" style={{ color: "var(--color-text)" }}>
