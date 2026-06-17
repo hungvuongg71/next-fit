@@ -8,3 +8,5 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 When local exercise pool is too small, app fetches additional exercises from wger.de
 — an open exercise database with 690+ exercises (no auth needed).
+
+<!-- rebuild-trigger -->
