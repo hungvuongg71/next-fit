@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { RefreshCw, X, ChevronRight } from "lucide-react"
 import { Exercise } from "@/types"
+import ExerciseThumbnail from "./ExerciseThumbnail"
 
 interface ExerciseCardProps {
   exercise: Exercise
@@ -39,10 +40,9 @@ export default function ExerciseCard({
         className="relative flex-shrink-0 w-16 h-16 overflow-hidden rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] focus-visible:ring-[var(--color-primary)]"
         aria-label={`View ${exercise.name} details`}
       >
-        {!imgErr && (exercise.image || exercise.exerciseDbGif) ? (
-          <img
-            src={exercise.image || exercise.exerciseDbGif}
-            alt={exercise.name}
+        {!imgErr ? (
+          <ExerciseThumbnail
+            exercise={exercise}
             className="h-full w-full object-cover"
             onError={() => setImgErr(true)}
           />

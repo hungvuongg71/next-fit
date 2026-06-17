@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { X, Play, ChevronLeft, Image as ImageIcon } from "lucide-react"
+import { X, Play, ChevronLeft } from "lucide-react"
 import { Exercise } from "@/types"
 import { MOCK_EXERCISES } from "@/lib/data"
+import ExerciseThumbnail from "./ExerciseThumbnail"
 
 interface ExerciseModalProps {
   exercise: Exercise | null
@@ -11,10 +12,16 @@ interface ExerciseModalProps {
   onReplace?: (newExercise: Exercise) => void
 }
 
+function getYouTubeEmbedUrl(url: string | undefined | null): string | null {
+  if (!url) return null
+  const match = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+  )
+  return match ? `https://www.youtube.com/embed/${match[1]}` : null
+}
+
 export default function ExerciseModal({ exercise, onClose, onReplace }: ExerciseModalProps) {
-  const [tab, setTab] = useState<"gif" | "video">("gif")
-  const [imgErr, setImgErr] = useState(false)
-  const [vidErr, setVidErr] = useState(false)
+  const [showDetailVideo, setShowDetailVideo] = useState(false)
   const [currentExercise, setCurrentExercise] = useState<Exercise | null>(exercise)
   const [history, setHistory] = useState<Exercise[]>([])
   const modalRef = useRef<HTMLDivElement>(null)
@@ -36,9 +43,7 @@ export default function ExerciseModal({ exercise, onClose, onReplace }: Exercise
   }, [exercise, onClose])
 
   useEffect(() => {
-    setTab("gif")
-    setImgErr(false)
-    setVidErr(false)
+    setShowDetailVideo(false)
     if (exercise) {
       setCurrentExercise(exercise)
       setHistory([])
@@ -117,76 +122,59 @@ export default function ExerciseModal({ exercise, onClose, onReplace }: Exercise
           </button>
         </div>
 
-        {/* Section 1: Tabs */}
+        {/* Section 1: Video */}
         <div className="px-5 mb-5">
-          <div className="flex rounded-xl p-1 mb-3" style={{ background: "rgba(255,255,255,0.04)" }} role="tablist">
-            {(["gif", "video"] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                role="tab"
-                aria-selected={tab === t}
-                aria-controls={`${t}-panel`}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-heading font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] focus-visible:ring-[var(--color-primary)]"
-                style={{
-                  background: tab === t ? "var(--color-primary)" : "transparent",
-                  color: tab === t ? "#fff" : "var(--color-text-secondary)",
-                }}
-              >
-                {t === "gif" && <ImageIcon size={14} aria-hidden="true" />}
-                {t === "video" && <Play size={14} aria-hidden="true" />}
-                {t === "gif" ? "Hình ảnh" : "Video"}
-              </button>
-            ))}
-          </div>
-          <div id="gif-panel" role="tabpanel" hidden={tab !== "gif"} aria-hidden={tab !== "gif"}>
-            {currentExercise.image || currentExercise.exerciseDbGif ? (
-              <img
-                src={currentExercise.image || currentExercise.exerciseDbGif}
-                alt={currentExercise.name}
-                className="w-full rounded-2xl object-cover"
-                style={{ height: "220px" }}
-                onError={() => setImgErr(true)}
-              />
-            ) : (
+          {(() => {
+            const gifEmbed = getYouTubeEmbedUrl(currentExercise.exerciseDbGif)
+            const videoEmbed = getYouTubeEmbedUrl(currentExercise.video)
+            const activeEmbed = showDetailVideo ? videoEmbed : gifEmbed
+            const hasGif = !!gifEmbed
+            const hasVideo = !!videoEmbed
+
+            if (activeEmbed) {
+              return (
+                <div className="flex flex-col gap-3">
+                  <iframe
+                    src={activeEmbed}
+                    title={currentExercise.name}
+                    className="w-full rounded-2xl"
+                    style={{ height: "220px" }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    key={showDetailVideo ? "detail" : "gif"}
+                  />
+                  {hasGif && hasVideo && (
+                    <button
+                      onClick={() => setShowDetailVideo((v) => !v)}
+                      className="self-start px-3 py-1.5 rounded-xl font-heading font-semibold text-xs transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                      style={{
+                        background: "var(--color-surface-subtle)",
+                        color: "var(--color-text-secondary)",
+                      }}
+                    >
+                      {showDetailVideo ? "Xem video động tác ngắn" : "Xem video chi tiết"}
+                    </button>
+                  )}
+                </div>
+              )
+            }
+
+            return (
               <div
-                className="w-full rounded-2xl flex items-center justify-center"
+                className="w-full rounded-2xl flex flex-col items-center justify-center gap-3"
                 style={{
                   height: "220px",
                   background: "linear-gradient(135deg, var(--color-surface-2) 0%, var(--color-surface) 100%)",
                   border: "1px solid var(--color-border)",
                 }}
               >
-                <span className="font-heading text-xs" style={{ color: "rgba(255,255,255,0.2)" }}>
-                  Không có hình ảnh
-                </span>
-              </div>
-            )}
-          </div>
-          <div id="video-panel" role="tabpanel" hidden={tab !== "video"} aria-hidden={tab !== "video"}>
-            {currentExercise.video && !vidErr ? (
-              <video
-                src={currentExercise.video}
-                controls
-                className="w-full rounded-2xl"
-                style={{ height: "220px" }}
-                onError={() => setVidErr(true)}
-              />
-            ) : (
-              <div
-                className="w-full rounded-2xl flex items-center justify-center"
-                style={{
-                  height: "220px",
-                  background: "linear-gradient(135deg, var(--color-surface-2) 0%, var(--color-surface) 100%)",
-                  border: "1px solid var(--color-border)",
-                }}
-              >
+                <Play size={36} style={{ color: "rgba(255,255,255,0.15)" }} aria-hidden="true" />
                 <span className="font-heading text-xs" style={{ color: "rgba(255,255,255,0.2)" }}>
                   Không có video
                 </span>
               </div>
-            )}
-          </div>
+            )
+          })()}
         </div>
 
         {/* Section 2: Description */}
@@ -243,9 +231,8 @@ export default function ExerciseModal({ exercise, onClose, onReplace }: Exercise
                   className="flex-shrink-0 w-28 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] focus-visible:ring-[var(--color-primary)]"
                   aria-label={`Xem ${ex.name}`}
                 >
-                  <img
-                    src={ex.image || ex.exerciseDbGif}
-                    alt={ex.name}
+                  <ExerciseThumbnail
+                    exercise={ex}
                     className="w-28 rounded-xl mb-2 object-cover"
                     style={{ height: "80px" }}
                   />
