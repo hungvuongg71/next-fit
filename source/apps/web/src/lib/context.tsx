@@ -33,6 +33,7 @@ const defaultState: AppState = {
   currentExerciseIndex: 0,
   exerciseProgress: [],
   workoutHistory: [],
+  lastPerformances: {},
 }
 
 function loadSavedState(): Partial<AppState> | null {
@@ -77,6 +78,7 @@ function mergeSaved(parsed: Partial<AppState>): AppState {
     todayExercises: parsed.todayExercises?.length ? dedupeExercises(parsed.todayExercises) : defaultState.todayExercises,
     exerciseProgress: parsed.exerciseProgress ?? defaultState.exerciseProgress,
     workoutHistory: parsed.workoutHistory ?? defaultState.workoutHistory,
+    lastPerformances: parsed.lastPerformances ?? defaultState.lastPerformances,
     storagePreferenceAnswered: parsed.storagePreferenceAnswered ?? parsed.cookiesAccepted !== undefined,
     isFirstVisit: parsed.isFirstVisit ?? (parsed.criteria ? false : true), // If criteria exists, it's not first visit
   }
@@ -140,12 +142,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
         criteria: prev.criteria,
       }
 
+      const newPerformances = { ...prev.lastPerformances }
+      for (const item of finalProgress) {
+        const completed = item.sets.filter(
+          (s) => s.completed && s.reps !== null && s.weight !== null,
+        )
+        if (completed.length > 0) {
+          const best = completed.reduce((max, s) =>
+            (s.weight ?? 0) > (max.weight ?? 0) ? s : max,
+          )
+          newPerformances[item.exercise.id] = {
+            reps: best.reps!,
+            weight: best.weight!,
+          }
+        }
+      }
+
       return {
         ...prev,
         workoutCompleted: true,
         workoutStarted: false,
         exerciseProgress: finalProgress,
         workoutHistory: [entry, ...prev.workoutHistory].slice(0, 30),
+        lastPerformances: newPerformances,
       }
     })
 

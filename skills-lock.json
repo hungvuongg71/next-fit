@@ -25,6 +25,12 @@
       "skillPath": "free-skills/gym-training-expert/SKILL.md",
       "computedHash": "e8472520acbe3c519f649abeb6eab477a2f1c447c80937f3b6a5bf8e8df78ef1"
     },
+    "typescript-advanced-types": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/javascript-typescript/skills/typescript-advanced-types/SKILL.md",
+      "computedHash": "8cbf2bf600f392d7260e476e3202932a876e2281cda3b15a8b6a5a43f383252d"
+    },
     "ui-ux-pro-max": {
       "source": "nextlevelbuilder/ui-ux-pro-max-skill",
       "sourceType": "github",

@@ -4,10 +4,31 @@ import { useState, useMemo, useEffect, useRef } from "react"
 import { Search, X } from "lucide-react"
 import { Exercise, MuscleGroup, Equipment } from "@/types"
 import { MOCK_EXERCISES } from "@/lib/data"
+import { MUSCLE_GROUP_MAP } from "@/lib/split"
 import ExerciseThumbnail from "./ExerciseThumbnail"
 
-const MUSCLE_GROUPS: MuscleGroup[] = ["Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Cardio"]
-const EQUIPMENTS: Equipment[] = ["Barbell", "Dumbbell", "Bodyweight", "Cable", "Kettlebell", "Pull-up bar", "Machine", "EZ Curl Bar"]
+const MUSCLE_GROUPS: MuscleGroup[] = Object.keys(MUSCLE_GROUP_MAP) as MuscleGroup[]
+const EQUIPMENTS: Equipment[] = [
+  "Ab Wheel",
+  "Barbell",
+  "Battle Ropes",
+  "Bodyweight",
+  "Cable",
+  "Clubbell",
+  "Dumbbell",
+  "EZ Bar",
+  "Gymnastic Rings",
+  "Kettlebell",
+  "Medicine Ball",
+  "Miniband",
+  "Parallette Bars",
+  "Pull Up Bar",
+  "Resistance Band",
+  "Sliders",
+  "Stability Ball",
+  "Suspension Trainer",
+  "Weight Plate",
+]
 
 interface ExercisePickerProps {
   isOpen: boolean
@@ -34,7 +55,10 @@ export default function ExercisePicker({ isOpen, onClose, onSelect, excludeIds }
   const filtered = useMemo(() => {
     return MOCK_EXERCISES.filter((ex) => {
       if (excludeIds?.has(ex.id)) return false
-      if (selectedMuscleGroup && ex.muscleGroup !== selectedMuscleGroup) return false
+      if (selectedMuscleGroup) {
+        const mapped = MUSCLE_GROUP_MAP[selectedMuscleGroup]
+        if (!mapped?.includes(ex.muscleGroup)) return false
+      }
       if (selectedEquipment && ex.equipment !== selectedEquipment) return false
       if (searchQuery) {
         const q = searchQuery.toLowerCase()

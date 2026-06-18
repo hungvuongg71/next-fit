@@ -27,6 +27,7 @@ function buildProgress(exercises: Exercise[]): ExerciseProgress[] {
 export default function WorkoutPage() {
   const router = useRouter()
   const { state, updateExerciseProgress, completeWorkout, resetWorkout, startWorkout } = useApp()
+  const lastPerf = state.lastPerformances
   const [isPaused, setIsPaused] = useState(false)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null)
@@ -329,6 +330,11 @@ export default function WorkoutPage() {
                       <p className="mt-1 font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
                         {item.exercise.equipment} · {item.exercise.muscleGroup_vi ?? item.exercise.muscleGroup} · {item.exercise.restSeconds}s nghỉ
                       </p>
+                      {lastPerf[item.exercise.id] && (
+                        <p className="mt-1.5 font-number text-[11px]" style={{ color: "var(--color-primary)" }}>
+                          Lần trước: {lastPerf[item.exercise.id].reps} reps × {lastPerf[item.exercise.id].weight}kg
+                        </p>
+                      )}
                     </div>
                     <span
                       className="shrink-0 rounded-xl px-2 py-1 font-number text-[10px]"
