@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, memo } from "react"
 import { RefreshCw, X, ChevronRight } from "lucide-react"
 import { Exercise } from "@/types"
 import ExerciseThumbnail from "./ExerciseThumbnail"
@@ -14,7 +14,7 @@ interface ExerciseCardProps {
   showActions?: boolean
 }
 
-export default function ExerciseCard({
+const ExerciseCard = memo(function ExerciseCard({
   exercise,
   index,
   onView,
@@ -119,4 +119,6 @@ export default function ExerciseCard({
       )}
     </div>
   )
-}
+})
+
+export default ExerciseCard
