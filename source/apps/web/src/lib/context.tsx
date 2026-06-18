@@ -96,7 +96,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.STATE, JSON.stringify(state))
+    const timer = setTimeout(() => {
+      localStorage.setItem(STORAGE_KEYS.STATE, JSON.stringify(state))
+    }, 1000)
+    return () => clearTimeout(timer)
   }, [state])
 
   const setCookiesAccepted = (v: boolean) =>
