@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Batch-generate Vietnamese exercise instructions via Gemini API.
+Batch-generate Vietnamese exercise instructions via GitHub Models API (OpenAI-compatible).
 Processes exercises in batches of 5, writes directly to exercises.json with resume.
 """
 
@@ -17,11 +17,16 @@ EXERCISES_PATH = os.path.join(os.path.dirname(__file__), "..", "src", "lib", "ex
 BACKUP_PATH = EXERCISES_PATH.replace(".json", "_backup.json")
 BATCH_SIZE = 5
 BATCH_DELAY = 8
-SAVE_INTERVAL = 20
-RETRY_LIMIT = 2
+SAVE_INTERVAL = 30
+RETRY_LIMIT = 3
 RETRY_DELAY = 10
 
-MODELS = ["gemini-2.5-flash-lite", "gemini-3.5-flash", "gemini-3.1-flash-lite"]
+API_BASE = "https://models.inference.ai.azure.com"
+MODELS = [
+    "gpt-4o-mini",
+    "Meta-Llama-3.1-70B-Instruct",
+    "Mistral-large-2407",
+]
 
 PROMPT_TEMPLATE = """Bạn là huấn luyện viên thể hình. Với mỗi bài tập dưới đây, hãy viết 3-5 bước hướng dẫn bằng tiếng Việt.
 
@@ -66,44 +71,51 @@ def _build_batch_prompt(batch: list[tuple[int, dict]]) -> str:
     return PROMPT_TEMPLATE.format(exercises="\n---\n".join(lines))
 
 
-def _call_gemini(prompt: str, api_key: str, b_idx: int) -> str | None:
-    backoff = 30
-    for attempt in range(10):
-        for model in MODELS:
-            result = _try_model(prompt, api_key, model)
-            if result and len(result) >= 50:
-                return result
-        vprint(f"  ⏳ Hết quota, đợi {backoff}s (lần {attempt+1}/10)...", end=" ", flush=True)
-        time.sleep(backoff)
-        backoff = min(backoff * 2, 600)
-    return None
+def _call_api(prompt: str, api_key: str) -> str | None:
+    for model in MODELS:
+        result = _try_model(prompt, api_key, model)
+        if result and len(result) >= 50:
+            return result
+    vprint("  ⏳ Tất cả model đều fail (có thể hết quota), đợi 30s...", end=" ", flush=True)
+    time.sleep(30)
+    return _call_api(prompt, api_key)
 
 
 def _try_model(prompt: str, api_key: str, model: str) -> str | None:
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+    url = f"{API_BASE}/chat/completions"
     payload = json.dumps({
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.7, "maxOutputTokens": 1500},
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.7,
+        "max_tokens": 1500,
     }).encode("utf-8")
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}",
+    }
 
     for attempt in range(RETRY_LIMIT):
         try:
-            req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+            req = urllib.request.Request(url, data=payload, headers=headers)
             with urllib.request.urlopen(req, timeout=120) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
-            text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-            if text.strip():
+            text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            if text and text.strip():
                 return text.strip()
             return None
         except urllib.error.HTTPError as e:
             if e.code == 429:
+                vprint(f"  429 rate limited on {model}, thử model khác...", end=" ", flush=True)
                 return None
             elif e.code in (403, 400, 404):
+                vprint(f"  {e.code} on {model}, skip...", end=" ", flush=True)
                 return None
             else:
                 if attempt < RETRY_LIMIT - 1:
                     time.sleep(RETRY_DELAY * (attempt + 2))
-        except Exception:
+        except Exception as e:
+            vprint(f"  Lỗi: {e}", end=" ", flush=True)
             if attempt < RETRY_LIMIT - 1:
                 time.sleep(RETRY_DELAY)
     return None
@@ -128,9 +140,10 @@ def needs_processing(ex: dict) -> bool:
 
 
 def main():
-    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    api_key = os.environ.get("GITHUB_TOKEN", "").strip()
     if not api_key:
-        vprint("❌ Cần Gemini API key. export GEMINI_API_KEY='...'")
+        vprint("❌ Cần GitHub token. export GITHUB_TOKEN='ghp_your_token'")
+        vprint("   Tạo tại: https://github.com/settings/tokens")
         sys.exit(1)
 
     if not os.path.exists(BACKUP_PATH):
@@ -166,10 +179,10 @@ def main():
         remaining = len(batches) - b_idx - 1
         eta_secs = remaining / success_rate if success_rate > 0 else 0
         eta_str = f"{eta_secs/3600:.1f}h" if eta_secs > 3600 else f"{eta_secs/60:.0f}m"
-        vprint(f"\n[{b_idx+1}/{len(batches)}] (ETA {eta_str}) ", ", ".join(n[:35] for n in names))
+        vprint(f"\n[{b_idx+1}/{len(batches)}] (ETA {eta_str}) {', '.join(n[:35] for n in names)}")
 
         prompt = _build_batch_prompt(batch)
-        resp = _call_gemini(prompt, api_key, b_idx)
+        resp = _call_api(prompt, api_key)
 
         if not resp:
             for i, _ in batch:
