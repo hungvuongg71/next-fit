@@ -1,4 +1,4 @@
-import { Exercise, MuscleGroup, Level, Goal, Gender, Duration, Frequency, UserCriteria, WorkoutHistoryEntry } from "@/types"
+import { Exercise, MuscleGroup, Level, Goal, Gender, Duration, Frequency, Equipment, UserCriteria, WorkoutHistoryEntry } from "@/types"
 import { MOCK_EXERCISES } from "@/lib/data"
 import { rotateExercise } from "@/lib/progressive"
 
@@ -434,4 +434,22 @@ export function generateProgressiveExercises(
     (ex, i, arr) => arr.findIndex((e) => e.id === ex.id) === i,
   )
   return deduped.slice(0, count)
+}
+
+export function filterMuscleGroupsByEquipment(
+  groups: MuscleGroup[],
+  equipment: Equipment[],
+  allExercises: Exercise[],
+): MuscleGroup[] {
+  if (equipment.length === 0) return groups
+
+  return groups.filter((group) => {
+    const dataGroups = MUSCLE_GROUP_MAP[group]
+    if (!dataGroups) return false
+    return allExercises.some(
+      (ex) =>
+        dataGroups.includes(ex.muscleGroup) &&
+        equipment.includes(ex.equipment),
+    )
+  })
 }
