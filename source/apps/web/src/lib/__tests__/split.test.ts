@@ -9,8 +9,9 @@ import {
   fatiguePenalty,
   crossSlotFatiguePenalty,
   parseAvgReps,
+  filterMuscleGroupsByEquipment,
 } from "@/lib/split"
-import type { Exercise, Goal, Level } from "@/types"
+import type { Exercise, Goal, Level, Equipment } from "@/types"
 
 function makeExercise(overrides: Partial<Exercise> = {}): Exercise {
   return {
@@ -164,5 +165,36 @@ describe("getTodaySuggestion", () => {
     const result = getTodaySuggestion("4 ngày")
     expect(result.length).toBeGreaterThan(0)
     expect(result).toContain("Chest" || "Legs")
+  })
+})
+
+describe("filterMuscleGroupsByEquipment", () => {
+  const allExercises: Exercise[] = [
+    { id: "ex1", name: "Barbell Bench", muscleGroup: "Chest", level: "Intermediate", equipment: "Barbell", sets: 3, reps: "8-12", restSeconds: 60, description: "" },
+    { id: "ex2", name: "Dumbbell Curl", muscleGroup: "Biceps", level: "Intermediate", equipment: "Dumbbell", sets: 3, reps: "8-12", restSeconds: 60, description: "" },
+    { id: "ex3", name: "Push Up", muscleGroup: "Chest", level: "Beginner", equipment: "Bodyweight", sets: 3, reps: "10-15", restSeconds: 60, description: "" },
+  ]
+
+  it("returns all groups when equipment is empty", () => {
+    const result = filterMuscleGroupsByEquipment(["Chest", "Legs"], [], allExercises)
+    expect(result).toEqual(["Chest", "Legs"])
+  })
+
+  it("filters out groups with no matching equipment", () => {
+    const result = filterMuscleGroupsByEquipment(
+      ["Chest", "Legs"],
+      ["Barbell"] as Equipment[],
+      allExercises,
+    )
+    expect(result).toEqual(["Chest"])
+  })
+
+  it("keeps groups with at least one matching exercise", () => {
+    const result = filterMuscleGroupsByEquipment(
+      ["Chest", "Legs"],
+      ["Bodyweight"] as Equipment[],
+      allExercises,
+    )
+    expect(result).toEqual(["Chest"])
   })
 })

@@ -1,35 +1,78 @@
-# Spec: Sticky "Hôm nay của bạn" + Bỏ scroll criteria panel
+# Spec: Gợi ý thông minh — tích hợp Onboarding + Equipment filter
 
 ## Objective
 
-1. **Sticky banner "Hôm nay của bạn"** — Khi scroll xuống phần criteria hoặc exercise list, banner "Hôm nay của bạn" (dòng chào + ngày + tiêu chí + nút Thay Đổi Tiêu Chí) sẽ sticky ở top.
-2. **Bỏ scroll trong criteria panel** — Criteria panel hiển thị full, không bị clip `max-h`, không scroll nội bộ.
+Nâng cấp khung "Gợi ý hôm nay" và nút "Áp dụng gợi ý" để:
+
+1. **Equipment filter**: Gợi ý nhóm cơ chỉ bao gồm các nhóm có bài tập phù hợp với equipment user đã chọn (từ Onboarding)
+2. **Apply all**: Nút "Áp dụng gợi ý" set đồng thời muscles + duration + equipment
+3. **Hiển thị đầy đủ**: Khung gợi ý hiển thị thêm duration + equipment được gợi ý
+
+## Tech Stack
+
+Next.js 16.2.7 + React 19 + TypeScript + Tailwind v4
 
 ## Commands
 
 ```bash
-pnpm build        # Verify
-pnpm test         # 51 tests
+pnpm dev        # Dev
+pnpm build      # Build
+pnpm test       # 51 tests
 ```
 
 ## Files chạm
 
-Chỉ `src/app/page.tsx`
-
-## Thay đổi
-
-### 1. Bỏ scroll criteria panel
 ```
-- max-h-[55vh] overflow-y-auto rounded-2xl  →  bỏ
-- sticky top-0 z-10 trên split suggestion   →  bỏ
-- border-bottom trên split suggestion       →  bỏ (về border cũ)
+src/
+├── app/page.tsx        # Logic gợi ý + hiển thị + nút apply
+└── lib/split.ts        # Thêm filterMuscleGroupsByEquipment()
 ```
 
-### 2. Sticky banner "Hôm nay của bạn"
-```
-Thêm: sticky top-0 z-10 vào div banner (có background solid)
+## Chi tiết
+
+### 1. Equipment filter — `filterMuscleGroupsByEquipment()`
+
+```ts
+function filterMuscleGroupsByEquipment(
+  groups: MuscleGroup[],
+  equipment: Equipment[],
+  allExercises: Exercise[],
+): MuscleGroup[]
 ```
 
-## Boundaries
-- Chỉ sửa `page.tsx`
-- Không chạm logic, không chạm types
+- Duyệt từng nhóm cơ trong `groups`
+- Kiểm tra: có ít nhất 1 bài tập trong `MOCK_EXERCISES` khớp cả `muscleGroup` (qua MUSCLE_GROUP_MAP) và `equipment` không
+- Chỉ giữ lại nhóm cơ có >= 1 bài phù hợp
+
+### 2. Hiển thị gợi ý mở rộng
+
+```
+Gợi ý hôm nay
+Theo lịch 4 ngày/tuần hôm nay nên tập: Ngực, Vai, Tay
+Thiết bị: Tạ đơn, Thanh tạ đòn · 45 phút
+6 bài
+
+[Áp dụng gợi ý]
+```
+
+- `todaySuggestion` = kết quả từ `getTodaySuggestion(frequency)` → qua `filterMuscleGroupsByEquipment()`
+- Hiển thị: `suggestedCount` bài + duration + equipment (tên Việt)
+
+### 3. Áp dụng gợi ý
+
+Nút "Áp dụng gợi ý" set đồng thời:
+- `selectedMuscles` → muscle groups đã filter
+- `selectedDuration` → `state.criteria.duration` (nếu có)
+- `selectedEquipment` → `state.criteria.equipment` (nếu có)
+
+## Success Criteria
+
+- [ ] Gợi ý nhóm cơ loại bỏ nhóm không có bài tập phù hợp equipment user
+- [ ] Khung gợi ý hiển thị duration + equipment
+- [ ] Nút "Áp dụng" set muscles + duration + equipment
+- [ ] Unit test cho `filterMuscleGroupsByEquipment`
+- [ ] Build + 52 tests pass
+
+## Effort
+
+~15 phút, 1 commit

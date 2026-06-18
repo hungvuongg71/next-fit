@@ -45,7 +45,7 @@ export const EQUIPMENT = [
   "Weight Plate",
 ] as const
 
-export const EQUIPMENT_VI: Record<(typeof EQUIPMENT)[number], string> = {
+export const EQUIPMENT_VI: Record<string, string> = {
   "Ab Wheel": "Bánh xe tập bụng",
   Barbell: "Thanh tạ đòn",
   "Battle Ropes": "Dây thừng chiến",

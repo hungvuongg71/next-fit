@@ -13,7 +13,7 @@ import ExercisePicker from "@/components/ui/ExercisePicker"
 import CookieConsent from "@/components/ui/CookieConsent"
 import { MOCK_EXERCISES } from "@/lib/data"
 import { MUSCLE_GROUPS, MUSCLE_GROUPS_VI, DURATIONS, EQUIPMENT, EQUIPMENT_VI, POPULAR_EQUIPMENT } from "@/lib/constants"
-import { generateProgressiveExercises, getTodaySuggestion, computeExerciseCount } from "@/lib/split"
+import { generateProgressiveExercises, getTodaySuggestion, computeExerciseCount, filterMuscleGroupsByEquipment } from "@/lib/split"
 
 function formatDate() {
   const now = new Date()
@@ -85,6 +85,17 @@ export default function HomePage() {
 
   const todaySuggestion = useMemo(() => {
     if (!state.criteria?.frequency) return null
+    const raw = getTodaySuggestion(state.criteria.frequency)
+    if (!raw) return null
+    return filterMuscleGroupsByEquipment(
+      raw,
+      state.criteria.equipment,
+      MOCK_EXERCISES,
+    )
+  }, [state.criteria?.frequency, state.criteria?.equipment])
+
+  const rawSuggestion = useMemo(() => {
+    if (!state.criteria?.frequency) return null
     return getTodaySuggestion(state.criteria.frequency)
   }, [state.criteria?.frequency])
 
@@ -94,7 +105,7 @@ export default function HomePage() {
     const groupsCount = c.muscleGroups.length > 0
       ? c.muscleGroups.length
       : c.frequency
-        ? getTodaySuggestion(c.frequency).length
+        ? (rawSuggestion ?? getTodaySuggestion(c.frequency)).length
         : 0
     return computeExerciseCount(c.duration, c.goal, c.level, groupsCount)
   }, [state.criteria])
@@ -201,32 +212,52 @@ export default function HomePage() {
            <div className="mb-6 animate-fadeIn">
              {/* Split suggestion */}
           {state.criteria?.frequency && todaySuggestion && todaySuggestion.length > 0 && (
-                <div
-                  className="mb-5 p-4 rounded-2xl"
-                  style={{
-                    background: "rgba(var(--color-primary-rgb), 0.06)",
-                    border: "1px solid rgba(var(--color-primary-rgb), 0.12)",
-                  }}
-                >
-                 <p className="font-heading font-semibold text-xs mb-1.5" style={{ color: "var(--color-text)" }}>
-                   Gợi ý hôm nay
-                 </p>
-                 <p className="font-body text-sm mb-3" style={{ color: "var(--color-text-secondary)" }}>
-                   Theo lịch <strong>{state.criteria.frequency}</strong> hôm nay nên tập:{" "}
-                   <strong className="font-heading font-semibold" style={{ color: "var(--color-text)" }}>
-                     {todaySuggestion.map((m) => MUSCLE_GROUPS_VI[m] ?? m).join(", ")}
-                   </strong>
-                   {" · "}
-                   <strong>{suggestedCount} bài</strong>
-                 </p>
-                 <button
-                   onClick={() => setSelectedMuscles(todaySuggestion)}
-                   className="px-4 py-2 rounded-xl font-heading font-semibold text-xs transition-all active:scale-95"
-                   style={{ background: "var(--color-primary)", color: "#fff" }}
-                 >
-                   Áp dụng gợi ý
-                 </button>
-               </div>
+                  <div
+                    className="mb-5 p-4 rounded-2xl"
+                    style={{
+                      background: "rgba(var(--color-primary-rgb), 0.06)",
+                      border: "1px solid rgba(var(--color-primary-rgb), 0.12)",
+                    }}
+                  >
+                   <p className="font-heading font-semibold text-xs mb-1.5" style={{ color: "var(--color-text)" }}>
+                     Gợi ý hôm nay
+                   </p>
+                   <p className="font-body text-sm mb-3" style={{ color: "var(--color-text-secondary)" }}>
+                     Theo lịch <strong>{state.criteria.frequency}</strong> hôm nay nên tập:{" "}
+                     <strong className="font-heading font-semibold" style={{ color: "var(--color-text)" }}>
+                       {todaySuggestion.map((m) => MUSCLE_GROUPS_VI[m] ?? m).join(", ")}
+                     </strong>
+                     {" · "}
+                     <strong>{suggestedCount} bài</strong>
+                   </p>
+                   {state.criteria?.duration && (
+                     <p className="font-body text-xs mb-1" style={{ color: "var(--color-text-secondary)" }}>
+                       Thời lượng: <strong>{state.criteria.duration}</strong>
+                     </p>
+                   )}
+                   {state.criteria?.equipment && state.criteria.equipment.length > 0 && (
+                     <p className="font-body text-xs mb-3" style={{ color: "var(--color-text-secondary)" }}>
+                       Thiết bị:{" "}
+                       <strong>
+                         {state.criteria.equipment
+                           .filter((e) => POPULAR_EQUIPMENT.has(e))
+                           .map((e) => EQUIPMENT_VI[e])
+                           .join(", ") || "Bodyweight"}
+                       </strong>
+                     </p>
+                   )}
+                   <button
+                     onClick={() => {
+                       setSelectedMuscles(todaySuggestion)
+                       if (state.criteria?.duration) setSelectedDuration(state.criteria.duration)
+                       if (state.criteria?.equipment.length) setSelectedEquipment(state.criteria.equipment)
+                     }}
+                     className="px-4 py-2 rounded-xl font-heading font-semibold text-xs transition-all active:scale-95"
+                     style={{ background: "var(--color-primary)", color: "#fff" }}
+                   >
+                     Áp dụng gợi ý
+                   </button>
+                 </div>
              )}
 
              <div className="p-4">
