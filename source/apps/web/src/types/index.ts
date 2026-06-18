@@ -106,6 +106,26 @@ export interface WorkoutHistoryEntry {
   criteria: UserCriteria | null
 }
 
+export interface ExerciseLogEntry {
+  date: string
+  weight: number
+  reps: number
+  sets: number
+}
+
+export interface WorkoutSessionLog {
+  id: string
+  date: string
+  exerciseLogs: Record<string, ExerciseLogEntry[]>
+}
+
+export interface WarmupExercise {
+  name: string
+  name_vi: string
+  duration: string
+  muscleGroups: MuscleGroup[]
+}
+
 export interface AppState {
   isFirstVisit: boolean
   cookiesAccepted: boolean

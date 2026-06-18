@@ -1,5 +1,6 @@
 import { Exercise, MuscleGroup, Level, Goal, Gender, Duration, Frequency, UserCriteria, WorkoutHistoryEntry } from "@/types"
 import { MOCK_EXERCISES } from "@/lib/data"
+import { rotateExercise } from "@/lib/progressive"
 
 export const MUSCLE_GROUP_MAP: Record<MuscleGroup, string[]> = {
   Chest: ["Chest"],
@@ -428,5 +429,9 @@ export function generateProgressiveExercises(
 
   if (result.length === 0) return MOCK_EXERCISES.slice(0, 4)
 
-  return result.slice(0, count)
+  const rotated = result.map((ex) => rotateExercise(ex, candidateSource, recentIds))
+  const deduped = rotated.filter(
+    (ex, i, arr) => arr.findIndex((e) => e.id === ex.id) === i,
+  )
+  return deduped.slice(0, count)
 }

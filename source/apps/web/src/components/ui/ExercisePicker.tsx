@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react"
 import { Search, X } from "lucide-react"
 import { Exercise, MuscleGroup, Equipment } from "@/types"
 import { MOCK_EXERCISES } from "@/lib/data"
-import { MUSCLE_GROUPS, EQUIPMENT } from "@/lib/constants"
+import { MUSCLE_GROUPS, MUSCLE_GROUPS_VI, EQUIPMENT, EQUIPMENT_VI, POPULAR_EQUIPMENT } from "@/lib/constants"
 import { MUSCLE_GROUP_MAP } from "@/lib/split"
 import ExerciseThumbnail from "./ExerciseThumbnail"
 
@@ -19,6 +19,7 @@ export default function ExercisePicker({ isOpen, onClose, onSelect, excludeIds }
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<MuscleGroup | null>(null)
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null)
+  const [showAllEquipment, setShowAllEquipment] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -137,7 +138,7 @@ export default function ExercisePicker({ isOpen, onClose, onSelect, excludeIds }
                   color: mg === selectedMuscleGroup ? "#fff" : "var(--color-text)",
                 }}
               >
-                {mg}
+                {MUSCLE_GROUPS_VI[mg]}
               </button>
             ))}
           </div>
@@ -159,7 +160,14 @@ export default function ExercisePicker({ isOpen, onClose, onSelect, excludeIds }
             >
               Tất cả
             </button>
-            {EQUIPMENT.map((eq) => (
+            {[...EQUIPMENT]
+              .sort((a, b) => {
+                const aPop = POPULAR_EQUIPMENT.has(a) ? 0 : 1
+                const bPop = POPULAR_EQUIPMENT.has(b) ? 0 : 1
+                return aPop - bPop
+              })
+              .filter((eq) => showAllEquipment || POPULAR_EQUIPMENT.has(eq))
+              .map((eq) => (
               <button
                 key={eq}
                 onClick={() => setSelectedEquipment(eq === selectedEquipment ? null : eq)}
@@ -169,9 +177,19 @@ export default function ExercisePicker({ isOpen, onClose, onSelect, excludeIds }
                   color: eq === selectedEquipment ? "#fff" : "var(--color-text)",
                 }}
               >
-                {eq}
+                {EQUIPMENT_VI[eq]}
               </button>
             ))}
+            <button
+              onClick={() => setShowAllEquipment(!showAllEquipment)}
+              className="px-3 py-1.5 rounded-xl font-heading font-semibold text-xs whitespace-nowrap transition-all active:scale-95 flex-shrink-0"
+              style={{
+                color: "var(--color-primary)",
+                background: "rgba(var(--color-primary-rgb), 0.08)",
+              }}
+            >
+              {showAllEquipment ? "Thu gọn" : `Xem thêm`}
+            </button>
           </div>
         </div>
 
