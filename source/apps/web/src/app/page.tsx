@@ -173,8 +173,8 @@ export default function HomePage() {
           {/* Returning user banner */}
         {!state.isFirstVisit && state.criteria && (
           <div
-            className="flex items-center justify-between p-4 rounded-2xl mb-6"
-            style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+            className="flex items-center justify-between p-4 rounded-2xl mb-6 sticky top-0 z-10"
+            style={{ background: "var(--color-bg)", border: "1px solid var(--color-border)" }}
           >
             <div>
               <p className="font-heading font-semibold text-sm mb-0.5" style={{ color: "var(--color-text)" }}>
@@ -198,20 +198,14 @@ export default function HomePage() {
 
         {/* Criteria panel */}
          {showCriteriaPanel && (
-           <div
-             className="mb-6 animate-fadeIn max-h-[55vh] overflow-y-auto rounded-2xl"
-             style={{
-               background: "var(--color-surface)",
-               border: "1px solid var(--color-border)",
-             }}
-           >
+           <div className="mb-6 animate-fadeIn">
              {/* Split suggestion */}
           {state.criteria?.frequency && todaySuggestion && todaySuggestion.length > 0 && (
                 <div
-                  className="p-4 rounded-2xl sticky top-0 z-10"
+                  className="mb-5 p-4 rounded-2xl"
                   style={{
-                    background: "var(--color-surface)",
-                    borderBottom: "1px solid var(--color-border)",
+                    background: "rgba(var(--color-primary-rgb), 0.06)",
+                    border: "1px solid rgba(var(--color-primary-rgb), 0.12)",
                   }}
                 >
                  <p className="font-heading font-semibold text-xs mb-1.5" style={{ color: "var(--color-text)" }}>
