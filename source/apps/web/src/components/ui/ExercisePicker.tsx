@@ -4,31 +4,9 @@ import { useState, useMemo, useEffect, useRef } from "react"
 import { Search, X } from "lucide-react"
 import { Exercise, MuscleGroup, Equipment } from "@/types"
 import { MOCK_EXERCISES } from "@/lib/data"
+import { MUSCLE_GROUPS, EQUIPMENT } from "@/lib/constants"
 import { MUSCLE_GROUP_MAP } from "@/lib/split"
 import ExerciseThumbnail from "./ExerciseThumbnail"
-
-const MUSCLE_GROUPS: MuscleGroup[] = Object.keys(MUSCLE_GROUP_MAP) as MuscleGroup[]
-const EQUIPMENTS: Equipment[] = [
-  "Ab Wheel",
-  "Barbell",
-  "Battle Ropes",
-  "Bodyweight",
-  "Cable",
-  "Clubbell",
-  "Dumbbell",
-  "EZ Bar",
-  "Gymnastic Rings",
-  "Kettlebell",
-  "Medicine Ball",
-  "Miniband",
-  "Parallette Bars",
-  "Pull Up Bar",
-  "Resistance Band",
-  "Sliders",
-  "Stability Ball",
-  "Suspension Trainer",
-  "Weight Plate",
-]
 
 interface ExercisePickerProps {
   isOpen: boolean
@@ -181,7 +159,7 @@ export default function ExercisePicker({ isOpen, onClose, onSelect, excludeIds }
             >
               Tất cả
             </button>
-            {EQUIPMENTS.map((eq) => (
+            {EQUIPMENT.map((eq) => (
               <button
                 key={eq}
                 onClick={() => setSelectedEquipment(eq === selectedEquipment ? null : eq)}

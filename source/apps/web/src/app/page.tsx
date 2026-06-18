@@ -12,31 +12,8 @@ import ExerciseModal from "@/components/ui/ExerciseModal"
 import ExercisePicker from "@/components/ui/ExercisePicker"
 import CookieConsent from "@/components/ui/CookieConsent"
 import { MOCK_EXERCISES } from "@/lib/data"
+import { MUSCLE_GROUPS, DURATIONS, EQUIPMENT } from "@/lib/constants"
 import { generateProgressiveExercises, getTodaySuggestion, computeExerciseCount } from "@/lib/split"
-
-const MUSCLE_GROUPS: MuscleGroup[] = ["Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Cardio"]
-const DURATIONS: Duration[] = ["15 min", "30 min", "45 min", "60+ min"]
-const EQUIPMENTS: Equipment[] = [
-  "Ab Wheel",
-  "Barbell",
-  "Battle Ropes",
-  "Bodyweight",
-  "Cable",
-  "Clubbell",
-  "Dumbbell",
-  "EZ Bar",
-  "Gymnastic Rings",
-  "Kettlebell",
-  "Medicine Ball",
-  "Miniband",
-  "Parallette Bars",
-  "Pull Up Bar",
-  "Resistance Band",
-  "Sliders",
-  "Stability Ball",
-  "Suspension Trainer",
-  "Weight Plate",
-]
 
 function formatDate() {
   const now = new Date()
@@ -313,7 +290,7 @@ export default function HomePage() {
                 Thiết Bị
               </p>
               <div className="flex flex-wrap gap-2">
-                {EQUIPMENTS.map((e) => (
+                {EQUIPMENT.map((e) => (
                   <button
                     key={e}
                     onClick={() => toggleEquipment(e)}
