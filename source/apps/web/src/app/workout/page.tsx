@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Check, ChevronLeft, Dumbbell, Minus, Pause, Play, Plus, Trophy, AlertTriangle } from "lucide-react"
 import ExerciseModal from "@/components/ui/ExerciseModal"
+import NumberPickerWheel from "@/components/ui/NumberPickerWheel"
 import RestTimer from "@/components/ui/RestTimer"
 import { useApp } from "@/lib/context"
 import ExerciseThumbnail from "@/components/ui/ExerciseThumbnail"
@@ -374,35 +375,23 @@ export default function WorkoutPage() {
                       <span className="text-center font-number text-xs" style={{ color: set.completed ? "var(--color-primary)" : "var(--color-text-secondary)" }}>
                         {setIndex + 1}
                       </span>
-                      <input
-                        type="number"
-                        inputMode="numeric"
+                      <NumberPickerWheel
+                        value={set.reps}
+                        onChange={(v) => updateSet(exerciseIndex, setIndex, "reps", v)}
                         min={0}
-                        value={set.reps ?? ""}
-                        aria-label={`${item.exercise.name} hiệp ${setIndex + 1} số reps`}
-                        onChange={(event) =>
-                          updateSet(exerciseIndex, setIndex, "reps", event.target.value === "" ? null : Number(event.target.value))
-                        }
-                        className="min-h-10 min-w-0 rounded-xl text-center font-number text-sm outline-none disabled:opacity-100"
-                        style={{
-                          background: set.completed ? "transparent" : "rgba(255,255,255,0.06)",
-                          color: set.completed ? "var(--color-primary)" : "var(--color-text)",
-                        }}
+                        max={100}
+                        step={1}
+                        ariaLabel={`${item.exercise.name} hiệp ${setIndex + 1} số reps`}
+                        disabled={set.completed}
                       />
-                      <input
-                        type="number"
-                        inputMode="decimal"
+                      <NumberPickerWheel
+                        value={set.weight}
+                        onChange={(v) => updateSet(exerciseIndex, setIndex, "weight", v)}
                         min={0}
-                        value={set.weight ?? ""}
-                        aria-label={`${item.exercise.name} hiệp ${setIndex + 1} kg`}
-                        onChange={(event) =>
-                          updateSet(exerciseIndex, setIndex, "weight", event.target.value === "" ? null : Number(event.target.value))
-                        }
-                        className="min-h-10 min-w-0 rounded-xl text-center font-number text-sm outline-none disabled:opacity-100"
-                        style={{
-                          background: set.completed ? "transparent" : "rgba(255,255,255,0.06)",
-                          color: set.completed ? "var(--color-primary)" : "var(--color-text)",
-                        }}
+                        max={200}
+                        step={2.5}
+                        ariaLabel={`${item.exercise.name} hiệp ${setIndex + 1} kg`}
+                        disabled={set.completed}
                       />
                       <span className="text-center font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
                         {item.exercise.restSeconds}s
