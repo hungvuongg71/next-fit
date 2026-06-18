@@ -409,15 +409,76 @@ export const ORGANIC_PERFORMANCE_THEME = {
 // ============================================
 // Helper: Theme Configuration Type
 // ============================================
-export type ThemeConfig = typeof PREMIUM_ATHLETIC_THEME
+export interface ThemeConfig {
+  readonly name: string
+  readonly description: string
+  readonly vibe: string
+  readonly colors: {
+    readonly primary: string
+    readonly secondary?: string
+    readonly tertiary?: string
+    readonly accent?: string
+    readonly text: {
+      readonly primary: string
+      readonly secondary: string
+      readonly muted?: string
+      readonly onPrimary?: string
+    }
+    readonly bg: {
+      readonly primary: string
+      readonly dark: string
+      readonly overlay: string
+      readonly subtle: string
+      readonly hover: string
+      readonly success?: string
+      readonly accent?: string
+      readonly warm?: string
+      readonly error?: string
+    }
+    readonly border: {
+      readonly subtle: string
+      readonly hover: string
+      readonly active?: string
+      readonly accent?: string
+      readonly error?: string
+    }
+    readonly status?: {
+      readonly success: string
+      readonly warning: string
+      readonly error: string
+      readonly info: string
+    }
+  }
+  readonly typography?: {
+    readonly fontFamily: {
+      readonly display: string
+      readonly body: string
+      readonly mono: string
+    }
+    readonly fontSize?: Record<string, string>
+    readonly fontWeight?: Record<string, number>
+    readonly lineHeight?: Record<string, number>
+  }
+  readonly spacing?: Record<string, string>
+  readonly radius?: Record<string, string>
+  readonly shadows?: Record<string, string>
+  readonly animation?: {
+    readonly name: string
+    readonly keyframes: string
+    readonly duration: string
+    readonly timing: string
+    readonly description: string
+  }
+  readonly useCase?: string
+}
+
+export type ThemeName = "premium-athletic" | "cyber-athlete" | "organic-performance"
 
 // ============================================
 // Helper: Get theme by name
 // ============================================
-export const getThemeByName = (
-  themeName: "premium-athletic" | "cyber-athlete" | "organic-performance",
-): Record<string, any> => {
-  const themes: Record<string, any> = {
+export const getThemeByName = (themeName: ThemeName): ThemeConfig => {
+  const themes: Record<ThemeName, ThemeConfig> = {
     "premium-athletic": PREMIUM_ATHLETIC_THEME,
     "cyber-athlete": CYBER_ATHLETE_THEME,
     "organic-performance": ORGANIC_PERFORMANCE_THEME,
@@ -425,10 +486,16 @@ export const getThemeByName = (
   return themes[themeName]
 }
 
+export function applyTheme(name: ThemeName) {
+  if (typeof document !== "undefined") {
+    document.documentElement.setAttribute("data-theme", name)
+  }
+}
+
 // ============================================
 // Helper: Generate CSS variables from theme
 // ============================================
-export const generateCSSVariables = (theme: Record<string, any>): string => {
+export const generateCSSVariables = (theme: ThemeConfig): string => {
   const cssVars: string[] = []
 
   // Colors
