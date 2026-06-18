@@ -1,3 +1,4 @@
-:HL["/next-fit/_next/static/chunks/1i9xvlibgptdr.css","style"]
+:HL["/next-fit/_next/static/chunks/0a93c790g4l9r.css","style"]
 :HC["/",""]
-0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"workout","param":null,"prefetchHints":0,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}}}},"staleTime":300,"buildId":"muDiaXh5PQhy1_7VfVibX"}
+:HL["/next-fit/_next/static/chunks/0j2di889eceo4.css","style"]
+0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"workout","param":null,"prefetchHints":0,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}}}},"staleTime":300,"buildId":"7xyq3D9LIQ0puCg__ASmI"}
