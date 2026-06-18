@@ -53,6 +53,7 @@ export default function ExerciseThumbnail({ exercise, className, style, onError 
       alt={exercise.name}
       className={className}
       style={style}
+      loading="lazy"
       onError={handleError}
     />
   )
