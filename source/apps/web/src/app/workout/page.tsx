@@ -8,7 +8,11 @@ import NumberPickerWheel from "@/components/ui/NumberPickerWheel"
 import RestTimer from "@/components/ui/RestTimer"
 import { useApp } from "@/lib/context"
 import ExerciseThumbnail from "@/components/ui/ExerciseThumbnail"
-import { Exercise, ExerciseProgress } from "@/types"
+import { Exercise, ExerciseLogEntry, ExerciseProgress, MuscleGroup } from "@/types"
+import { STORAGE_KEYS } from "@/lib/constants"
+import { suggestNextWeight, getLogsForExercise } from "@/lib/progressive"
+import WarmupSection from "@/components/ui/WarmupSection"
+import ProgressChart from "@/components/ui/ProgressChart"
 
 function formatElapsed(seconds: number) {
   const minutes = Math.floor(seconds / 60)
@@ -36,6 +40,15 @@ export default function WorkoutPage() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const cancelDialogRef = useRef<HTMLDivElement>(null)
   const continueBtnRef = useRef<HTMLButtonElement>(null)
+  const [exerciseLogs, setExerciseLogs] = useState<Record<string, ExerciseLogEntry[]>>(() => {
+    if (typeof window === "undefined") return {}
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.EXERCISE_LOGS)
+      return raw ? JSON.parse(raw) : {}
+    } catch {
+      return {}
+    }
+  })
   const [restState, setRestState] = useState<{
     active: boolean
     exerciseName: string
@@ -174,8 +187,32 @@ export default function WorkoutPage() {
     })
   }
 
+  const saveExerciseLogs = () => {
+    const newLogs = { ...exerciseLogs }
+    for (const item of progress) {
+      const isBw = item.exercise.equipment === "Bodyweight"
+      const completedSets = item.sets.filter((s) => s.completed && s.reps !== null && (isBw || s.weight !== null))
+      if (completedSets.length === 0) continue
+      const best = completedSets.reduce((max, s) =>
+        (s.weight ?? 0) > (max.weight ?? 0) ? s : max,
+      )
+      const entry: ExerciseLogEntry = {
+        date: new Date().toISOString().split("T")[0],
+        weight: best.weight ?? 0,
+        reps: best.reps!,
+        sets: completedSets.length,
+      }
+      const existing = newLogs[item.exercise.id] ?? []
+      existing.push(entry)
+      newLogs[item.exercise.id] = existing
+    }
+    localStorage.setItem(STORAGE_KEYS.EXERCISE_LOGS, JSON.stringify(newLogs))
+    setExerciseLogs(newLogs)
+  }
+
   const handleComplete = () => {
     completeWorkout(elapsedSeconds, progress)
+    saveExerciseLogs()
     setShowCompleted(true)
   }
 
@@ -301,8 +338,14 @@ export default function WorkoutPage() {
       </header>
 
       <main className="mx-auto grid w-full max-w-4xl gap-4 px-4 pb-36 pt-4">
+        <WarmupSection
+          targetMuscles={state.todayExercises.map((ex) => ex.muscleGroup as MuscleGroup)}
+          exercises={state.todayExercises}
+          logs={exerciseLogs}
+        />
         {progress.map((item, exerciseIndex) => {
           const exerciseCompleted = item.sets.every((set) => set.completed)
+          const isBodyweight = item.exercise.equipment === "Bodyweight"
           return (
             <section
               key={item.exercise.id}
@@ -336,6 +379,18 @@ export default function WorkoutPage() {
                           Lần trước: {lastPerf[item.exercise.id].reps} reps × {lastPerf[item.exercise.id].weight}kg
                         </p>
                       )}
+                      {(() => {
+                        const exLogs = getLogsForExercise(exerciseLogs, item.exercise.id)
+                        if (exLogs.length > 0) {
+                          const suggestion = suggestNextWeight(exLogs)
+                          return (
+                            <p className="font-number text-[11px] mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
+                              Gợi ý: <span style={{ color: "var(--color-primary)" }}>{suggestion.reps} reps × {suggestion.weight}kg</span>
+                            </p>
+                          )
+                        }
+                        return null
+                      })()}
                     </div>
                     <span
                       className="shrink-0 rounded-xl px-2 py-1 font-number text-[10px]"
@@ -351,22 +406,24 @@ export default function WorkoutPage() {
               </div>
 
               <div className="px-4 pb-4">
-                <div className="mb-2 grid grid-cols-[32px_1fr_1fr_44px_36px_44px] items-center gap-2 px-1 font-heading text-[10px] uppercase tracking-[0.18em]" style={{ color: "var(--color-text-secondary)" }}>
+                <div className={`mb-2 grid items-center gap-2 px-1 font-heading text-[10px] uppercase tracking-[0.18em] ${isBodyweight ? "grid-cols-[32px_1fr_44px_44px]" : "grid-cols-[32px_1fr_1fr_44px_36px_44px]"}`} style={{ color: "var(--color-text-secondary)" }}>
                   <span>#</span>
                   <span className="text-center">Số reps</span>
-                  <span className="text-center">Kg</span>
+                  {!isBodyweight && <span className="text-center">Kg</span>}
                   <span className="text-center">Nghỉ</span>
-                  <span />
+                  {!isBodyweight && <span />}
                   <span />
                 </div>
 
                 <div className="grid gap-2">
                   {item.sets.map((set, setIndex) => {
-                    const canCheck = !set.completed && set.reps !== null && set.weight !== null
+                    const canCheck = isBodyweight
+                      ? !set.completed && set.reps !== null
+                      : !set.completed && set.reps !== null && set.weight !== null
                     return (
                     <div
                       key={`${item.exercise.id}-${setIndex}`}
-                      className="grid grid-cols-[32px_1fr_1fr_44px_36px_44px] items-center gap-2 rounded-2xl p-2"
+                      className={`grid items-center gap-2 rounded-2xl p-2 ${isBodyweight ? "grid-cols-[32px_1fr_44px_44px]" : "grid-cols-[32px_1fr_1fr_44px_36px_44px]"}`}
                       style={{
                         background: set.completed ? "rgba(var(--color-primary-rgb), 0.08)" : "rgba(255,255,255,0.035)",
                         border: `1px solid ${set.completed ? "rgba(var(--color-primary-rgb), 0.2)" : "rgba(255,255,255,0.045)"}`,
@@ -384,19 +441,21 @@ export default function WorkoutPage() {
                         ariaLabel={`${item.exercise.name} hiệp ${setIndex + 1} số reps`}
                         disabled={set.completed}
                       />
-                      <NumberPickerWheel
-                        value={set.weight}
-                        onChange={(v) => updateSet(exerciseIndex, setIndex, "weight", v)}
-                        min={0}
-                        max={200}
-                        step={2.5}
-                        ariaLabel={`${item.exercise.name} hiệp ${setIndex + 1} kg`}
-                        disabled={set.completed}
-                      />
+                      {!isBodyweight && (
+                        <NumberPickerWheel
+                          value={set.weight}
+                          onChange={(v) => updateSet(exerciseIndex, setIndex, "weight", v)}
+                          min={0}
+                          max={200}
+                          step={2.5}
+                          ariaLabel={`${item.exercise.name} hiệp ${setIndex + 1} kg`}
+                          disabled={set.completed}
+                        />
+                      )}
                       <span className="text-center font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
                         {item.exercise.restSeconds}s
                       </span>
-                      {item.sets.length > 1 && (
+                      {!isBodyweight && item.sets.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removeSet(exerciseIndex, setIndex)}
@@ -435,6 +494,11 @@ export default function WorkoutPage() {
                   <Plus size={14} aria-hidden="true" />
                   Thêm hiệp
                 </button>
+                <ProgressChart
+                  exerciseName={item.exercise.name}
+                  exerciseId={item.exercise.id}
+                  logs={exerciseLogs}
+                />
               </div>
             </section>
           )

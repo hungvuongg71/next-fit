@@ -12,7 +12,7 @@ import ExerciseModal from "@/components/ui/ExerciseModal"
 import ExercisePicker from "@/components/ui/ExercisePicker"
 import CookieConsent from "@/components/ui/CookieConsent"
 import { MOCK_EXERCISES } from "@/lib/data"
-import { MUSCLE_GROUPS, DURATIONS, EQUIPMENT } from "@/lib/constants"
+import { MUSCLE_GROUPS, MUSCLE_GROUPS_VI, DURATIONS, EQUIPMENT, EQUIPMENT_VI, POPULAR_EQUIPMENT } from "@/lib/constants"
 import { generateProgressiveExercises, getTodaySuggestion, computeExerciseCount } from "@/lib/split"
 
 function formatDate() {
@@ -40,6 +40,7 @@ export default function HomePage() {
   const [reshuffleSeenIds, setReshuffleSeenIds] = useState<Set<string>>(new Set())
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null)
   const [showPicker, setShowPicker] = useState(false)
+  const [showAllEquipment, setShowAllEquipment] = useState(false)
   const [selectedMuscles, setSelectedMuscles] = useState<MuscleGroup[]>(state.criteria?.muscleGroups ?? [])
   const [selectedDuration, setSelectedDuration] = useState<Duration | null>(state.criteria?.duration ?? null)
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment[]>(state.criteria?.equipment ?? [])
@@ -197,23 +198,29 @@ export default function HomePage() {
 
         {/* Criteria panel */}
          {showCriteriaPanel && (
-           <div className="mb-6 animate-fadeIn">
+           <div
+             className="mb-6 animate-fadeIn max-h-[55vh] overflow-y-auto rounded-2xl"
+             style={{
+               background: "var(--color-surface)",
+               border: "1px solid var(--color-border)",
+             }}
+           >
              {/* Split suggestion */}
-             {state.criteria?.frequency && todaySuggestion && todaySuggestion.length > 0 && (
-               <div
-                 className="mb-5 p-4 rounded-2xl"
-                 style={{
-                   background: "rgba(var(--color-primary-rgb), 0.06)",
-                   border: "1px solid rgba(var(--color-primary-rgb), 0.12)",
-                 }}
-               >
+          {state.criteria?.frequency && todaySuggestion && todaySuggestion.length > 0 && (
+                <div
+                  className="p-4 rounded-2xl sticky top-0 z-10"
+                  style={{
+                    background: "var(--color-surface)",
+                    borderBottom: "1px solid var(--color-border)",
+                  }}
+                >
                  <p className="font-heading font-semibold text-xs mb-1.5" style={{ color: "var(--color-text)" }}>
                    Gợi ý hôm nay
                  </p>
                  <p className="font-body text-sm mb-3" style={{ color: "var(--color-text-secondary)" }}>
                    Theo lịch <strong>{state.criteria.frequency}</strong> hôm nay nên tập:{" "}
                    <strong className="font-heading font-semibold" style={{ color: "var(--color-text)" }}>
-                     {todaySuggestion.join(", ")}
+                     {todaySuggestion.map((m) => MUSCLE_GROUPS_VI[m] ?? m).join(", ")}
                    </strong>
                    {" · "}
                    <strong>{suggestedCount} bài</strong>
@@ -228,6 +235,7 @@ export default function HomePage() {
                </div>
              )}
 
+             <div className="p-4">
              {/* Nhóm Cơ */}
              <div className="mb-5">
 
@@ -249,7 +257,7 @@ export default function HomePage() {
                       border: `1px solid ${selectedMuscles.includes(m) ? "var(--color-primary)" : "transparent"}`,
                     }}
                   >
-                    {m}
+                    {MUSCLE_GROUPS_VI[m]}
                   </button>
                 ))}
               </div>
@@ -290,7 +298,14 @@ export default function HomePage() {
                 Thiết Bị
               </p>
               <div className="flex flex-wrap gap-2">
-                {EQUIPMENT.map((e) => (
+                {[...EQUIPMENT]
+                  .sort((a, b) => {
+                    const aPop = POPULAR_EQUIPMENT.has(a) ? 0 : 1
+                    const bPop = POPULAR_EQUIPMENT.has(b) ? 0 : 1
+                    return aPop - bPop
+                  })
+                  .filter((e) => showAllEquipment || POPULAR_EQUIPMENT.has(e))
+                  .map((e) => (
                   <button
                     key={e}
                     onClick={() => toggleEquipment(e)}
@@ -322,10 +337,18 @@ export default function HomePage() {
                         </svg>
                       )}
                     </div>
-                    {e}
+                    {EQUIPMENT_VI[e]}
                   </button>
                 ))}
               </div>
+              <button
+                onClick={() => setShowAllEquipment(!showAllEquipment)}
+                className="mt-3 px-4 py-2 rounded-xl font-heading font-semibold text-xs transition-all active:scale-95"
+                style={{ color: "var(--color-primary)", background: "rgba(var(--color-primary-rgb), 0.08)" }}
+              >
+                {showAllEquipment ? "Thu gọn" : `Xem thêm (${EQUIPMENT.length - POPULAR_EQUIPMENT.size})`}
+              </button>
+            </div>
             </div>
           </div>
         )}

@@ -8,7 +8,7 @@ import { useApp } from "@/lib/context"
 import { Duration, Equipment, Frequency, Gender, Goal, Level, UserCriteria } from "@/types"
 import CookieConsent from "@/components/ui/CookieConsent"
 
-import { DURATIONS, EQUIPMENT, FREQUENCIES } from "@/lib/constants"
+import { DURATIONS, EQUIPMENT, EQUIPMENT_VI, FREQUENCIES, POPULAR_EQUIPMENT } from "@/lib/constants"
 
 const GENDERS: Gender[] = ["Nam", "Nữ", "Khác"]
 const LEVELS: Level[] = ["Beginner", "Intermediate", "Advanced", "Expert"]
@@ -68,6 +68,7 @@ export default function OnboardingPage() {
   const [duration, setDuration] = useState<Duration | null>(null)
   const [frequency, setFrequency] = useState<Frequency | null>(null)
   const [allowStorage, setAllowStorage] = useState(true)
+  const [showAllEquipment, setShowAllEquipment] = useState(false)
 
   const completedCount = [gender, level, goal, equipment.length > 0, duration, frequency].filter(Boolean).length
   const progress = Math.round((completedCount / 6) * 100)
@@ -202,12 +203,26 @@ export default function OnboardingPage() {
               Dụng cụ
             </p>
             <div className="grid grid-cols-2 gap-2">
-              {EQUIPMENT.map((item) => (
+              {[...EQUIPMENT]
+                .sort((a, b) => {
+                  const aPop = POPULAR_EQUIPMENT.has(a) ? 0 : 1
+                  const bPop = POPULAR_EQUIPMENT.has(b) ? 0 : 1
+                  return aPop - bPop
+                })
+                .filter((item) => showAllEquipment || POPULAR_EQUIPMENT.has(item))
+                .map((item) => (
                 <ChoiceButton key={item} active={equipment.includes(item)} onClick={() => toggleEquipment(item)}>
-                  {item}
+                  {EQUIPMENT_VI[item]}
                 </ChoiceButton>
               ))}
             </div>
+            <button
+              onClick={() => setShowAllEquipment(!showAllEquipment)}
+              className="mt-3 px-4 py-2 rounded-xl font-heading font-semibold text-xs transition-all active:scale-95"
+              style={{ color: "var(--color-primary)", background: "rgba(var(--color-primary-rgb), 0.08)" }}
+            >
+              {showAllEquipment ? "Thu gọn" : `Xem thêm (${EQUIPMENT.length - POPULAR_EQUIPMENT.size})`}
+            </button>
           </section>
 
           <section>
