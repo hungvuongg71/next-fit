@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Plus, RotateCcw } from "lucide-react"
+import { Plus, RotateCcw, RefreshCw } from "lucide-react"
 import { useApp } from "@/lib/context"
 import { Exercise, MuscleGroup, Duration, Equipment, Goal, Level, Frequency, UserCriteria } from "@/types"
 import TopHeader from "@/components/layout/TopHeader"
@@ -12,19 +12,30 @@ import ExerciseModal from "@/components/ui/ExerciseModal"
 import ExercisePicker from "@/components/ui/ExercisePicker"
 import CookieConsent from "@/components/ui/CookieConsent"
 import { MOCK_EXERCISES } from "@/lib/data"
-import { generateProgressiveExercises, getTodaySuggestion, getExerciseCount } from "@/lib/split"
+import { generateProgressiveExercises, getTodaySuggestion, computeExerciseCount } from "@/lib/split"
 
 const MUSCLE_GROUPS: MuscleGroup[] = ["Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Cardio"]
 const DURATIONS: Duration[] = ["15 min", "30 min", "45 min", "60+ min"]
 const EQUIPMENTS: Equipment[] = [
+  "Ab Wheel",
   "Barbell",
-  "Dumbbell",
+  "Battle Ropes",
   "Bodyweight",
   "Cable",
+  "Clubbell",
+  "Dumbbell",
+  "EZ Bar",
+  "Gymnastic Rings",
   "Kettlebell",
-  "Pull-up bar",
-  "Machine",
-  "EZ Curl Bar",
+  "Medicine Ball",
+  "Miniband",
+  "Parallette Bars",
+  "Pull Up Bar",
+  "Resistance Band",
+  "Sliders",
+  "Stability Ball",
+  "Suspension Trainer",
+  "Weight Plate",
 ]
 
 function formatDate() {
@@ -49,6 +60,7 @@ export default function HomePage() {
     startWorkout,
   } = useApp()
   const [showCriteriaPanel, setShowCriteriaPanel] = useState(false)
+  const [reshuffleSeenIds, setReshuffleSeenIds] = useState<Set<string>>(new Set())
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null)
   const [showPicker, setShowPicker] = useState(false)
   const [selectedMuscles, setSelectedMuscles] = useState<MuscleGroup[]>(state.criteria?.muscleGroups ?? [])
@@ -66,6 +78,11 @@ export default function HomePage() {
       setSelectedEquipment(state.criteria.equipment)
     if (!selectedDuration && state.criteria.duration) setSelectedDuration(state.criteria.duration)
   }, [state.criteria, state.isFirstVisit, router])
+
+  // Reset reshuffle history when criteria changes
+  useEffect(() => {
+    setReshuffleSeenIds(new Set())
+  }, [selectedMuscles, selectedDuration, selectedEquipment])
 
   // Auto-apply criteria changes with debounce
   useEffect(() => {
@@ -94,8 +111,15 @@ export default function HomePage() {
   }, [state.criteria?.frequency])
 
   const suggestedCount = useMemo(() => {
-    return getExerciseCount(state.criteria?.duration)
-  }, [state.criteria?.duration])
+    const c = state.criteria
+    if (!c) return 5
+    const groupsCount = c.muscleGroups.length > 0
+      ? c.muscleGroups.length
+      : c.frequency
+        ? getTodaySuggestion(c.frequency).length
+        : 0
+    return computeExerciseCount(c.duration, c.goal, c.level, groupsCount)
+  }, [state.criteria])
 
   const criteriaPlan = useMemo(() => {
     if (!state.criteria) return null
@@ -128,6 +152,14 @@ export default function HomePage() {
     const fresh = generateProgressiveExercises(state.criteria, state.workoutHistory)
     const next = fresh.find((e) => !currentIds.has(e.id))
     if (next) replaceExercise(id, next)
+  }
+
+  const handleReshuffle = () => {
+    const currentIds = new Set(state.todayExercises.map((e) => e.id))
+    const newSeen = new Set([...reshuffleSeenIds, ...currentIds])
+    setReshuffleSeenIds(newSeen)
+    const fresh = generateProgressiveExercises(state.criteria, state.workoutHistory, undefined, newSeen)
+    if (fresh.length) setTodayExercises(fresh)
   }
 
   const handleStartWorkout = () => {
@@ -335,6 +367,14 @@ export default function HomePage() {
               </p>
             </div>
             <div className="flex gap-2">
+              <button
+                onClick={handleReshuffle}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-heading font-semibold transition-all duration-200 active:scale-95 hover:opacity-80"
+                style={{ background: "var(--color-surface-subtle)", color: "var(--color-text-secondary)" }}
+              >
+                <RefreshCw size={12} />
+                Gợi ý lại
+              </button>
               <button
                 onClick={resetTodayExercises}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-heading font-semibold transition-all duration-200 active:scale-95 hover:opacity-80"

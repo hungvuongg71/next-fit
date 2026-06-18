@@ -1,9 +1,41 @@
 export type Gender = "Nam" | "Nữ" | "Khác"
-export type Level = "Beginner" | "Intermediate" | "Advanced" | "Expert"
+export type Level = "Novice" | "Beginner" | "Intermediate" | "Advanced" | "Expert" | "Master" | "Grand Master" | "Legendary"
 export type Goal = "Strength" | "Hypertrophy" | "Endurance"
 export type MuscleGroup = "Chest" | "Back" | "Legs" | "Shoulders" | "Arms" | "Core" | "Abs" | "Cardio"
 export type Duration = "15 min" | "30 min" | "45 min" | "60+ min"
-export type Equipment = "Barbell" | "Dumbbell" | "Bodyweight" | "Cable" | "Kettlebell" | "Pull-up bar" | "Machine" | "EZ Curl Bar" | "Resistance Band" | "TRX / Suspension" | "Gym mat" | "Swiss Ball" | "Bench" | "Incline bench" | "Foam Roll"
+export type Equipment =
+  | "Ab Wheel"
+  | "Barbell"
+  | "Battle Ropes"
+  | "Bodyweight"
+  | "Bulgarian Bag"
+  | "Cable"
+  | "Climbing Rope"
+  | "Clubbell"
+  | "Dumbbell"
+  | "EZ Bar"
+  | "Gymnastic Rings"
+  | "Heavy Sandbag"
+  | "Indian Club"
+  | "Kettlebell"
+  | "Landmine"
+  | "Macebell"
+  | "Medicine Ball"
+  | "Miniband"
+  | "Parallette Bars"
+  | "Pull Up Bar"
+  | "Resistance Band"
+  | "Sandbag"
+  | "Slam Ball"
+  | "Sled"
+  | "Sliders"
+  | "Stability Ball"
+  | "Superband"
+  | "Suspension Trainer"
+  | "Tire"
+  | "Trap Bar"
+  | "Wall Ball"
+  | "Weight Plate"
 export type Frequency = "3 ngày" | "4 ngày" | "5 ngày" | "6 ngày"
 
 export interface UserCriteria {
@@ -26,7 +58,7 @@ export interface Exercise {
   id: string
   name: string
   name_vi?: string
-  muscleGroup: MuscleGroup
+  muscleGroup: string
   muscleGroup_vi?: string
   muscles?: string[]
   muscles_vi?: string[]
@@ -85,4 +117,5 @@ export interface AppState {
   currentExerciseIndex: number
   exerciseProgress: ExerciseProgress[]
   workoutHistory: WorkoutHistoryEntry[]
+  lastPerformances: Record<string, { reps: number; weight: number }>
 }
