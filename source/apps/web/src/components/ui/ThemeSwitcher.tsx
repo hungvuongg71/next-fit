@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { applyTheme, type ThemeName } from "@/lib/theme"
+import { STORAGE_KEYS } from "@/lib/constants"
 import { Palette } from "lucide-react"
 
 interface ThemeSwitcherProps {
@@ -29,7 +30,7 @@ const THEMES: Array<{ id: ThemeName; label: string; description: string }> = [
 export default function ThemeSwitcher({ className = "" }: ThemeSwitcherProps) {
   const [currentTheme, setCurrentTheme] = useState<ThemeName>(() => {
     if (typeof window === "undefined") return "premium-athletic"
-    const saved = localStorage.getItem("nextfit-theme") as ThemeName | null
+    const saved = localStorage.getItem(STORAGE_KEYS.THEME) as ThemeName | null
     return saved && ["premium-athletic", "cyber-athlete", "organic-performance"].includes(saved)
       ? saved
       : "premium-athletic"
@@ -42,7 +43,7 @@ export default function ThemeSwitcher({ className = "" }: ThemeSwitcherProps) {
   const handleThemeChange = (themeId: ThemeName) => {
     setCurrentTheme(themeId)
     applyTheme(themeId)
-    localStorage.setItem("nextfit-theme", themeId)
+    localStorage.setItem(STORAGE_KEYS.THEME, themeId)
   }
 
   return (

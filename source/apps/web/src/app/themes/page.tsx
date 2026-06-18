@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { applyTheme } from "@/lib/theme"
+import { STORAGE_KEYS } from "@/lib/constants"
 import ThemeSwitcher from "@/components/ui/ThemeSwitcher"
 import TopHeader from "@/components/layout/TopHeader"
 import BottomNav from "@/components/layout/BottomNav"
@@ -47,8 +48,8 @@ export default function ThemesShowcasePage() {
 
   const handleSelectTheme = (themeId: string) => {
     setSelectedTheme(themeId)
-    applyTheme(themeId as any)
-    localStorage.setItem("nextfit-theme", themeId)
+    applyTheme(themeId as "premium-athletic" | "cyber-athlete" | "organic-performance")
+    localStorage.setItem(STORAGE_KEYS.THEME, themeId)
   }
 
   return (

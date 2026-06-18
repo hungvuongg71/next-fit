@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react"
 import { AppState, UserCriteria, Exercise, ExerciseProgress, WorkoutHistoryEntry } from "@/types"
 import { DEFAULT_EXERCISES } from "@/lib/data"
+import { STORAGE_KEYS } from "@/lib/constants"
 
 interface AppContextType {
   state: AppState
@@ -38,7 +39,7 @@ const defaultState: AppState = {
 
 function loadSavedState(): Partial<AppState> | null {
   if (typeof window === "undefined") return null
-  const saved = localStorage.getItem("nextfit-state")
+  const saved = localStorage.getItem(STORAGE_KEYS.STATE)
   if (!saved) return null
   try {
     return JSON.parse(saved) as Partial<AppState>
@@ -95,7 +96,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    localStorage.setItem("nextfit-state", JSON.stringify(state))
+    localStorage.setItem(STORAGE_KEYS.STATE, JSON.stringify(state))
   }, [state])
 
   const setCookiesAccepted = (v: boolean) =>
