@@ -1,36 +1,98 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NextFit — Gym Workout Planner
 
-## Getting Started
+Gợi ý bài tập cá nhân hoá mỗi ngày dựa trên mục tiêu, trình độ, và dụng cụ của bạn.
 
-First, run the development server:
+## Tính năng
+
+- **Cá nhân hoá** — Chọn giới tính, trình độ, mục tiêu, thời lượng, tần suất, và dụng cụ
+- **Gợi ý bài tập thông minh** — Thuật toán split với gender bias, fatigue management, compound scoring
+- **Theme system** — 3 visual directions: Premium Athletic, Cyber Athlete, Organic Performance
+- **Workout tracker** — Theo dõi sets, reps, weight, rest timer, và lịch sử tập luyện
+- **Static export** — SSG với Next.js, deploy được lên GitHub Pages / Vercel / Netlify
+- **Local-first** — Tất cả dữ liệu lưu trong localStorage, không cần server
+
+## Tech Stack
+
+| Công nghệ | Mục đích |
+|-----------|----------|
+| Next.js 16 (App Router) | Framework |
+| React 19 | UI Library |
+| TypeScript | Type Safety |
+| Tailwind CSS v4 | Styling |
+| Lucide React | Icons |
+| Vitest | Unit Testing |
+| @ncdai/react-wheel-picker | iOS-style wheel picker |
+
+## Quick Start
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm dev        # http://localhost:3000
+pnpm build      # Static export → out/
+pnpm test       # 33 unit tests
+pnpm lint       # ESLint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Cấu trúc thư mục
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+src/
+├── app/               # Next.js App Router pages
+│   ├── onboarding/    # Setup flow (6 criteria)
+│   ├── workout/       # Active workout session
+│   ├── stats/         # Lịch sử & thống kê
+│   ├── profile/       # Hồ sơ & theme switcher
+│   └── themes/        # Theme showcase demo
+├── components/
+│   ├── layout/        # TopHeader, BottomNav
+│   └── ui/            # ExerciseCard, Modal, Picker, RestTimer, etc.
+├── lib/
+│   ├── constants.ts   # Centralized constants (storage keys, equipment lists)
+│   ├── context.tsx    # React Context state management
+│   ├── design-tokens.ts # Theme definitions (3 visual directions)
+│   ├── theme.ts       # Backward-compat re-exports from design-tokens
+│   ├── data.ts        # Exercise data loader + helpers
+│   ├── split.ts       # Workout split algorithm
+│   └── __tests__/     # Unit tests
+├── types/
+│   └── index.ts       # TypeScript type definitions
+└── styles/
+    └── focus-rings.css
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Theme System
 
-## Learn More
+3 visual directions với CSS variables, localStorage persistence:
 
-To learn more about Next.js, take a look at the following resources:
+| Theme | Primary | Vibe |
+|-------|---------|------|
+| Premium Athletic | Forest Green `#0FA560` | Luxury minimalist |
+| Cyber Athlete | Neon Cyan `#00D9FF` | Futuristic cyberpunk |
+| Organic Performance | Warm Gold `#E8A542` | Earth tone wellness |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Testing
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+pnpm test              # Run all tests
+pnpm test:watch        # Watch mode
+```
 
-## Deploy on Vercel
+Hiện tại có **33 unit tests** bao gồm:
+- `split.test.ts` — 23 tests cho thuật toán split (computeExerciseCount, compoundScore, repScore, goalScore, fatiguePenalty, matchesLevel, v.v.)
+- `context.test.tsx` — 10 tests cho state management (criteria, workout flow, history)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Build & Deploy
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+pnpm build
+# Output: out/ (static HTML, SSG)
+```
+
+Cấu hình trong `next.config.ts`:
+- `output: "export"` — Static Site Generation
+- `basePath: "/next-fit"` — GitHub Pages path
+- `trailingSlash: true`
+
+## License
+
+MIT
