@@ -8,32 +8,11 @@ import { useApp } from "@/lib/context"
 import { Duration, Equipment, Frequency, Gender, Goal, Level, UserCriteria } from "@/types"
 import CookieConsent from "@/components/ui/CookieConsent"
 
+import { DURATIONS, EQUIPMENT, FREQUENCIES } from "@/lib/constants"
+
 const GENDERS: Gender[] = ["Nam", "Nữ", "Khác"]
 const LEVELS: Level[] = ["Beginner", "Intermediate", "Advanced", "Expert"]
 const GOALS: Goal[] = ["Strength", "Hypertrophy", "Endurance"]
-const EQUIPMENT_OPTIONS: Equipment[] = [
-  "Ab Wheel",
-  "Barbell",
-  "Battle Ropes",
-  "Bodyweight",
-  "Cable",
-  "Clubbell",
-  "Dumbbell",
-  "EZ Bar",
-  "Gymnastic Rings",
-  "Kettlebell",
-  "Medicine Ball",
-  "Miniband",
-  "Parallette Bars",
-  "Pull Up Bar",
-  "Resistance Band",
-  "Sliders",
-  "Stability Ball",
-  "Suspension Trainer",
-  "Weight Plate",
-]
-const DURATIONS: Duration[] = ["15 min", "30 min", "45 min", "60+ min"]
-const FREQUENCIES: Frequency[] = ["3 ngày", "4 ngày", "5 ngày", "6 ngày"]
 
 function ChoiceButton({
   active,
@@ -223,7 +202,7 @@ export default function OnboardingPage() {
               Dụng cụ
             </p>
             <div className="grid grid-cols-2 gap-2">
-              {EQUIPMENT_OPTIONS.map((item) => (
+              {EQUIPMENT.map((item) => (
                 <ChoiceButton key={item} active={equipment.includes(item)} onClick={() => toggleEquipment(item)}>
                   {item}
                 </ChoiceButton>

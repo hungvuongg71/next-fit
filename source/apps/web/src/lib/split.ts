@@ -22,7 +22,7 @@ const LOWER_BODY_GROUPS = new Set([
 
 const UPPER_UI_GROUPS: MuscleGroup[] = ["Chest", "Shoulders", "Arms", "Back"]
 
-const GENDER_VOLUME_BIAS: Record<string, { upper: number; lower: number }> = {
+const GENDER_VOLUME_BIAS: Record<Gender, { upper: number; lower: number }> = {
   Nam: { upper: 1.3, lower: 0.7 },
   Nữ: { upper: 0.7, lower: 1.3 },
   Khác: { upper: 1.0, lower: 1.0 },
@@ -50,7 +50,7 @@ const LEVEL_RANGE: Record<Level, [number, number]> = {
   Legendary: [7, 7],
 }
 
-function matchesLevel(exerciseLevel: string, criteriaLevel: Level): boolean {
+export function matchesLevel(exerciseLevel: string, criteriaLevel: Level): boolean {
   const exRank = LEVEL_ORDER[exerciseLevel]
   const range = LEVEL_RANGE[criteriaLevel]
   if (exRank === undefined || !range) return exerciseLevel === criteriaLevel
@@ -179,7 +179,7 @@ export function computeExerciseCount(
 function distributeSlotCounts(
   groups: MuscleGroup[],
   totalCount: number,
-  gender?: string,
+  gender?: Gender,
 ): number[] {
   if (!gender || gender === "Khác") {
     const perSlot = Math.max(1, Math.floor(totalCount / groups.length))
@@ -201,13 +201,13 @@ const CATEGORY_COMPOUND_SCORE: Record<string, number> = {
   Core: 0.3,
 }
 
-function parseAvgReps(reps: string): number | null {
+export function parseAvgReps(reps: string): number | null {
   const match = reps.match(/(\d+)\s*-\s*(\d+)/)
   if (!match) return null
   return (Number(match[1]) + Number(match[2])) / 2
 }
 
-function compoundScore(ex: Exercise, gender?: string): number {
+export function compoundScore(ex: Exercise, gender?: string): number {
   const cat = CATEGORY_COMPOUND_SCORE[ex.category ?? ""] ?? 0.4
   const secondaryBonus = ex.musclesSecondary?.length ? 0.1 : 0
   const equipmentBonus = ["Barbell", "Trap Bar"].includes(ex.equipment) ? 0.05 : 0
@@ -223,7 +223,7 @@ function compoundScore(ex: Exercise, gender?: string): number {
   return Math.min(cat + secondaryBonus + equipmentBonus + genderBonus, 1)
 }
 
-function repScore(
+export function repScore(
   avgReps: number,
   goal: Goal,
   gender?: string,
@@ -253,7 +253,7 @@ function repScore(
   }
 }
 
-function goalScore(ex: Exercise, goal: Goal, gender?: string): number {
+export function goalScore(ex: Exercise, goal: Goal, gender?: string): number {
   const compound = compoundScore(ex, gender)
   const avgReps = parseAvgReps(ex.reps)
   const rep = avgReps !== null ? repScore(avgReps, goal, gender, ex.muscleGroup) : 0.5
@@ -273,7 +273,7 @@ function getSlotSeed(criteria: UserCriteria, slotIndex: number): number {
   return hashCode(`${base}|slot:${slotIndex}`)
 }
 
-function fatiguePenalty(ex: Exercise, fatiguedMuscles: Set<string>): number {
+export function fatiguePenalty(ex: Exercise, fatiguedMuscles: Set<string>): number {
   if (fatiguedMuscles.size === 0) return 0
   const allMuscles = [...(ex.muscles ?? []), ...(ex.musclesSecondary ?? [])]
   const overlap = allMuscles.filter((m) => fatiguedMuscles.has(m)).length
@@ -318,16 +318,16 @@ const SECONDARY_MUSCLE_MAP: Record<string, string[]> = {
   Shoulders: ["Arms"],
 }
 
-function crossSlotFatiguePenalty(
+export function crossSlotFatiguePenalty(
   ex: Exercise,
   remainingGroups: MuscleGroup[],
 ): number {
-  const allExerciseMuscles = [...(ex.muscles ?? []), ...(ex.musclesSecondary ?? [])]
+  const allMuscles = [...(ex.muscles ?? []), ...(ex.musclesSecondary ?? [])]
   let penalty = 0
   for (const group of remainingGroups) {
     const overlaps = SECONDARY_MUSCLE_MAP[group] ?? []
     for (const m of overlaps) {
-      if (allExerciseMuscles.some((em) => em.toLowerCase().includes(m.toLowerCase()))) {
+      if (allMuscles.some((em) => em.toLowerCase().includes(m.toLowerCase()))) {
         penalty += 0.08
       }
     }

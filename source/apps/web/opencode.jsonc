@@ -1,0 +1,37 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "command": {
+    "spec": {
+      "description": "Start spec-driven development — write a structured specification before writing code",
+      "template": "Invoke the spec-driven-development skill.\n\nUnderstand what the user wants to build. Ask clarifying questions about objective, target users, core features, acceptance criteria, tech stack, and constraints. Then generate a structured spec covering all six core areas: objective, commands, project structure, code style, testing strategy, and boundaries. Save as SPEC.md and confirm with the user before proceeding.",
+    },
+    "plan": {
+      "description": "Break work into small verifiable tasks with acceptance criteria and dependency ordering",
+      "template": "Invoke the planning-and-task-breakdown skill.\n\nRead the existing spec (SPEC.md or equivalent) and relevant codebase sections. Enter plan mode — read only, no code changes. Identify the dependency graph, slice work vertically, write tasks with acceptance criteria and verification steps, add checkpoints between phases. Present the plan for human review. Save plan to tasks/plan.md and task list to tasks/todo.md.",
+    },
+    "build": {
+      "description": "Implement tasks incrementally — build, test, verify, commit. Add \"auto\" to run the whole plan in one approved pass.",
+      "template": "Invoke the incremental-implementation skill alongside test-driven-development.\n\n## Modes\n- `/build` — implement the next pending task, then stop.\n- `/build auto` — generate the plan if needed, get a single approval, then implement every task without stopping between them.\n\n## Default: one task\nPick the next pending task from the plan. Read its acceptance criteria, load relevant context, write a failing test (RED), implement minimum code to pass (GREEN), run full test suite for regressions, run the build, commit with a descriptive message, mark the task complete, and stop.\n\n## Autonomous: the whole plan (/build auto)\nRequire a spec first. Establish a clean baseline (no uncommitted changes). Plan if needed (no tasks/plan.md). Single checkpoint — present full plan and wait for approval. Execute every task in dependency order with RED→GREEN→regression→build→commit loop. Stop on failures and ask the user. Summarize at the end.",
+    },
+    "test": {
+      "description": "Run TDD workflow — write failing tests, implement, verify. For bugs, use the Prove-It pattern.",
+      "template": "Invoke the test-driven-development skill.\n\nFor new features: write tests that describe expected behavior (they should FAIL), implement code to make them pass, refactor while keeping tests green.\n\nFor bug fixes (Prove-It pattern): write a test that reproduces the bug (must FAIL), confirm the test fails, implement the fix, confirm the test passes, run the full test suite for regressions.\n\nFor browser-related issues, also invoke browser-testing-with-devtools to verify with Chrome DevTools MCP.",
+    },
+    "review": {
+      "description": "Conduct a five-axis code review — correctness, readability, architecture, security, performance",
+      "template": "Invoke the code-review-and-quality skill.\n\nReview the current changes across all five axes:\n1. Correctness — matches spec? Edge cases handled? Tests adequate?\n2. Readability — clear names? Straightforward logic? Well-organized?\n3. Architecture — follows existing patterns? Clean boundaries? Right abstraction?\n4. Security — input validated? Secrets safe? Auth checked?\n5. Performance — no N+1 queries? No unbounded ops?\n\nCategorize findings as Critical, Important, or Suggestion. Output a structured review with specific file:line references and fix recommendations.",
+    },
+    "code-simplify": {
+      "description": "Simplify code for clarity and maintainability — reduce complexity without changing behavior",
+      "template": "Invoke the code-simplification skill.\n\nSimplify recently changed code (or specified scope) while preserving exact behavior. Read project conventions, identify target code, understand purpose and edge cases before touching it. Scan for simplification opportunities (deep nesting, long functions, nested ternaries, generic names, duplicated logic, dead code). Apply each change incrementally — run tests after each. If tests fail, revert and reconsider. Use code-review-and-quality to verify the result.",
+    },
+    "ship": {
+      "description": "Run the pre-launch checklist via parallel fan-out to specialist personas, then synthesize a go/no-go decision",
+      "template": "Invoke the shipping-and-launch skill.\n\n## Phase A — Parallel fan-out\nSpawn three subagents concurrently: code-reviewer, security-auditor, test-engineer. Issue all three in a single turn for parallel execution.\n- code-reviewer: five-axis review on staged changes/recent commits\n- security-auditor: vulnerability and threat-model pass (OWASP Top 10, secrets, auth, CVEs)\n- test-engineer: analyze test coverage (happy path, edge cases, error paths, concurrency)\n\n## Phase B — Merge\nOnce all reports are back, synthesize: aggregate Critical/Important findings, resolve duplicates, promote security findings to launch blockers, verify accessibility, infrastructure (env vars, migrations, monitoring), and documentation.\n\n## Phase C — Decision\nProduce GO/NO-GO decision with blockers, recommended fixes, acknowledged risks, rollback plan, and full specialist reports.",
+    },
+    "webperf": {
+      "description": "Run a web performance audit via the web-performance-auditor persona",
+      "template": "Invoke the web-performance-auditor subagent.\n\nDetermine mode:\n- Deep mode: when Lighthouse JSON, PageSpeed Insights JSON, CrUX API response, DevTools trace, or chrome-devtools MCP is available\n- Quick mode (default): scan source code for structural anti-patterns, label findings as `potential impact`\n\nSpawn the web-performance-auditor subagent with relevant files, artifacts, and target URL. Return the full audit report.",
+    },
+  },
+}

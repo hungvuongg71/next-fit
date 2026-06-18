@@ -33,6 +33,11 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# duplicate exercise data backups
+src/lib/exercises_backup.json
+src/lib/exercises_pre_llm.json
+src/lib/exercises copy 2.json
+
 # vercel
 .vercel
 
