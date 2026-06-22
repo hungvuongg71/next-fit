@@ -105,10 +105,10 @@ function seededRandom(seed: number): number {
   return x - Math.floor(x)
 }
 
-function getSeed(criteria: UserCriteria): number {
+function getSeed(criteria: UserCriteria, reshuffleKey?: string | number): number {
   const today = new Date()
   const dateStr = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`
-  const key = `${dateStr}|${JSON.stringify({
+  const key = `${dateStr}|${reshuffleKey ?? ""}|${JSON.stringify({
     muscleGroups: criteria.muscleGroups,
     equipment: criteria.equipment,
     level: criteria.level,
@@ -150,9 +150,9 @@ export function computeExerciseCount(
 ): number {
   const base: Record<Duration, number> = {
     "15 min": 5,
-    "30 min": 5,
-    "45 min": 6,
-    "60+ min": 6,
+    "30 min": 6,
+    "45 min": 7,
+    "60+ min": 8,
   }
 
   const goalAdj: Record<Goal, number> = {
@@ -173,8 +173,8 @@ export function computeExerciseCount(
       ? -1
       : 0
 
-  const raw = (base[duration ?? "30 min"] ?? 5) + (goalAdj[goal ?? "Hypertrophy"]) + levelAdj + groupAdj
-  return Math.max(5, Math.min(6, raw))
+  const raw = (base[duration ?? "30 min"] ?? 6) + (goalAdj[goal ?? "Hypertrophy"]) + levelAdj + groupAdj
+  return Math.max(5, Math.min(8, raw))
 }
 
 function distributeSlotCounts(
@@ -182,9 +182,12 @@ function distributeSlotCounts(
   totalCount: number,
   gender?: Gender,
 ): number[] {
+  if (totalCount <= 0 || groups.length === 0) return []
+
   if (!gender || gender === "Khác") {
-    const perSlot = Math.max(1, Math.floor(totalCount / groups.length))
-    return groups.map(() => perSlot)
+    const perSlot = Math.floor(totalCount / groups.length)
+    const remainder = totalCount % groups.length
+    return groups.map((_, i) => Math.max(1, perSlot + (i < remainder ? 1 : 0)))
   }
 
   const bias = GENDER_VOLUME_BIAS[gender] ?? { upper: 1.0, lower: 1.0 }
@@ -192,7 +195,14 @@ function distributeSlotCounts(
     UPPER_UI_GROUPS.includes(g) ? bias.upper : bias.lower,
   )
   const sum = raw.reduce((a, b) => a + b, 0)
-  return raw.map((r) => Math.max(1, Math.round((r / sum) * totalCount)))
+  const counts = raw.map((r) => Math.max(1, Math.round((r / sum) * totalCount)))
+
+  const diff = totalCount - counts.reduce((a, b) => a + b, 0)
+  for (let i = 0; diff !== 0 && i < counts.length; i++) {
+    if (diff > 0) counts[i]++
+    else if (counts[i] > 1) counts[i]--
+  }
+  return counts
 }
 
 const CATEGORY_COMPOUND_SCORE: Record<string, number> = {
@@ -269,8 +279,8 @@ export function goalScore(ex: Exercise, goal: Goal, gender?: string): number {
   }
 }
 
-function getSlotSeed(criteria: UserCriteria, slotIndex: number): number {
-  const base = getSeed(criteria)
+function getSlotSeed(criteria: UserCriteria, slotIndex: number, reshuffleKey?: string | number): number {
+  const base = getSeed(criteria, reshuffleKey)
   return hashCode(`${base}|slot:${slotIndex}`)
 }
 
@@ -340,7 +350,8 @@ export function generateProgressiveExercises(
   criteria: UserCriteria | null,
   history: WorkoutHistoryEntry[],
   extraExcludeIds?: Set<string>,
-  hardExcludeIds?: Set<string>,
+  _hardExcludeIds?: Set<string>,
+  reshuffleKey?: string | number,
 ): Exercise[] {
   if (!criteria) return MOCK_EXERCISES.slice(0, 4)
 
@@ -350,10 +361,7 @@ export function generateProgressiveExercises(
       (!criteria.level || matchesLevel(ex.level, criteria.level)),
   )
 
-  const pool = hardExcludeIds?.size
-    ? plainFiltered.filter((ex) => !hardExcludeIds.has(ex.id))
-    : plainFiltered
-  const candidateSource = pool.length > 0 ? pool : plainFiltered
+  const candidateSource = plainFiltered
 
   const groupsCount = criteria.muscleGroups.length > 0
     ? criteria.muscleGroups.length
@@ -386,7 +394,6 @@ export function generateProgressiveExercises(
 
   for (let i = 0; i < activeGroups.length; i++) {
     const group = activeGroups[i]
-    if (result.length >= count) break
 
     const dataGroups = MUSCLE_GROUP_MAP[group]
     if (!dataGroups) continue
@@ -400,7 +407,7 @@ export function generateProgressiveExercises(
       fatigue: crossSlotFatiguePenalty(ex, remaining),
     }))
 
-    const slotSeed = getSlotSeed(criteria, i)
+    const slotSeed = getSlotSeed(criteria, i, reshuffleKey)
     const preferred = scored.filter((s) => !recentIds.has(s.ex.id) && !result.some((r) => r.id === s.ex.id))
     const fallback = scored.filter((s) => !preferred.includes(s))
 
