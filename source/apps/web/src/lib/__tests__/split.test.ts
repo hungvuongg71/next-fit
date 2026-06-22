@@ -47,22 +47,21 @@ describe("parseAvgReps", () => {
 })
 
 describe("computeExerciseCount", () => {
-  it("defaults to 5 exercises when no args given", () => {
-    expect(computeExerciseCount()).toBe(5)
+  it("defaults to 6 exercises when no args given", () => {
+    expect(computeExerciseCount()).toBe(6)
   })
 
-  it("returns 5 for 30 min hypertrophy with 2 groups", () => {
-    expect(computeExerciseCount("30 min", "Hypertrophy", "Intermediate", 2)).toBe(5)
+  it("returns 6 for 30 min hypertrophy with 2 groups", () => {
+    expect(computeExerciseCount("30 min", "Hypertrophy", "Intermediate", 2)).toBe(6)
   })
 
-  it("returns 6 for 60+ min endurance with female 3 groups", () => {
-    expect(computeExerciseCount("60+ min", "Endurance", "Advanced", 3)).toBe(6)
+  it("returns 8 for 60+ min endurance with advanced 3 groups", () => {
+    expect(computeExerciseCount("60+ min", "Endurance", "Advanced", 3)).toBe(8)
   })
 
   it("returns 5 for 15 min strength with 1 group (clamped)", () => {
     const result = computeExerciseCount("15 min", "Strength", "Beginner", 1)
-    expect(result).toBeGreaterThanOrEqual(5)
-    expect(result).toBeLessThanOrEqual(6)
+    expect(result).toBe(5)
   })
 })
 

@@ -11,7 +11,7 @@ import ExerciseCard from "@/components/ui/ExerciseCard"
 import ExerciseModal from "@/components/ui/ExerciseModal"
 import ExercisePicker from "@/components/ui/ExercisePicker"
 import CookieConsent from "@/components/ui/CookieConsent"
-import { MOCK_EXERCISES } from "@/lib/data"
+import { MOCK_EXERCISES, DEFAULT_EXERCISES } from "@/lib/data"
 import { MUSCLE_GROUPS, MUSCLE_GROUPS_VI, DURATIONS, EQUIPMENT, EQUIPMENT_VI, POPULAR_EQUIPMENT } from "@/lib/constants"
 import { generateProgressiveExercises, getTodaySuggestion, computeExerciseCount, filterMuscleGroupsByEquipment } from "@/lib/split"
 
@@ -37,7 +37,6 @@ export default function HomePage() {
     startWorkout,
   } = useApp()
   const [showCriteriaPanel, setShowCriteriaPanel] = useState(false)
-  const [reshuffleSeenIds, setReshuffleSeenIds] = useState<Set<string>>(new Set())
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null)
   const [showPicker, setShowPicker] = useState(false)
   const [showAllEquipment, setShowAllEquipment] = useState(false)
@@ -57,10 +56,13 @@ export default function HomePage() {
     if (!selectedDuration && state.criteria.duration) setSelectedDuration(state.criteria.duration)
   }, [state.criteria, state.isFirstVisit, router])
 
-  // Reset reshuffle history when criteria changes
+  // Auto-generate exercises when criteria first loads (not from panel)
   useEffect(() => {
-    setReshuffleSeenIds(new Set())
-  }, [selectedMuscles, selectedDuration, selectedEquipment])
+    if (!state.criteria) return
+    if (state.todayExercises.length > DEFAULT_EXERCISES.length) return
+    const fresh = generateProgressiveExercises(state.criteria, state.workoutHistory)
+    if (fresh.length) setTodayExercises(fresh)
+  }, [state.criteria])
 
   // Auto-apply criteria changes with debounce
   useEffect(() => {
@@ -144,10 +146,13 @@ export default function HomePage() {
   }
 
   const handleReshuffle = () => {
-    const currentIds = new Set(state.todayExercises.map((e) => e.id))
-    const newSeen = new Set([...reshuffleSeenIds, ...currentIds])
-    setReshuffleSeenIds(newSeen)
-    const fresh = generateProgressiveExercises(state.criteria, state.workoutHistory, undefined, newSeen)
+    const fresh = generateProgressiveExercises(
+      state.criteria,
+      state.workoutHistory,
+      undefined,
+      undefined,
+      Date.now(),
+    )
     if (fresh.length) setTodayExercises(fresh)
   }
 
