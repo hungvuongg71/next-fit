@@ -4,11 +4,12 @@ import { useMemo, useState, useEffect } from "react"
 import type { ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowRight, Check, Dumbbell, ShieldCheck } from "lucide-react"
-import { useApp } from "@/lib/context"
+import { useApp } from "@/state/context"
 import { Duration, Equipment, Frequency, Gender, Goal, Level, UserCriteria } from "@/types"
 import CookieConsent from "@/components/ui/CookieConsent"
 
-import { DURATIONS, EQUIPMENT, EQUIPMENT_VI, FREQUENCIES, POPULAR_EQUIPMENT } from "@/lib/constants"
+import { DURATIONS, FREQUENCIES } from "@/constants/workout"
+import { EQUIPMENT, EQUIPMENT_VI, POPULAR_EQUIPMENT } from "@/constants/equipment"
 
 const GENDERS: Gender[] = ["Nam", "Nữ", "Khác"]
 const LEVELS: Level[] = ["Beginner", "Intermediate", "Advanced", "Expert"]

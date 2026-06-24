@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { applyTheme } from "@/lib/theme"
-import { STORAGE_KEYS } from "@/lib/constants"
+import { applyTheme } from "@/theme/theme"
+import { STORAGE_KEYS } from "@/constants/storage"
 import ThemeSwitcher from "@/components/ui/ThemeSwitcher"
 import TopHeader from "@/components/layout/TopHeader"
 import BottomNav from "@/components/layout/BottomNav"

@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useEffect } from "react"
-import { useApp } from "@/lib/context"
+import { useApp } from "@/state/context"
 
 export default function CookieConsent() {
   const { state, setCookiesAccepted } = useApp()

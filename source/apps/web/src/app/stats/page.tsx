@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { BarChart2, CalendarDays, Clock3, Dumbbell, LineChart } from "lucide-react"
 import BottomNav from "@/components/layout/BottomNav"
 import TopHeader from "@/components/layout/TopHeader"
-import { useApp } from "@/lib/context"
+import { useApp } from "@/state/context"
 
 function formatDuration(seconds: number) {
   const minutes = Math.round(seconds / 60)
