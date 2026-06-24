@@ -1,12 +1,25 @@
-# Spec: Cấu trúc lại Resources
+# Spec: Bỏ Auto-Suggestion — User Tự Chọn Bài Tập
 
 ## Objective
 
-Tổ chức lại cấu trúc thư mục resources trong source web để tách biệt rõ ràng data, constants, types, business logic, và state management. Hiện tại `src/lib/` chứa quá nhiều thứ không liên quan (JSON datasets 179K lines, constants, types helpers, theme tokens, context, business logic). Mục tiêu là giảm coupling, tăng maintainability, và theo chuẩn Next.js.
+Loại bỏ cơ chế tự động gợi ý bài tập hiện tại, chuyển sang luồng User tự chọn bài tập hoàn toàn. Đây là bước dọn đường cho chức năng gợi ý mới sẽ được định nghĩa sau.
+
+## Hiện trạng
+
+**Luồng hiện tại:**
+1. Mở app → `generateProgressiveExercises` tự động sinh 5-8 bài dựa trên criteria
+2. User thấy danh sách bài đã được gợi ý sẵn
+3. User có thể: "Gợi ý lại", "Thay đổi tiêu chí" (panel), "Thêm bài tập khác" (picker)
+4. User bấm "Bắt đầu Workout"
+
+**Luồng mới:**
+1. Mở app → thấy empty state (nếu chưa có bài nào) hoặc load lại bài từ workout gần nhất
+2. User tự thêm bài qua **ExercisePicker cải tiến** (show all exercises, multi-select, preview)
+3. User bấm "Bắt đầu Workout"
 
 ## Tech Stack
 
-Next.js 16.2.7 + React 19 + TypeScript + Tailwind v4 + Vitest (SSG, `output: "export"`, basePath: `/next-fit`)
+Next.js 16.2.7 + React 19 + TypeScript + Tailwind v4 + Vitest
 
 ## Commands
 
@@ -17,268 +30,160 @@ pnpm test         # Unit tests (Vitest)
 pnpm lint         # ESLint
 ```
 
-## Hiện trạng (Pain Points)
+## Phạm vi thay đổi
 
-| Vấn đề | Chi tiết |
-|--------|----------|
-| `src/lib/` quá tải | 10 entries: 2 JSON files (179K lines), constants (119 lines), context (200+ lines), data.ts, split.ts, progressive.ts, design-tokens.ts (530 lines), theme.ts |
-| `workoutx_gifs/` ở root | 1325+ GIF files **không được dùng** — exercises.json tham chiếu YouTube URLs, không phải local files |
-| Không có `public/` | Next.js convention thiếu; favicon.ico nằm trong `src/app/` thay vì `public/` |
-| Constants lẫn lộn | Tiếng Anh và tiếng Việt trộn lẫn; tất cả trong 1 file constants.ts |
-| YouTube URL parsing duplicate | Logic `getYouTubeThumbnailUrl` lặp ở `data.ts` và `ExerciseThumbnail.tsx` |
-| `workoutx_exercises.json` tồn đọng | 49K lines raw data, không còn được import/reference (chỉ exercises.json được dùng) |
-| styles/ chỉ có 1 file | `src/styles/focus-rings.css` lẻ loi, có thể gộp vào `globals.css` hoặc để trong `theme/` |
+### Xoá khỏi split.ts
+Toàn bộ logic gợi ý tự động — các function chỉ được dùng bởi `generateProgressiveExercises`:
 
-## Project Structure — Các phương án
+| Function | Lý do |
+|----------|-------|
+| `generateProgressiveExercises` | Core suggestion engine — xoá |
+| `computeExerciseCount` | Tính số lượng bài — xoá |
+| `distributeSlotCounts` | Phân phối bài theo nhóm cơ — xoá |
+| `getTodaySuggestion` | Xác định nhóm cơ hôm nay — xoá |
+| `filterMuscleGroupsByEquipment` | Lọc nhóm cơ theo equipment — xoá |
+| `getSeed`, `seededRandom`, `hashCode` | Seed-based random — xoá |
+| `getSlotSeed`, `selectForSlot` | Chọn bài cho từng slot — xoá |
+| `getRecentExerciseIds` | Loại bài đã tập gần đây — xoá |
+| `crossSlotFatiguePenalty` | Penalty fatigue — xoá |
 
-### Phương án A: Layer-Based (Khuyến nghị)
+**Giữ lại:** `MUSCLE_GROUP_MAP`, `matchesLevel`, `parseAvgReps`, `compoundScore`, `repScore`, `goalScore`, `fatiguePenalty` — các utility này vẫn có thể dùng sau này.
 
-Tách theo tầng kỹ thuật — mỗi thư mục là một loại resource riêng biệt.
+### ExercisePicker — Cải tiến
+- **Multi-select**: Có thể chọn nhiều bài cùng lúc, không đóng picker sau mỗi lần chọn
+- **Preview panel**: Hiển thị danh sách bài đã chọn ngay trong picker (bên dưới filters)
+- **Select all / Deselect all** theo filter hiện tại
+- **Submit button**: "Thêm X bài tập" thay vì chọn từng cái rồi tự đóng
+
+### Homepage (page.tsx)
+- Bỏ auto-load useEffect (dòng 62-67)
+- Bỏ debounce criteria useEffect (dòng 70-83)
+- Bỏ criteria panel UI (null khi `!showCriteriaPanel` là đủ — hoặc xoá hẳn)
+- Bỏ "Gợi ý lại" / "Hoàn tác" buttons
+- Bỏ handleReshuffle, handleReplace
+- **Thêm**: "Tải bài từ buổi tập gần nhất" nếu có workout history
+- **Thêm**: Empty state nếu chưa có bài nào
+
+### Xoá khỏi tests
+- `src/lib/__tests__/split.test.ts` — xoá tests cho các function đã xoá
+
+### Files chạm
 
 ```
 src/
-├── app/                       # Giữ nguyên
-├── components/
-│   ├── layout/                # Giữ nguyên
-│   └── ui/                    # Giữ nguyên
-├── data/                      # [MỚI] JSON datasets
-│   ├── exercises.json         # ← từ src/lib/
-│   └── workoutx_exercises.json# ← từ src/lib/ (giữ làm reference)
-├── constants/                 # [MỚI] Constants, tách module
-│   ├── storage.ts             # STORAGE_KEYS
-│   ├── muscles.ts             # MUSCLE_GROUPS, MUSCLE_GROUPS_VI, DYNAMIC_STRETCHES
-│   ├── equipment.ts           # EQUIPMENT, EQUIPMENT_VI, POPULAR_EQUIPMENT
-│   └── workout.ts             # DURATIONS, FREQUENCIES
-├── types/                     # Giữ nguyên
-│   └── index.ts
-├── state/                     # [MỚI] React Context
-│   └── context.tsx            # ← từ src/lib/
-├── theme/                     # [MỚI] Theming
-│   ├── design-tokens.ts       # ← từ src/lib/
-│   ├── theme.ts               # ← từ src/lib/
-│   └── focus-rings.css        # ← từ src/styles/
-├── lib/                       # Business logic thuần
-│   ├── data.ts                # Data loading + image URL helpers (dedup YouTube parsing)
-│   ├── split.ts               # Giữ nguyên
-│   ├── progressive.ts         # Giữ nguyên
-│   └── __tests__/
-├── styles/                    # [XOÁ] chuyển vào theme/
-└── public/                    # [MỚI] Static assets cho Next.js
-    ├── favicon.ico            # ← từ src/app/
-    └── gifs/                  # (tuỳ chọn) link/copy workoutx_gifs nếu cần serve local
+├── app/page.tsx                    # Restructure homepage
+├── lib/split.ts                    # Xoá suggestion logic
+├── lib/__tests__/split.test.ts     # Xoá tests tương ứng
+├── components/ui/ExercisePicker.tsx # Multi-select, preview, submit
+└── components/ui/ExerciseCard.tsx   # Có thể sửa onReplace
 ```
-
-**Tổng số file di chuyển:** ~10-12 files (không tính JSON)
-
-**Thay đổi import paths:** ~50+ imports trong toàn project
-
-**Ưu điểm:**
-- Mỗi thư mục có một responsibility rõ ràng
-- `src/lib/` chỉ còn business logic thuần (split, progressive, data)
-- Dễ mở rộng (thêm constants = thêm file, không phình constants.ts)
-- Theo đúng Next.js convention (`public/`, separate data)
-
-**Nhược điểm:**
-- Phải update ~50 imports
-- Thay đổi cấu trúc nhiều file
 
 ---
 
-### Phương án B: Domain-Feature Grouping
+## Phương án triển khai
 
-Nhóm resources theo domain "thể hình" thay vì tầng kỹ thuật.
+### Phương án A: Homepage tối giản (Recommended)
 
-```
-src/
-├── app/
-├── components/
-├── types/
-├── state/
-├── workout/                   # [MỚI] Domain: Workout
-│   ├── data/
-│   │   ├── exercises.json
-│   │   └── workoutx_exercises.json
-│   ├── constants/
-│   │   ├── muscles.ts
-│   │   ├── equipment.ts
-│   │   └── workout.ts
-│   └── lib/
-│       ├── split.ts
-│       ├── progressive.ts
-│       └── data.ts
-├── theme/                     # Theming (cross-domain)
-│   ├── design-tokens.ts
-│   ├── theme.ts
-│   └── focus-rings.css
-├── ui/                        # Shared UI
-│   ├── constants/
-│   │   └── storage.ts
-│   └── components/
-│       └── ... từ components/ui và components/layout
-├── styles/                    # (xoá)
-└── public/
-```
+**Homepage:**
+- Mặc định: empty state với icon + text "Hôm nay bạn muốn tập gì? Thêm bài tập bên dưới"
+- Nếu có workout history: hiển thị nút "Tải bài tập từ buổi trước" (load exercises từ `WorkoutHistoryEntry` gần nhất)
+- Nút "Thêm bài tập" mở Picker (đã cải tiến)
+- Giữ nguyên header "Hôm nay bạn muốn tập gì?" + subtitle
+- Giữ nguyên "Bắt đầu Workout" CTA
+- Bỏ: criteria panel, suggestion banner, "Gợi ý lại"/"Hoàn tác" buttons, replace logic
 
-**Ưu điểm:** Tách domain rõ — dễ hình dung feature boundaries
+**ExercisePicker:**
+- Mode mới: `multiSelect` (default true)
+- Không đóng sau khi chọn — User tích checkbox, xem preview dưới filters
+- Nút "Thêm X bài tập" ở cuối picker
+- Filters: muscle group, equipment (show all, không filter theo criteria)
+- Search: giữ nguyên
 
-**Nhược điểm:** Over-engineering cho 1-page app; split.ts và progressive.ts phụ thuộc lẫn nhau (cùng domain nhưng khó tách); constants được dùng cả trong UI lẫn domain → conflict grouping
+### Phương án B: Homepage tối giản + Không có "load từ lịch sử"
 
----
+Giống A nhưng bỏ nút "Tải bài từ buổi trước". Homepage luôn bắt đầu với empty state.
 
-### Phương án C: Minimal — Chỉ tách src/lib/
+**Khi nào dùng:** Nếu bạn muốn mỗi buổi tập là một "phiên mới" hoàn toàn, không gợi ý lại bài cũ.
 
-Giữ nguyên cấu trúc tổng thể, chỉ restructure `src/lib/`:
+### Phương án C: Giữ criteria panel nhưng không auto-suggest
 
-```
-src/
-├── app/                       # Giữ nguyên
-├── components/                # Giữ nguyên
-├── lib/
-│   ├── __tests__/             # Giữ nguyên
-│   ├── context.tsx            # Giữ nguyên
-│   ├── split.ts               # Giữ nguyên
-│   ├── progressive.ts         # Giữ nguyên
-│   ├── data/                  # [MỚI] Tách data
-│   │   ├── index.ts           # data.ts cũ
-│   │   ├── exercises.json     # ← lib/
-│   │   └── workoutx_exercises.json
-│   ├── constants/             # [MỚI] Tách constants
-│   │   ├── index.ts           # Re-export tất cả
-│   │   ├── storage.ts
-│   │   ├── muscles.ts
-│   │   ├── equipment.ts
-│   │   └── workout.ts
-│   └── theme/                 # [MỚI] Tách theme
-│       ├── design-tokens.ts
-│       └── theme.ts
-├── styles/                    # Giữ nguyên
-├── types/                     # Giữ nguyên
-└── workoutx_gifs/             # Giữ nguyên (root)
-```
+Criteria panel trên homepage vẫn hiển thị được (User có thể thay đổi criteria để lưu vào profile), nhưng không auto-sinh bài tập.
 
-**Thay đổi import paths:** Chỉ cần đổi `@/lib/constants` → `@/lib/constants/index` (re-export giữ backward compat)
-
-**Ưu điểm:**
-- Ít thay đổi nhất (20-30 imports thay đổi)
-- Backward compatible nhờ re-export
-- Giữ nguyên cấu trúc tổng thể
-
-**Nhược điểm:**
-- Không giải quyết được `workoutx_gifs/` ở root, không có `public/`
-- `src/lib/` vẫn còn nhiều thứ (context, split, progressive, constants, data)
-- Các constants không được dùng chung với nhau dễ dàng
-
----
-
-### Phương án D: Phương án A + Xoá Legacy
-
-Giống phương án A nhưng cleanup thêm:
-
-```
-src/
-├── data/
-│   └── exercises.json         # Chỉ giữ 1 file (đã merge)
-├── constants/
-├── types/
-├── state/
-├── theme/
-├── lib/
-│   ├── data.ts                # Data loading + image URL helpers
-│   ├── split.ts
-│   ├── progressive.ts
-│   └── __tests__/
-├── public/
-│   ├── favicon.ico
-│   └── gifs/                  # workoutx_gifs/ được move vào đây
-└── [XOÁ]
-    ├── src/lib/workoutx_exercises.json    # Raw data không cần
-    ├── src/styles/focus-rings.css         # Gộp vào theme/
-    └── workoutx_gifs/                     # Move vào public/gifs/
-```
-
-**Thay đổi:** Mạnh tay nhất — cleanup cả legacy data và GIFs.
-
-**Ưu điểm:** Sạch nhất, không có file chết
-
-**Nhược điểm:** Mất file reference gốc (có thể cần cho debug); phải move 1325+ GIF files
+**Khi nào dùng:** Nếu criteria vẫn có giá trị cho stats/ history tracking và User muốn thấy criteria hiện tại.
 
 ---
 
 ## Code Style
 
-Giữ nguyên convention hiện tại. Khi tách constants thành modules:
+Giữ nguyên convention hiện tại. Ví dụ ExercisePicker mới:
 
-```ts
-// constants/storage.ts
-export const STORAGE_KEYS = {
-  STATE: "nextfit-state",
-  THEME: "nextfit-theme",
-  EXERCISE_LOGS: "nextfit-exercise-logs",
-} as const
-
-// constants/muscles.ts
-export const MUSCLE_GROUPS = ["Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Cardio"] as const
-
-export const MUSCLE_GROUPS_VI: Record<string, string> = {
-  Chest: "Ngực",
-  Back: "Lưng",
-  // ... giữ nguyên
+```tsx
+// ExercisePicker.tsx — multi-select mode
+interface ExercisePickerProps {
+  isOpen: boolean
+  selectedIds: Set<string>
+  onToggle: (exercise: Exercise) => void
+  onSubmit: () => void
+  onClose: () => void
 }
-```
 
-Import paths mới:
-```ts
-// Before
-import { STORAGE_KEYS } from "@/lib/constants"
-import { MUSCLE_GROUPS } from "@/lib/constants"
-
-// After (Phương án A)
-import { STORAGE_KEYS } from "@/constants/storage"
-import { MUSCLE_GROUPS } from "@/constants/muscles"
-
-// After (Phương án C — backward compatible)
-import { STORAGE_KEYS, MUSCLE_GROUPS } from "@/lib/constants"  // index.ts re-exports
+// Preview trong picker
+{selectedIds.size > 0 && (
+  <div className="px-5 pb-3">
+    <p className="font-heading font-semibold text-xs mb-2">
+      ĐÃ CHỌN ({selectedIds.size})
+    </p>
+    <div className="space-y-1">
+      {selectedExercises.map((ex) => (
+        <div key={ex.id} className="flex items-center gap-2 p-2 rounded-xl">
+          <ExerciseThumbnail exercise={ex} className="w-8 h-8 rounded-lg" />
+          <span className="font-body text-sm">{ex.name}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
 ```
 
 ## Testing Strategy
 
-- **Framework:** Vitest (jsdom)
-- **Tests:** `src/lib/__tests__/` — giữ nguyên vị trí
-- **Ảnh hưởng:** Restructure không thay đổi logic → tests vẫn pass
-- **Verify:** `pnpm test` pass + `pnpm build` pass sau mỗi bước di chuyển
+- **Framework:** Vitest
+- **Cập nhật:** Xoá tests cho function đã xoá khỏi split.test.ts
+- **Không thêm test mới** (chức năng suggestion sau sẽ có test riêng)
+- **Verify:** `pnpm test` pass + `pnpm build` pass
 
 ## Boundaries
 
 ### Always do
-- Giữ nguyên nội dung file khi di chuyển (chỉ sửa import paths)
-- Update tất cả import paths references trong project
-- Chạy `pnpm test` và `pnpm build` sau mỗi lần batch di chuyển
-- Sử dụng barrel re-export nếu cần backward compatibility
+- Chạy `pnpm test` trước commit
+- Chạy `pnpm build` sau mỗi batch thay đổi
+- Xoá đúng function, không xoá utility có thể dùng sau
 
 ### Ask first
-- Xoá file (chỉ xoá khi đã confirm không còn reference)
-- Thay đổi nội dung function/logic (restructure = move, không refactor)
+- Xoá `MUSCLE_GROUP_MAP` (vẫn dùng trong ExercisePicker)
+- Thay đổi cấu trúc ExercisePicker props (ảnh hưởng page.tsx và workout calls)
 - Thêm dependency mới
-- Đổi tên file (khác với di chuyển)
 
 ### Never do
-- Để sót import path cũ
-- Commit khi build fail
-- Xoá workflowx_exercises.json mà không có backup plan
-- Move file trong khi app đang chạy dev
+- Xoá tất cả split.ts (giữ utility functions)
+- Để sót import path đến function đã xoá
+- Commit khi test fail
 
 ## Success Criteria
 
-- [ ] Tất cả import paths được update, không còn reference path cũ
-- [ ] `pnpm dev` chạy không lỗi
-- [ ] `pnpm build` pass
+- [ ] `generateProgressiveExercises` và các function phụ trợ bị xoá khỏi split.ts
+- [ ] `getTodaySuggestion`, `computeExerciseCount`, `filterMuscleGroupsByEquipment` bị xoá
+- [ ] Không còn auto-load exercise khi mở app
+- [ ] Không còn criteria panel trên homepage
+- [ ] ExercisePicker hỗ trợ multi-select + preview
+- [ ] "Gợi ý lại" và "Hoàn tác" buttons bị xoá
+- [ ] Nút "Tải bài từ buổi trước" xuất hiện nếu có workout history
 - [ ] `pnpm test` pass
-- [ ] Cấu trúc thư mục mới phản ánh đúng phương án đã chọn
-- [ ] Không có file `.ts` nào import từ path cũ (theo phương án)
+- [ ] `pnpm build` pass
+- [ ] Không còn reference đến function đã xoá trong codebase
 
 ## Open Questions
 
-- [ ] Phương án nào phù hợp nhất? (Tôi recommend **A** hoặc **C**)
-- [ ] Có muốn thêm barrel files (`index.ts`) để backward compatible không?
-- [ ] workoutx_exercises.json có cần giữ làm reference không?
-- [ ] Có muốn move workoutx_gifs/ vào public/ không? (Hiện tại exercises.json dùng YouTube URLs, local GIFs không được serve)
+- [ ] Có muốn giữ criteria panel trên homepage không? (Phương án C)
+- [ ] ExercisePicker multi-select có cần "Select all" button không?
+- [ ] "Tải bài từ buổi trước" có nên load cả sets/reps/weight đã ghi không, hay chỉ load danh sách exercise?

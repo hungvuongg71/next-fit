@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react"
 import { AppState, UserCriteria, Exercise, ExerciseProgress, WorkoutHistoryEntry } from "@/types"
-import { DEFAULT_EXERCISES } from "@/lib/data"
 import { STORAGE_KEYS } from "@/constants/storage"
 
 interface AppContextType {
@@ -28,7 +27,7 @@ const defaultState: AppState = {
   cookiesAccepted: false,
   storagePreferenceAnswered: false,
   criteria: null,
-  todayExercises: DEFAULT_EXERCISES,
+  todayExercises: [],
   workoutStarted: false,
   workoutCompleted: false,
   currentExerciseIndex: 0,
@@ -202,7 +201,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setTodayExercises = (exercises: Exercise[]) => setState((prev) => ({ ...prev, todayExercises: exercises }))
 
-  const resetTodayExercises = () => setState((prev) => ({ ...prev, todayExercises: DEFAULT_EXERCISES }))
+  const resetTodayExercises = () => setState((prev) => ({ ...prev, todayExercises: [] }))
 
   return (
     <AppContext.Provider
