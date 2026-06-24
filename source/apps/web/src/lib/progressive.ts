@@ -1,5 +1,5 @@
 import { Exercise, ExerciseLogEntry, MuscleGroup } from "@/types"
-import { DYNAMIC_STRETCHES } from "@/lib/constants"
+import { DYNAMIC_STRETCHES } from "@/constants/workout"
 
 const ROTATION_WEEKS = 3
 

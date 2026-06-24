@@ -1,16 +1,12 @@
-# Spec: Cải thiện Gợi ý bài tập — số lượng, auto-load, reshuffle
+# Spec: Cấu trúc lại Resources
 
 ## Objective
 
-Cải thiện phần "Gợi ý bài tập" trên trang chủ để:
-
-1. **Tự động gợi ý khi mở app** — nếu user đã có criteria (từ onboarding), load trang là thấy bài tập được gợi ý theo tiêu chí, không cần mở panel
-2. **6-8 bài mỗi buổi** — tăng số lượng bài tập được gợi ý, phân bố đều theo các nhóm cơ, dựa trên thời lượng tập
-3. **Reshuffle không exclude cứng** — nút "Gợi ý lại" random lại từ tổng thể, không loại trừ bài đã thấy để tránh cạn pool
+Tổ chức lại cấu trúc thư mục resources trong source web để tách biệt rõ ràng data, constants, types, business logic, và state management. Hiện tại `src/lib/` chứa quá nhiều thứ không liên quan (JSON datasets 179K lines, constants, types helpers, theme tokens, context, business logic). Mục tiêu là giảm coupling, tăng maintainability, và theo chuẩn Next.js.
 
 ## Tech Stack
 
-Next.js 16.2.7 + React 19 + TypeScript + Tailwind v4 + Vitest
+Next.js 16.2.7 + React 19 + TypeScript + Tailwind v4 + Vitest (SSG, `output: "export"`, basePath: `/next-fit`)
 
 ## Commands
 
@@ -21,218 +17,268 @@ pnpm test         # Unit tests (Vitest)
 pnpm lint         # ESLint
 ```
 
-## Files chạm
+## Hiện trạng (Pain Points)
+
+| Vấn đề | Chi tiết |
+|--------|----------|
+| `src/lib/` quá tải | 10 entries: 2 JSON files (179K lines), constants (119 lines), context (200+ lines), data.ts, split.ts, progressive.ts, design-tokens.ts (530 lines), theme.ts |
+| `workoutx_gifs/` ở root | 1325+ GIF files **không được dùng** — exercises.json tham chiếu YouTube URLs, không phải local files |
+| Không có `public/` | Next.js convention thiếu; favicon.ico nằm trong `src/app/` thay vì `public/` |
+| Constants lẫn lộn | Tiếng Anh và tiếng Việt trộn lẫn; tất cả trong 1 file constants.ts |
+| YouTube URL parsing duplicate | Logic `getYouTubeThumbnailUrl` lặp ở `data.ts` và `ExerciseThumbnail.tsx` |
+| `workoutx_exercises.json` tồn đọng | 49K lines raw data, không còn được import/reference (chỉ exercises.json được dùng) |
+| styles/ chỉ có 1 file | `src/styles/focus-rings.css` lẻ loi, có thể gộp vào `globals.css` hoặc để trong `theme/` |
+
+## Project Structure — Các phương án
+
+### Phương án A: Layer-Based (Khuyến nghị)
+
+Tách theo tầng kỹ thuật — mỗi thư mục là một loại resource riêng biệt.
 
 ```
 src/
-├── app/page.tsx        # Auto-load logic, reshuffle, hiển thị
-├── lib/split.ts        # computeExerciseCount, distributeSlotCounts, generateProgressiveExercises
-└── lib/__tests__/
-    ├── split.test.ts   # Update tests cho count mới
-    └── progressive.test.ts
+├── app/                       # Giữ nguyên
+├── components/
+│   ├── layout/                # Giữ nguyên
+│   └── ui/                    # Giữ nguyên
+├── data/                      # [MỚI] JSON datasets
+│   ├── exercises.json         # ← từ src/lib/
+│   └── workoutx_exercises.json# ← từ src/lib/ (giữ làm reference)
+├── constants/                 # [MỚI] Constants, tách module
+│   ├── storage.ts             # STORAGE_KEYS
+│   ├── muscles.ts             # MUSCLE_GROUPS, MUSCLE_GROUPS_VI, DYNAMIC_STRETCHES
+│   ├── equipment.ts           # EQUIPMENT, EQUIPMENT_VI, POPULAR_EQUIPMENT
+│   └── workout.ts             # DURATIONS, FREQUENCIES
+├── types/                     # Giữ nguyên
+│   └── index.ts
+├── state/                     # [MỚI] React Context
+│   └── context.tsx            # ← từ src/lib/
+├── theme/                     # [MỚI] Theming
+│   ├── design-tokens.ts       # ← từ src/lib/
+│   ├── theme.ts               # ← từ src/lib/
+│   └── focus-rings.css        # ← từ src/styles/
+├── lib/                       # Business logic thuần
+│   ├── data.ts                # Data loading + image URL helpers (dedup YouTube parsing)
+│   ├── split.ts               # Giữ nguyên
+│   ├── progressive.ts         # Giữ nguyên
+│   └── __tests__/
+├── styles/                    # [XOÁ] chuyển vào theme/
+└── public/                    # [MỚI] Static assets cho Next.js
+    ├── favicon.ico            # ← từ src/app/
+    └── gifs/                  # (tuỳ chọn) link/copy workoutx_gifs nếu cần serve local
 ```
 
-## Chi tiết
+**Tổng số file di chuyển:** ~10-12 files (không tính JSON)
 
-### 1. Auto-load exercises khi mở app
+**Thay đổi import paths:** ~50+ imports trong toàn project
 
-**Vấn đề hiện tại:** Exercises chỉ được generate khi `showCriteriaPanel === true` (useEffect dòng 66-79). Khi load trang, chỉ hiện `DEFAULT_EXERCISES` (4 bài đầu JSON).
+**Ưu điểm:**
+- Mỗi thư mục có một responsibility rõ ràng
+- `src/lib/` chỉ còn business logic thuần (split, progressive, data)
+- Dễ mở rộng (thêm constants = thêm file, không phình constants.ts)
+- Theo đúng Next.js convention (`public/`, separate data)
 
-**Giải pháp:** Thêm useEffect ngay khi criteria load xong:
+**Nhược điểm:**
+- Phải update ~50 imports
+- Thay đổi cấu trúc nhiều file
 
-```ts
-useEffect(() => {
-  if (state.criteria && state.todayExercises === DEFAULT_EXERCISES) {
-    const fresh = generateProgressiveExercises(state.criteria, state.workoutHistory)
-    if (fresh.length) setTodayExercises(fresh)
-  }
-}, [state.criteria])
+---
+
+### Phương án B: Domain-Feature Grouping
+
+Nhóm resources theo domain "thể hình" thay vì tầng kỹ thuật.
+
+```
+src/
+├── app/
+├── components/
+├── types/
+├── state/
+├── workout/                   # [MỚI] Domain: Workout
+│   ├── data/
+│   │   ├── exercises.json
+│   │   └── workoutx_exercises.json
+│   ├── constants/
+│   │   ├── muscles.ts
+│   │   ├── equipment.ts
+│   │   └── workout.ts
+│   └── lib/
+│       ├── split.ts
+│       ├── progressive.ts
+│       └── data.ts
+├── theme/                     # Theming (cross-domain)
+│   ├── design-tokens.ts
+│   ├── theme.ts
+│   └── focus-rings.css
+├── ui/                        # Shared UI
+│   ├── constants/
+│   │   └── storage.ts
+│   └── components/
+│       └── ... từ components/ui và components/layout
+├── styles/                    # (xoá)
+└── public/
 ```
 
-Hoặc gọi generate ngay trong useEffect sync criteria (dòng 48-58).
+**Ưu điểm:** Tách domain rõ — dễ hình dung feature boundaries
 
-### 2. Tăng số lượng bài tập lên 6-8
+**Nhược điểm:** Over-engineering cho 1-page app; split.ts và progressive.ts phụ thuộc lẫn nhau (cùng domain nhưng khó tách); constants được dùng cả trong UI lẫn domain → conflict grouping
 
-**Vấn đề:** `computeExerciseCount` trả về 5-6, nhưng `distributeSlotCounts` dùng `Math.floor` làm mất số dư (5 ÷ 3 nhóm = 1 mỗi nhóm = 3 tổng).
+---
 
-**Giải pháp:**
+### Phương án C: Minimal — Chỉ tách src/lib/
 
-**a) `computeExerciseCount` — tăng base, mở clamp:**
+Giữ nguyên cấu trúc tổng thể, chỉ restructure `src/lib/`:
 
-```ts
-function computeExerciseCount(...): number {
-  const base: Record<Duration, number> = {
-    "15 min": 5,
-    "30 min": 6,
-    "45 min": 7,
-    "60+ min": 8,
-  }
-  const raw = base[...] + goalAdj + levelAdj + groupAdj
-  return Math.max(5, Math.min(8, raw))
-}
+```
+src/
+├── app/                       # Giữ nguyên
+├── components/                # Giữ nguyên
+├── lib/
+│   ├── __tests__/             # Giữ nguyên
+│   ├── context.tsx            # Giữ nguyên
+│   ├── split.ts               # Giữ nguyên
+│   ├── progressive.ts         # Giữ nguyên
+│   ├── data/                  # [MỚI] Tách data
+│   │   ├── index.ts           # data.ts cũ
+│   │   ├── exercises.json     # ← lib/
+│   │   └── workoutx_exercises.json
+│   ├── constants/             # [MỚI] Tách constants
+│   │   ├── index.ts           # Re-export tất cả
+│   │   ├── storage.ts
+│   │   ├── muscles.ts
+│   │   ├── equipment.ts
+│   │   └── workout.ts
+│   └── theme/                 # [MỚI] Tách theme
+│       ├── design-tokens.ts
+│       └── theme.ts
+├── styles/                    # Giữ nguyên
+├── types/                     # Giữ nguyên
+└── workoutx_gifs/             # Giữ nguyên (root)
 ```
 
-Clamp mới: `[5, 8]` thay vì `[5, 6]`.
+**Thay đổi import paths:** Chỉ cần đổi `@/lib/constants` → `@/lib/constants/index` (re-export giữ backward compat)
 
-**b) `distributeSlotCounts` — phân phối hết số dư:**
+**Ưu điểm:**
+- Ít thay đổi nhất (20-30 imports thay đổi)
+- Backward compatible nhờ re-export
+- Giữ nguyên cấu trúc tổng thể
 
-```ts
-function distributeSlotCounts(groups, total, gender?): number[] {
-  // Tính perSlot cơ bản
-  // Phân phối số dư cho các nhóm đầu tiên
-  // Đảm bảo tổng = total
-}
+**Nhược điểm:**
+- Không giải quyết được `workoutx_gifs/` ở root, không có `public/`
+- `src/lib/` vẫn còn nhiều thứ (context, split, progressive, constants, data)
+- Các constants không được dùng chung với nhau dễ dàng
+
+---
+
+### Phương án D: Phương án A + Xoá Legacy
+
+Giống phương án A nhưng cleanup thêm:
+
+```
+src/
+├── data/
+│   └── exercises.json         # Chỉ giữ 1 file (đã merge)
+├── constants/
+├── types/
+├── state/
+├── theme/
+├── lib/
+│   ├── data.ts                # Data loading + image URL helpers
+│   ├── split.ts
+│   ├── progressive.ts
+│   └── __tests__/
+├── public/
+│   ├── favicon.ico
+│   └── gifs/                  # workoutx_gifs/ được move vào đây
+└── [XOÁ]
+    ├── src/lib/workoutx_exercises.json    # Raw data không cần
+    ├── src/styles/focus-rings.css         # Gộp vào theme/
+    └── workoutx_gifs/                     # Move vào public/gifs/
 ```
 
-Ví dụ: 7 exercises, 3 groups → [3, 2, 2] thay vì [2, 2, 2] (tổng 6).
+**Thay đổi:** Mạnh tay nhất — cleanup cả legacy data và GIFs.
 
-**c) `generateProgressiveExercises` — không break sớm:**
+**Ưu điểm:** Sạch nhất, không có file chết
 
-Bỏ check `if (result.length >= count) break` ở dòng 389, để mỗi slot đều được xử lý. Dùng `slice(0, count)` ở cuối như hiện tại.
+**Nhược điểm:** Mất file reference gốc (có thể cần cho debug); phải move 1325+ GIF files
 
-### 3. Reshuffle không exclude cứng
-
-**Vấn đề:** `handleReshuffle` tích lũy `reshuffleSeenIds` và truyền vào `hardExcludeIds` của `generateProgressiveExercises`. Sau vài lần bấm, pool cạn.
-
-**Giải pháp:** Bỏ hoàn toàn `reshuffleSeenIds` / `hardExcludeIds`. Reshuffle chỉ cần random seed mới (dùng Date.now() hoặc counter) để thứ tự khác đi, không exclude bài nào.
-
-```ts
-const handleReshuffle = () => {
-  const fresh = generateProgressiveExercises(state.criteria, state.workoutHistory)
-  if (fresh.length) setTodayExercises(fresh)
-}
-```
-
-`generateProgressiveExercises` vẫn dùng seeded random dựa trên criteria, nhưng reshuffle sẽ dùng `extraExcludeIds` khác (hoặc dùng `Date.now()` làm seed phụ). Cụ thể:
-
-- Thêm tham số `reshuffleSeed?: number` vào `generateProgressiveExercises`
-- Khi reshuffle, truyền `Date.now()` để thay đổi thứ tự sorting
-- Không truyền `hardExcludeIds` để không mất bài
+---
 
 ## Code Style
 
-Mẫu code mong muốn:
+Giữ nguyên convention hiện tại. Khi tách constants thành modules:
 
 ```ts
-// split.ts
-export function computeExerciseCount(
-  duration?: Duration,
-  goal?: Goal,
-  level?: Level,
-  groupsCount?: number,
-): number {
-  const base: Record<Duration, number> = {
-    "15 min": 5,
-    "30 min": 6,
-    "45 min": 7,
-    "60+ min": 8,
-  }
+// constants/storage.ts
+export const STORAGE_KEYS = {
+  STATE: "nextfit-state",
+  THEME: "nextfit-theme",
+  EXERCISE_LOGS: "nextfit-exercise-logs",
+} as const
 
-  const goalAdj: Record<Goal, number> = {
-    Strength: -1,
-    Hypertrophy: 0,
-    Endurance: +1,
-  }
+// constants/muscles.ts
+export const MUSCLE_GROUPS = ["Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Cardio"] as const
 
-  const levelAdj = !level || level === "Novice" || level === "Beginner"
-    ? -1
-    : level === "Advanced" || level === "Expert"
-      ? +1
-      : 0
-
-  const groupAdj = !groupsCount || groupsCount >= 4
-    ? +1
-    : groupsCount <= 1
-      ? -1
-      : 0
-
-  const raw = (base[duration ?? "30 min"] ?? 6) + (goalAdj[goal ?? "Hypertrophy"]) + levelAdj + groupAdj
-  return Math.max(5, Math.min(8, raw))
-}
-
-function distributeSlotCounts(
-  groups: MuscleGroup[],
-  totalCount: number,
-  gender?: Gender,
-): number[] {
-  if (totalCount <= 0 || groups.length === 0) return []
-
-  if (!gender || gender === "Khác") {
-    const perSlot = Math.floor(totalCount / groups.length)
-    const remainder = totalCount % groups.length
-    return groups.map((_, i) => perSlot + (i < remainder ? 1 : 0))
-  }
-
-  const bias = GENDER_VOLUME_BIAS[gender] ?? { upper: 1.0, lower: 1.0 }
-  const raw = groups.map((g) =>
-    UPPER_UI_GROUPS.includes(g) ? bias.upper : bias.lower,
-  )
-  const sum = raw.reduce((a, b) => a + b, 0)
-  const counts = raw.map((r) => Math.max(1, Math.round((r / sum) * totalCount)))
-
-  // Adjust to match totalCount exactly
-  const diff = totalCount - counts.reduce((a, b) => a + b, 0)
-  for (let i = 0; diff !== 0 && i < counts.length; i++) {
-    if (diff > 0) counts[i]++
-    else if (counts[i] > 1) counts[i]--
-  }
-  return counts
+export const MUSCLE_GROUPS_VI: Record<string, string> = {
+  Chest: "Ngực",
+  Back: "Lưng",
+  // ... giữ nguyên
 }
 ```
 
+Import paths mới:
 ```ts
-// page.tsx
-useEffect(() => {
-  if (state.criteria && state.todayExercises.length <= 4) {
-    const fresh = generateProgressiveExercises(state.criteria, state.workoutHistory)
-    if (fresh.length) setTodayExercises(fresh)
-  }
-}, [state.criteria, state.todayExercises.length])
+// Before
+import { STORAGE_KEYS } from "@/lib/constants"
+import { MUSCLE_GROUPS } from "@/lib/constants"
 
-const handleReshuffle = () => {
-  const fresh = generateProgressiveExercises(
-    state.criteria,
-    state.workoutHistory,
-    undefined,
-    undefined,
-    Date.now(), // reshuffleSeed
-  )
-  if (fresh.length) setTodayExercises(fresh)
-}
+// After (Phương án A)
+import { STORAGE_KEYS } from "@/constants/storage"
+import { MUSCLE_GROUPS } from "@/constants/muscles"
+
+// After (Phương án C — backward compatible)
+import { STORAGE_KEYS, MUSCLE_GROUPS } from "@/lib/constants"  // index.ts re-exports
 ```
 
 ## Testing Strategy
 
 - **Framework:** Vitest (jsdom)
-- **Test files:** `src/lib/__tests__/split.test.ts`
-- **Coverage:** các hàm thay đổi (`computeExerciseCount`, `distributeSlotCounts`)
-- **Update tests:** Sửa expected values cho count mới (5-8 thay vì 5-6)
-- **Verify:** `pnpm test` pass
+- **Tests:** `src/lib/__tests__/` — giữ nguyên vị trí
+- **Ảnh hưởng:** Restructure không thay đổi logic → tests vẫn pass
+- **Verify:** `pnpm test` pass + `pnpm build` pass sau mỗi bước di chuyển
 
 ## Boundaries
 
 ### Always do
-- Run `pnpm test` before commit
-- Giữ đúng convention: font-display/heading/body, CSS variables, "use client"
-- Giữ seed-based deterministic selection cho cùng criteria trong cùng ngày
-- Giữ nguyên signature của `generateProgressiveExercises` (thêm optional param, không breaking)
+- Giữ nguyên nội dung file khi di chuyển (chỉ sửa import paths)
+- Update tất cả import paths references trong project
+- Chạy `pnpm test` và `pnpm build` sau mỗi lần batch di chuyển
+- Sử dụng barrel re-export nếu cần backward compatibility
 
 ### Ask first
-- Thay đổi cấu trúc dữ liệu `AppState` hoặc `UserCriteria`
+- Xoá file (chỉ xoá khi đã confirm không còn reference)
+- Thay đổi nội dung function/logic (restructure = move, không refactor)
 - Thêm dependency mới
-- Thay đổi tỉ lệ phân bố theo giới tính (GENDER_VOLUME_BIAS)
+- Đổi tên file (khác với di chuyển)
 
 ### Never do
-- Xoá test mà không thay bằng test mới
-- Commit khi test fail
-- Hardcode số lượng bài tập cứng (phải dựa trên duration/goal/level)
-- Phá vỡ deterministic seed (cùng criteria trong cùng ngày phải cho cùng kết quả, trừ reshuffle)
+- Để sót import path cũ
+- Commit khi build fail
+- Xoá workflowx_exercises.json mà không có backup plan
+- Move file trong khi app đang chạy dev
 
 ## Success Criteria
 
-- [ ] Mở app (sau onboarding) → thấy 6-8 bài tập được gợi ý theo tiêu chí, không cần mở panel
-- [ ] `computeExerciseCount` trả về 5-8 (tuỳ duration/goal/level)
-- [ ] `distributeSlotCounts` phân phối hết tổng số, không mất số dư
-- [ ] "Gợi ý lại" không exclude bài đã thấy, vẫn đủ số lượng
-- [ ] Unit tests pass
+- [ ] Tất cả import paths được update, không còn reference path cũ
+- [ ] `pnpm dev` chạy không lỗi
 - [ ] `pnpm build` pass
+- [ ] `pnpm test` pass
+- [ ] Cấu trúc thư mục mới phản ánh đúng phương án đã chọn
+- [ ] Không có file `.ts` nào import từ path cũ (theo phương án)
+
+## Open Questions
+
+- [ ] Phương án nào phù hợp nhất? (Tôi recommend **A** hoặc **C**)
+- [ ] Có muốn thêm barrel files (`index.ts`) để backward compatible không?
+- [ ] workoutx_exercises.json có cần giữ làm reference không?
+- [ ] Có muốn move workoutx_gifs/ vào public/ không? (Hiện tại exercises.json dùng YouTube URLs, local GIFs không được serve)

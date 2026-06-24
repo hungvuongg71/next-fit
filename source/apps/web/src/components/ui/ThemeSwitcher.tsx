@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { applyTheme, type ThemeName } from "@/lib/theme"
-import { STORAGE_KEYS } from "@/lib/constants"
+import { applyTheme, type ThemeName } from "@/theme/theme"
+import { STORAGE_KEYS } from "@/constants/storage"
 import { Palette } from "lucide-react"
 
 interface ThemeSwitcherProps {

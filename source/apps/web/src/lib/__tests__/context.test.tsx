@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest"
 import { renderHook, act } from "@testing-library/react"
-import { AppProvider, useApp } from "@/lib/context"
+import { AppProvider, useApp } from "@/state/context"
 import type { ReactNode } from "react"
 
 function wrapper({ children }: { children: ReactNode }) {

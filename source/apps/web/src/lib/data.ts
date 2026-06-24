@@ -1,5 +1,5 @@
 import { Exercise } from '@/types'
-import exercisesData from '@/lib/exercises.json'
+import exercisesData from '@/data/exercises.json'
 
 const rawExercises: Exercise[] = (exercisesData as { exercises: Exercise[] }).exercises
 

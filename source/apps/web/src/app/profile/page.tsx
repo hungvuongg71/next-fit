@@ -5,7 +5,7 @@ import { Activity, Clock3, Dumbbell, Settings2, User } from "lucide-react"
 import BottomNav from "@/components/layout/BottomNav"
 import TopHeader from "@/components/layout/TopHeader"
 import ThemeSwitcher from "@/components/ui/ThemeSwitcher"
-import { useApp } from "@/lib/context"
+import { useApp } from "@/state/context"
 
 export default function ProfilePage() {
   const router = useRouter()
