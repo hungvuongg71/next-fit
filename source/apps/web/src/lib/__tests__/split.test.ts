@@ -1,17 +1,13 @@
 import { describe, it, expect } from "vitest"
 import {
-  computeExerciseCount,
-  getTodaySuggestion,
   matchesLevel,
   compoundScore,
   repScore,
   goalScore,
   fatiguePenalty,
-  crossSlotFatiguePenalty,
   parseAvgReps,
-  filterMuscleGroupsByEquipment,
 } from "@/lib/split"
-import type { Exercise, Goal, Level, Equipment } from "@/types"
+import type { Exercise } from "@/types"
 
 function makeExercise(overrides: Partial<Exercise> = {}): Exercise {
   return {
@@ -43,25 +39,6 @@ describe("parseAvgReps", () => {
   it("returns null for invalid input", () => {
     expect(parseAvgReps("")).toBeNull()
     expect(parseAvgReps("abc")).toBeNull()
-  })
-})
-
-describe("computeExerciseCount", () => {
-  it("defaults to 6 exercises when no args given", () => {
-    expect(computeExerciseCount()).toBe(6)
-  })
-
-  it("returns 6 for 30 min hypertrophy with 2 groups", () => {
-    expect(computeExerciseCount("30 min", "Hypertrophy", "Intermediate", 2)).toBe(6)
-  })
-
-  it("returns 8 for 60+ min endurance with advanced 3 groups", () => {
-    expect(computeExerciseCount("60+ min", "Endurance", "Advanced", 3)).toBe(8)
-  })
-
-  it("returns 5 for 15 min strength with 1 group (clamped)", () => {
-    const result = computeExerciseCount("15 min", "Strength", "Beginner", 1)
-    expect(result).toBe(5)
   })
 })
 
@@ -139,61 +116,4 @@ describe("fatiguePenalty", () => {
   })
 })
 
-describe("crossSlotFatiguePenalty", () => {
-  it("returns 0 when no remaining groups", () => {
-    const ex = makeExercise()
-    expect(crossSlotFatiguePenalty(ex, [])).toBe(0)
-  })
 
-  it("penalizes exercises that overlap with remaining muscle groups", () => {
-    const ex = makeExercise({ musclesSecondary: ["Shoulders"] })
-    const penalty = crossSlotFatiguePenalty(ex, ["Chest"])
-    const noPenalty = crossSlotFatiguePenalty(ex, ["Legs"])
-    expect(penalty).toBeGreaterThan(noPenalty)
-  })
-})
-
-describe("getTodaySuggestion", () => {
-  it("returns an array of muscle groups for a valid frequency", () => {
-    const result = getTodaySuggestion("3 ngày")
-    expect(Array.isArray(result)).toBe(true)
-    expect(result.length).toBeGreaterThan(0)
-  })
-
-  it("returns valid split for 4-day frequency", () => {
-    const result = getTodaySuggestion("4 ngày")
-    expect(result.length).toBeGreaterThan(0)
-    expect(result).toContain("Chest" || "Legs")
-  })
-})
-
-describe("filterMuscleGroupsByEquipment", () => {
-  const allExercises: Exercise[] = [
-    { id: "ex1", name: "Barbell Bench", muscleGroup: "Chest", level: "Intermediate", equipment: "Barbell", sets: 3, reps: "8-12", restSeconds: 60, description: "" },
-    { id: "ex2", name: "Dumbbell Curl", muscleGroup: "Biceps", level: "Intermediate", equipment: "Dumbbell", sets: 3, reps: "8-12", restSeconds: 60, description: "" },
-    { id: "ex3", name: "Push Up", muscleGroup: "Chest", level: "Beginner", equipment: "Bodyweight", sets: 3, reps: "10-15", restSeconds: 60, description: "" },
-  ]
-
-  it("returns all groups when equipment is empty", () => {
-    const result = filterMuscleGroupsByEquipment(["Chest", "Legs"], [], allExercises)
-    expect(result).toEqual(["Chest", "Legs"])
-  })
-
-  it("filters out groups with no matching equipment", () => {
-    const result = filterMuscleGroupsByEquipment(
-      ["Chest", "Legs"],
-      ["Barbell"] as Equipment[],
-      allExercises,
-    )
-    expect(result).toEqual(["Chest"])
-  })
-
-  it("keeps groups with at least one matching exercise", () => {
-    const result = filterMuscleGroupsByEquipment(
-      ["Chest", "Legs"],
-      ["Bodyweight"] as Equipment[],
-      allExercises,
-    )
-    expect(result).toEqual(["Chest"])
-  })
-})

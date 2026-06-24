@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest"
 import { renderHook, act } from "@testing-library/react"
 import { AppProvider, useApp } from "@/state/context"
-import type { ReactNode } from "react"
+import type { Exercise, ReactNode } from "react"
 
 function wrapper({ children }: { children: ReactNode }) {
   return <AppProvider>{children}</AppProvider>
@@ -9,6 +9,22 @@ function wrapper({ children }: { children: ReactNode }) {
 
 function renderApp() {
   return renderHook(() => useApp(), { wrapper })
+}
+
+function makeExercise(id = "test-1"): Exercise {
+  return {
+    id,
+    name: "Test Exercise",
+    name_vi: "Bài tập kiểm tra",
+    muscleGroup: "Chest",
+    muscleGroup_vi: "Ngực",
+    level: "Intermediate",
+    equipment: "Dumbbell",
+    sets: 3,
+    reps: "8-12",
+    restSeconds: 60,
+    description: "A test exercise",
+  }
 }
 
 beforeEach(() => {
@@ -21,7 +37,7 @@ describe("AppProvider", () => {
     expect(result.current.state.isFirstVisit).toBe(true)
     expect(result.current.state.workoutStarted).toBe(false)
     expect(result.current.state.workoutCompleted).toBe(false)
-    expect(result.current.state.todayExercises.length).toBeGreaterThan(0)
+    expect(result.current.state.todayExercises).toEqual([])
   })
 
   it("setCriteria updates criteria", () => {
@@ -53,45 +69,50 @@ describe("AppProvider", () => {
 
   it("startWorkout initializes progress", () => {
     const { result } = renderApp()
+    const ex = makeExercise()
+    act(() => { result.current.addExercise(ex) })
     act(() => {
       result.current.startWorkout()
     })
     expect(result.current.state.workoutStarted).toBe(true)
     expect(result.current.state.workoutCompleted).toBe(false)
-    expect(result.current.state.exerciseProgress.length).toBeGreaterThan(0)
+    expect(result.current.state.exerciseProgress.length).toBe(1)
     expect(result.current.state.exerciseProgress[0].sets.length).toBeGreaterThan(0)
   })
 
   it("addExercise adds to todayExercises", () => {
     const { result } = renderApp()
-    const ex = result.current.state.todayExercises[0]
     act(() => {
-      result.current.addExercise(ex)
+      result.current.addExercise(makeExercise())
     })
-    expect(result.current.state.todayExercises.length).toBe(5)
+    expect(result.current.state.todayExercises.length).toBe(1)
   })
 
   it("removeExercise removes from todayExercises", () => {
     const { result } = renderApp()
-    const id = result.current.state.todayExercises[0].id
+    act(() => { result.current.addExercise(makeExercise("ex-1")) })
+    act(() => { result.current.addExercise(makeExercise("ex-2")) })
     act(() => {
-      result.current.removeExercise(id)
+      result.current.removeExercise("ex-1")
     })
-    expect(result.current.state.todayExercises.find((e) => e.id === id)).toBeUndefined()
+    expect(result.current.state.todayExercises.find((e) => e.id === "ex-1")).toBeUndefined()
+    expect(result.current.state.todayExercises.length).toBe(1)
   })
 
   it("replaceExercise swaps an exercise", () => {
     const { result } = renderApp()
-    const old = result.current.state.todayExercises[0]
-    const replacement = result.current.state.todayExercises[1]
+    act(() => { result.current.addExercise(makeExercise("old")) })
+    act(() => { result.current.addExercise(makeExercise("new")) })
     act(() => {
-      result.current.replaceExercise(old.id, replacement)
+      result.current.replaceExercise("old", makeExercise("replacement"))
     })
-    expect(result.current.state.todayExercises[0].id).toBe(replacement.id)
+    expect(result.current.state.todayExercises[0].id).toBe("replacement")
   })
 
   it("resetWorkout clears workout state", () => {
     const { result } = renderApp()
+    const ex = makeExercise()
+    act(() => { result.current.addExercise(ex) })
     act(() => {
       result.current.startWorkout()
     })
@@ -113,6 +134,8 @@ describe("AppProvider", () => {
 
   it("completeWorkout creates history entry", () => {
     const { result } = renderApp()
+    const ex = makeExercise()
+    act(() => { result.current.addExercise(ex) })
     act(() => {
       result.current.startWorkout()
     })
