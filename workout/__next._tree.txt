@@ -1,4 +1,4 @@
-:HL["/next-fit/_next/static/chunks/0a93c790g4l9r.css","style"]
+:HL["/next-fit/_next/static/chunks/44twfz9gkt1xp.css","style"]
 :HC["/",""]
 :HL["/next-fit/_next/static/chunks/0j2di889eceo4.css","style"]
-0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"workout","param":null,"prefetchHints":0,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}}}},"staleTime":300,"buildId":"Pn7WoBQpSLZOAt9m3L-40"}
+0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"workout","param":null,"prefetchHints":0,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}}}},"staleTime":300,"buildId":"Jr1MmdiBdqziVtUe91Jgv"}

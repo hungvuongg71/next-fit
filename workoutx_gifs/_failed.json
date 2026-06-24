@@ -1,0 +1,17 @@
+[
+  {
+    "file": "5202_front_plank.gif",
+    "url": "https://api.workoutxapp.com/v1/gifs/5202.gif",
+    "error": "HTTP_503"
+  },
+  {
+    "file": "5203_cable_face_pull.gif",
+    "url": "https://api.workoutxapp.com/v1/gifs/5203.gif",
+    "error": "HTTP_503"
+  },
+  {
+    "file": "5204_forearm_push_up.gif",
+    "url": "https://api.workoutxapp.com/v1/gifs/5204.gif",
+    "error": "HTTP_503"
+  }
+]
