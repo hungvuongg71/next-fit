@@ -1,18 +1,19 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Check, ChevronLeft, Dumbbell, Minus, Pause, Play, Plus, Trophy, AlertTriangle } from "lucide-react"
+import { Check, ChevronLeft, ChevronUp, ChevronDown, Dumbbell, Minus, Pause, Play, Plus, Trophy, AlertTriangle, RefreshCw, Trash2 } from "lucide-react"
 import ExerciseModal from "@/components/ui/ExerciseModal"
 import NumberPickerWheel from "@/components/ui/NumberPickerWheel"
 import RestTimer from "@/components/ui/RestTimer"
 import { useApp } from "@/state/context"
 import ExerciseThumbnail from "@/components/ui/ExerciseThumbnail"
-import { Exercise, ExerciseLogEntry, ExerciseProgress, MuscleGroup } from "@/types"
+import { Exercise, ExerciseLogEntry, ExerciseProgress, MuscleGroup, WorkoutSet } from "@/types"
 import { STORAGE_KEYS } from "@/constants/storage"
 import { suggestNextWeight, getLogsForExercise } from "@/lib/progressive"
 import WarmupSection from "@/components/ui/WarmupSection"
 import ProgressChart from "@/components/ui/ProgressChart"
+import ExercisePicker from "@/components/ui/ExercisePicker"
 
 function formatElapsed(seconds: number) {
   const minutes = Math.floor(seconds / 60)
@@ -20,22 +21,47 @@ function formatElapsed(seconds: number) {
   return `${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`
 }
 
-function buildProgress(exercises: Exercise[]): ExerciseProgress[] {
-  return exercises.map((exercise) => ({
-    exercise,
-    currentSet: 0,
-    completed: false,
-    sets: Array.from({ length: exercise.sets }, () => ({ reps: null, weight: null, completed: false })),
-  }))
+function buildWarmupWeight(exercise: Exercise, logs: Record<string, ExerciseLogEntry[]>): number | null {
+  if (exercise.equipment === "Bodyweight") return null
+  const exLogs = getLogsForExercise(logs, exercise.id)
+  if (exLogs.length > 0) {
+    return Math.max(5, +(suggestNextWeight(exLogs).weight * 0.5).toFixed(1))
+  }
+  return 5
+}
+
+function buildProgress(exercises: Exercise[], logs: Record<string, ExerciseLogEntry[]>): ExerciseProgress[] {
+  return exercises.map((exercise) => {
+    const warmupWeight = buildWarmupWeight(exercise, logs)
+    const warmup: WorkoutSet[] = warmupWeight !== null
+      ? [{ reps: 12, weight: warmupWeight, completed: false, isWarmup: true }]
+      : []
+    return {
+      exercise,
+      currentSet: warmup.length,
+      completed: false,
+      sets: [
+        ...warmup,
+        ...Array.from({ length: exercise.sets }, (): WorkoutSet => ({ reps: null, weight: null, completed: false })),
+      ],
+    }
+  })
 }
 
 export default function WorkoutPage() {
   const router = useRouter()
-  const { state, updateExerciseProgress, completeWorkout, resetWorkout, startWorkout } = useApp()
+  const { state, updateExerciseProgress, completeWorkout, resetWorkout, startWorkout, replaceExercise, addExerciseToWorkout, removeExerciseFromWorkout, moveExercise } = useApp()
   const lastPerf = state.lastPerformances
   const [isPaused, setIsPaused] = useState(false)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null)
+  const [showAddPicker, setShowAddPicker] = useState(false)
+  const [replaceTarget, setReplaceTarget] = useState<Exercise | null>(null)
+  const [exerciseToRemove, setExerciseToRemove] = useState<Exercise | null>(null)
+  const replaceModeProp = useMemo(
+    () => (replaceTarget ? { exerciseId: replaceTarget.id, muscleGroup: replaceTarget.muscleGroup } : undefined),
+    [replaceTarget],
+  )
   const [showCompleted, setShowCompleted] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const cancelDialogRef = useRef<HTMLDivElement>(null)
@@ -54,19 +80,34 @@ export default function WorkoutPage() {
     exerciseName: string
     setNumber: number
     restSeconds: number
+    startedAt?: number
   }>({ active: false, exerciseName: "", setNumber: 0, restSeconds: 60 })
 
   const progress = useMemo(() => {
-    if (state.exerciseProgress.length) return state.exerciseProgress
-    return buildProgress(state.todayExercises)
-  }, [state.exerciseProgress, state.todayExercises])
+    if (state.exerciseProgress.length) {
+      return state.exerciseProgress.map((item) => {
+        if (item.exercise.equipment === "Bodyweight") return item
+        if (item.sets[0]?.isWarmup) return item
+        const warmupWeight = buildWarmupWeight(item.exercise, exerciseLogs)
+        return {
+          ...item,
+          currentSet: item.currentSet + 1,
+          sets: [
+            { reps: 12, weight: warmupWeight, completed: false, isWarmup: true },
+            ...item.sets,
+          ],
+        }
+      })
+    }
+    return buildProgress(state.todayExercises, exerciseLogs)
+  }, [state.exerciseProgress, state.todayExercises, exerciseLogs])
 
   useEffect(() => {
     if (!state.workoutStarted && !state.exerciseProgress.length) return
     if (!state.exerciseProgress.length && state.todayExercises.length) {
-      updateExerciseProgress(buildProgress(state.todayExercises))
+      updateExerciseProgress(buildProgress(state.todayExercises, exerciseLogs))
     }
-  }, [state.exerciseProgress.length, state.todayExercises, state.workoutStarted, updateExerciseProgress])
+  }, [state.exerciseProgress.length, state.todayExercises, state.workoutStarted, updateExerciseProgress, exerciseLogs])
 
   useEffect(() => {
     if (isPaused || showCompleted || !state.workoutStarted) return
@@ -102,13 +143,17 @@ export default function WorkoutPage() {
     }
   }, [showCancelConfirm])
 
+  function workingSetsOf(sets: WorkoutSet[]) {
+    return sets.filter((s) => !s.isWarmup)
+  }
+
   const totals = useMemo(() => {
-    const totalSets = progress.reduce((sum, item) => sum + item.sets.length, 0)
-    const completedSets = progress.reduce((sum, item) => sum + item.sets.filter((set) => set.completed).length, 0)
+    const totalSets = progress.reduce((sum, item) => sum + workingSetsOf(item.sets).length, 0)
+    const completedSets = progress.reduce((sum, item) => sum + workingSetsOf(item.sets).filter((set) => set.completed).length, 0)
     const totalVolume = progress.reduce(
       (sum, item) =>
         sum +
-        item.sets.reduce((setSum, set) => {
+        workingSetsOf(item.sets).reduce((setSum, set) => {
           if (!set.completed) return setSum
           return setSum + (set.reps ?? 0) * (set.weight ?? 0)
         }, 0),
@@ -141,11 +186,13 @@ export default function WorkoutPage() {
           }
           return { ...set, [field]: value }
         })
+        const ws = workingSetsOf(sets)
+        const firstIncomplete = sets.findIndex((s) => !s.isWarmup && !s.completed)
         return {
           ...item,
           sets,
-          currentSet: sets.findIndex((set) => !set.completed) === -1 ? sets.length - 1 : sets.findIndex((set) => !set.completed),
-          completed: sets.every((set) => set.completed),
+          currentSet: firstIncomplete === -1 ? sets.length - 1 : firstIncomplete,
+          completed: ws.length > 0 && ws.every((s) => s.completed),
         }
       }),
     )
@@ -162,21 +209,27 @@ export default function WorkoutPage() {
   }
 
   const removeSet = (exerciseIndex: number, setIndex: number) => {
+    const set = progress[exerciseIndex]?.sets[setIndex]
+    if (set?.isWarmup) return
     replaceProgress(
       progress.map((item, itemIndex) => {
         if (itemIndex !== exerciseIndex) return item
         const sets = item.sets.filter((_, i) => i !== setIndex)
+        const ws = workingSetsOf(sets)
+        const firstIncomplete = sets.findIndex((s) => !s.isWarmup && !s.completed)
         return {
           ...item,
           sets,
-          currentSet: sets.findIndex((s) => !s.completed) === -1 ? sets.length - 1 : sets.findIndex((s) => !s.completed),
-          completed: sets.every((s) => s.completed),
+          currentSet: firstIncomplete === -1 ? sets.length - 1 : firstIncomplete,
+          completed: ws.length > 0 && ws.every((s) => s.completed),
         }
       }),
     )
   }
 
   const handleCheckSet = (exerciseIndex: number, setIndex: number) => {
+    const set = progress[exerciseIndex]?.sets[setIndex]
+    if (set?.isWarmup) return
     updateSet(exerciseIndex, setIndex, "completed", true)
     const exercise = progress[exerciseIndex].exercise
     setRestState({
@@ -184,6 +237,7 @@ export default function WorkoutPage() {
       exerciseName: exercise.name,
       setNumber: setIndex + 1,
       restSeconds: exercise.restSeconds,
+      startedAt: Date.now(),
     })
   }
 
@@ -213,13 +267,73 @@ export default function WorkoutPage() {
   const handleComplete = () => {
     completeWorkout(elapsedSeconds, progress)
     saveExerciseLogs()
+    localStorage.removeItem(STORAGE_KEYS.WORKOUT_SESSION)
     setShowCompleted(true)
   }
 
   const handleCancel = () => {
     resetWorkout()
+    localStorage.removeItem(STORAGE_KEYS.WORKOUT_SESSION)
     router.push("/")
   }
+
+  const saveSession = useCallback(() => {
+    const session = {
+      elapsedSeconds,
+      isPaused,
+      restState: restState.active
+        ? {
+            active: true,
+            exerciseName: restState.exerciseName,
+            setNumber: restState.setNumber,
+            restSeconds: restState.restSeconds,
+            restEndTimestamp: (restState.startedAt ?? Date.now()) + restState.restSeconds * 1000,
+          }
+        : { active: false },
+      savedAt: Date.now(),
+    }
+    localStorage.setItem(STORAGE_KEYS.WORKOUT_SESSION, JSON.stringify(session))
+  }, [elapsedSeconds, isPaused, restState])
+
+  useEffect(() => {
+    const raw = localStorage.getItem(STORAGE_KEYS.WORKOUT_SESSION)
+    if (!raw) return
+    try {
+      const session = JSON.parse(raw)
+      if (session.elapsedSeconds !== undefined) {
+        setElapsedSeconds(session.elapsedSeconds)
+      }
+      if (session.isPaused) {
+        setIsPaused(true)
+      }
+      if (session.restState?.active) {
+        const remainingMs = session.restState.restEndTimestamp - Date.now()
+        if (remainingMs > 0) {
+          setRestState({
+            active: true,
+            exerciseName: session.restState.exerciseName,
+            setNumber: session.restState.setNumber,
+            restSeconds: Math.ceil(remainingMs / 1000),
+            startedAt: Date.now(),
+          })
+        }
+      }
+    } catch { /* ignore */ }
+  }, [])
+
+  const saveSessionRef = useRef(saveSession)
+  saveSessionRef.current = saveSession
+
+  useEffect(() => {
+    if (!state.workoutStarted || showCompleted) return
+    const handler = () => saveSessionRef.current()
+    window.addEventListener("beforeunload", handler)
+    const interval = window.setInterval(() => saveSessionRef.current(), 10000)
+    return () => {
+      window.removeEventListener("beforeunload", handler)
+      window.clearInterval(interval)
+    }
+  }, [state.workoutStarted, showCompleted])
 
   if (!state.workoutStarted && !state.exerciseProgress.length && !showCompleted) {
     return (
@@ -340,12 +454,11 @@ export default function WorkoutPage() {
       <main className="mx-auto grid w-full max-w-4xl gap-4 px-4 pb-36 pt-4">
         <WarmupSection
           targetMuscles={state.todayExercises.map((ex) => ex.muscleGroup as MuscleGroup)}
-          exercises={state.todayExercises}
-          logs={exerciseLogs}
         />
         {progress.map((item, exerciseIndex) => {
-          const exerciseCompleted = item.sets.every((set) => set.completed)
+          const exerciseCompleted = workingSetsOf(item.sets).every((set) => set.completed)
           const isBodyweight = item.exercise.equipment === "Bodyweight"
+          const warmupCount = item.sets.filter((s) => s.isWarmup).length
           return (
             <section
               key={item.exercise.id}
@@ -391,16 +504,64 @@ export default function WorkoutPage() {
                         }
                         return null
                       })()}
+                      {!exerciseCompleted && (
+                        <div className="mt-1.5 flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setReplaceTarget(item.exercise)}
+                            aria-label="Thay thế bài tập"
+                            className="flex h-7 w-7 items-center justify-center rounded-lg transition-all active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                            style={{ background: "rgba(var(--color-primary-rgb), 0.08)", color: "var(--color-primary)" }}
+                          >
+                            <RefreshCw size={12} aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setExerciseToRemove(item.exercise)}
+                            aria-label="Xóa bài tập"
+                            className="flex h-7 w-7 items-center justify-center rounded-lg transition-all active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                            style={{ background: "rgba(214,69,69,0.12)", color: "#ff6b6b" }}
+                          >
+                            <Trash2 size={12} aria-hidden="true" />
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    <span
-                      className="shrink-0 rounded-xl px-2 py-1 font-number text-[10px]"
-                      style={{
-                        background: exerciseCompleted ? "rgba(var(--color-primary-rgb), 0.16)" : "var(--color-surface-subtle)",
-                        color: exerciseCompleted ? "var(--color-primary)" : "var(--color-text-secondary)",
-                      }}
-                    >
-                      {item.sets.filter((set) => set.completed).length}/{item.sets.length}
-                    </span>
+                    <div className="flex shrink-0 items-start gap-1.5">
+                      <span
+                        className="rounded-xl px-2 py-1 font-number text-[10px]"
+                        style={{
+                          background: exerciseCompleted ? "rgba(var(--color-primary-rgb), 0.16)" : "var(--color-surface-subtle)",
+                          color: exerciseCompleted ? "var(--color-primary)" : "var(--color-text-secondary)",
+                        }}
+                      >
+                        {workingSetsOf(item.sets).filter((set) => set.completed).length}/{item.sets.length - warmupCount}
+                      </span>
+                      {progress.length > 1 && !exerciseCompleted && (
+                        <div className="flex flex-col gap-0.5">
+                          <button
+                            type="button"
+                            onClick={() => moveExercise(item.exercise.id, "up")}
+                            disabled={exerciseIndex === 0}
+                            aria-label="Di chuyển lên"
+                            className="flex h-5 w-5 items-center justify-center rounded-md transition-all active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] disabled:opacity-0"
+                            style={{ color: "var(--color-text-secondary)" }}
+                          >
+                            <ChevronUp size={12} aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveExercise(item.exercise.id, "down")}
+                            disabled={exerciseIndex === progress.length - 1}
+                            aria-label="Di chuyển xuống"
+                            className="flex h-5 w-5 items-center justify-center rounded-md transition-all active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] disabled:opacity-0"
+                            style={{ color: "var(--color-text-secondary)" }}
+                          >
+                            <ChevronDown size={12} aria-hidden="true" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -417,9 +578,7 @@ export default function WorkoutPage() {
 
                 <div className="grid gap-2">
                   {item.sets.map((set, setIndex) => {
-                    const canCheck = isBodyweight
-                      ? !set.completed && set.reps !== null
-                      : !set.completed && set.reps !== null && set.weight !== null
+                    const canCheck = !set.isWarmup && !set.completed && set.reps !== null && set.reps > 0
                     return (
                     <div
                       key={`${item.exercise.id}-${setIndex}`}
@@ -429,8 +588,8 @@ export default function WorkoutPage() {
                         border: `1px solid ${set.completed ? "rgba(var(--color-primary-rgb), 0.2)" : "rgba(255,255,255,0.045)"}`,
                       }}
                     >
-                      <span className="text-center font-number text-xs" style={{ color: set.completed ? "var(--color-primary)" : "var(--color-text-secondary)" }}>
-                        {setIndex + 1}
+                      <span className="text-center font-number text-xs" style={{ color: set.isWarmup ? "var(--color-primary)" : set.completed ? "var(--color-primary)" : "var(--color-text-secondary)" }}>
+                        {set.isWarmup ? "W" : setIndex - warmupCount + 1}
                       </span>
                       <NumberPickerWheel
                         value={set.reps}
@@ -455,7 +614,7 @@ export default function WorkoutPage() {
                       <span className="text-center font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
                         {item.exercise.restSeconds}s
                       </span>
-                      {!isBodyweight && item.sets.length > 1 && (
+                      {!isBodyweight && !set.isWarmup && item.sets.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removeSet(exerciseIndex, setIndex)}
@@ -466,6 +625,7 @@ export default function WorkoutPage() {
                           <Minus size={14} style={{ color: "#ff6b6b" }} aria-hidden="true" />
                         </button>
                       )}
+                      {!set.isWarmup && (
                       <button
                         type="button"
                         onClick={() => canCheck && handleCheckSet(exerciseIndex, setIndex)}
@@ -473,13 +633,14 @@ export default function WorkoutPage() {
                         aria-label={`Hoàn tất ${item.exercise.name} hiệp ${setIndex + 1}`}
                         className="flex h-11 w-11 items-center justify-center rounded-2xl transition-all active:scale-90 disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                         style={{
-                          background: set.completed ? "rgba(var(--color-primary-rgb), 0.2)" : "rgba(var(--color-primary-rgb), 0.4)",
-                          color: "#fff",
+                          background: set.completed ? "rgba(34, 197, 94, 0.25)" : canCheck ? "var(--color-primary)" : "rgba(255,255,255,0.08)",
+                          color: set.completed ? "#22c55e" : "#fff",
                           opacity: !canCheck && !set.completed ? 0.5 : 1,
                         }}
                       >
                         <Check size={16} aria-hidden="true" />
                       </button>
+                      )}
                     </div>
                     )
                   })}
@@ -503,6 +664,15 @@ export default function WorkoutPage() {
             </section>
           )
         })}
+        <button
+          type="button"
+          onClick={() => setShowAddPicker(true)}
+          className="flex min-h-14 w-full items-center justify-center gap-2 rounded-[28px] font-heading text-sm font-semibold transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+          style={{ background: "var(--color-surface)", border: "1px dashed var(--color-border)", color: "var(--color-text-secondary)" }}
+        >
+          <Plus size={16} aria-hidden="true" />
+          Thêm bài tập
+        </button>
       </main>
 
       <div
@@ -523,9 +693,9 @@ export default function WorkoutPage() {
           disabled={!totals.allCompleted}
           className="min-h-14 flex-[2] rounded-2xl font-heading text-base font-bold transition-all active:scale-[0.98] disabled:active:scale-100"
           style={{
-            background: totals.allCompleted ? "var(--color-primary)" : "var(--color-surface-subtle)",
-            color: totals.allCompleted ? "#fff" : "var(--color-text-secondary)",
-            boxShadow: totals.allCompleted ? "var(--shadow-glow)" : "none",
+            background: totals.allCompleted ? "#22c55e" : "rgba(34, 197, 94, 0.12)",
+            color: totals.allCompleted ? "#fff" : "rgba(34, 197, 94, 0.5)",
+            boxShadow: totals.allCompleted ? "0 0 20px rgba(34, 197, 94, 0.35)" : "none",
           }}
         >
           Hoàn thành
@@ -569,6 +739,45 @@ export default function WorkoutPage() {
         </div>
       )}
 
+      {exerciseToRemove && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 px-4 pb-5" role="dialog" aria-modal="true" aria-labelledby="remove-exercise-title">
+          <div className="w-full max-w-md rounded-[28px] p-5 animate-slideUp" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl" style={{ background: "rgba(214,69,69,0.14)" }}>
+                <AlertTriangle size={20} style={{ color: "#D64545" }} aria-hidden="true" />
+              </div>
+              <h2 id="remove-exercise-title" className="font-display text-2xl font-extrabold">
+                Xóa bài tập?
+              </h2>
+            </div>
+            <p className="font-body text-sm leading-6" style={{ color: "var(--color-text-secondary)" }}>
+              Bạn có chắc muốn xóa &quot;{exerciseToRemove.name}&quot; khỏi buổi tập?
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setExerciseToRemove(null)}
+                className="min-h-12 rounded-2xl font-heading font-semibold transition-all active:scale-95"
+                style={{ background: "var(--color-surface-subtle)", color: "var(--color-text)" }}
+              >
+                Giữ lại
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  removeExerciseFromWorkout(exerciseToRemove.id)
+                  setExerciseToRemove(null)
+                }}
+                className="min-h-12 rounded-2xl font-heading font-semibold transition-all active:scale-95"
+                style={{ background: "#D64545", color: "#fff" }}
+              >
+                Xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {restState.active && (
         <RestTimer
           exerciseName={restState.exerciseName}
@@ -580,6 +789,31 @@ export default function WorkoutPage() {
       )}
 
       {selectedExercise && <ExerciseModal exercise={selectedExercise} onClose={() => setSelectedExercise(null)} />}
+
+      {showAddPicker && (
+        <ExercisePicker
+          isOpen
+          onClose={() => setShowAddPicker(false)}
+          onAdd={(exercises) => {
+            for (const ex of exercises) {
+              addExerciseToWorkout(ex)
+            }
+            setShowAddPicker(false)
+          }}
+        />
+      )}
+      {replaceTarget && (
+        <ExercisePicker
+          isOpen
+          onClose={() => setReplaceTarget(null)}
+          onAdd={() => {}}
+          replaceMode={replaceModeProp}
+          onReplace={(exerciseId, newExercise) => {
+            replaceExercise(exerciseId, newExercise)
+            setReplaceTarget(null)
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -7,7 +7,6 @@ export const MUSCLE_GROUP_MAP: Record<MuscleGroup, string[]> = {
   Shoulders: ["Shoulders", "Trapezius"],
   Arms: ["Biceps", "Triceps", "Forearms"],
   Core: ["Abdominals"],
-  Abs: ["Abdominals"],
   Cardio: ["Cardio"],
 }
 

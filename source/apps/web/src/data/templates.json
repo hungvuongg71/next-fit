@@ -1,0 +1,23 @@
+[
+  {
+    "id": "FullBody",
+    "name_vi": "Toàn thân",
+    "daysPerWeek": 3,
+    "description": "Tập toàn bộ cơ thể mỗi buổi, phù hợp cho người mới hoặc lịch bận rộn. Mỗi buổi gồm compound + isolation cho tất cả nhóm cơ chính.",
+    "preview": "3 buổi/tuần · Mỗi buổi full-body"
+  },
+  {
+    "id": "UpperLower",
+    "name_vi": "Trên / Dưới",
+    "daysPerWeek": 4,
+    "description": "Chia thân trên và thân dưới, mỗi nhóm cơ được tập 2 lần/tuần. Lý tưởng cho người tập trung vào strength hoặc hypertrophy.",
+    "preview": "4 buổi/tuần · Upper/Lower split"
+  },
+  {
+    "id": "PPL",
+    "name_vi": "Đẩy / Kéo / Chân",
+    "daysPerWeek": 6,
+    "description": "Chia thành Đẩy (ngực, vai, tay sau), Kéo (lưng, tay trước), Chân. Mỗi nhóm tập 2 lần/tuần với luân phiên A/B.",
+    "preview": "6 buổi/tuần · Push/Pull/Legs"
+  }
+]

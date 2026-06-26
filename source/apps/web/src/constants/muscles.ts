@@ -6,7 +6,6 @@ export const MUSCLE_GROUPS_VI: Record<string, string> = {
   Legs: "Chân",
   Shoulders: "Vai",
   Arms: "Tay",
-  Core: "Core",
-  Abs: "Bụng",
+  Core: "Bụng",
   Cardio: "Tim mạch",
 }

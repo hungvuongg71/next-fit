@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { AppProvider } from '@/state/context'
+import ActiveWorkoutBanner from '@/components/ui/ActiveWorkoutBanner'
 
 export const metadata: Metadata = {
   title: 'NextFit — Gym Workout Planner',
@@ -14,6 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <AppProvider>
           {children}
+          <ActiveWorkoutBanner />
         </AppProvider>
       </body>
     </html>

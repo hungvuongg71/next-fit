@@ -1,7 +1,7 @@
 export type Gender = "Nam" | "Nữ" | "Khác"
 export type Level = "Novice" | "Beginner" | "Intermediate" | "Advanced" | "Expert" | "Master" | "Grand Master" | "Legendary"
 export type Goal = "Strength" | "Hypertrophy" | "Endurance"
-export type MuscleGroup = "Chest" | "Back" | "Legs" | "Shoulders" | "Arms" | "Core" | "Abs" | "Cardio"
+export type MuscleGroup = "Chest" | "Back" | "Legs" | "Shoulders" | "Arms" | "Core" | "Cardio"
 export type Duration = "15 min" | "30 min" | "45 min" | "60+ min"
 export type Equipment =
   | "Ab Wheel"
@@ -46,6 +46,8 @@ export interface UserCriteria {
   duration?: Duration
   equipment: Equipment[]
   frequency?: Frequency
+  weight?: number
+  height?: number
 }
 
 export interface SetData {
@@ -86,6 +88,7 @@ export interface Exercise {
 
 export interface WorkoutSet extends SetData {
   restTaken?: number
+  isWarmup?: boolean
 }
 
 export interface ExerciseProgress {
@@ -93,6 +96,11 @@ export interface ExerciseProgress {
   sets: WorkoutSet[]
   currentSet: number
   completed: boolean
+}
+
+export interface ExerciseCompletion {
+  exercise: Exercise
+  sets: WorkoutSet[]
 }
 
 export interface WorkoutHistoryEntry {
@@ -104,6 +112,7 @@ export interface WorkoutHistoryEntry {
   completedSets: number
   totalVolume: number
   criteria: UserCriteria | null
+  exerciseDetails?: ExerciseCompletion[]
 }
 
 export interface ExerciseLogEntry {
@@ -126,6 +135,8 @@ export interface WarmupExercise {
   muscleGroups: MuscleGroup[]
 }
 
+import type { WeeklyPlan } from "@/lib/weekly-plan/types"
+
 export interface AppState {
   isFirstVisit: boolean
   cookiesAccepted: boolean
@@ -138,4 +149,5 @@ export interface AppState {
   exerciseProgress: ExerciseProgress[]
   workoutHistory: WorkoutHistoryEntry[]
   lastPerformances: Record<string, { reps: number; weight: number }>
+  weeklyPlan: WeeklyPlan | null
 }

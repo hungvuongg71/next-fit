@@ -68,12 +68,16 @@ export default function OnboardingPage() {
   const [equipment, setEquipment] = useState<Equipment[]>([])
   const [duration, setDuration] = useState<Duration | null>(null)
   const [frequency, setFrequency] = useState<Frequency | null>(null)
+  const [weight, setWeight] = useState("")
+  const [height, setHeight] = useState("")
   const [allowStorage, setAllowStorage] = useState(true)
   const [showAllEquipment, setShowAllEquipment] = useState(false)
 
-  const completedCount = [gender, level, goal, equipment.length > 0, duration, frequency].filter(Boolean).length
-  const progress = Math.round((completedCount / 6) * 100)
-  const canProceed = completedCount === 6
+  const weightValid = weight !== "" && Number(weight) >= 20 && Number(weight) <= 300
+  const heightValid = height !== "" && Number(height) >= 100 && Number(height) <= 250
+  const completedCount = [gender, level, goal, equipment.length > 0, duration, frequency, weightValid, heightValid].filter(Boolean).length
+  const progress = Math.round((completedCount / 8) * 100)
+  const canProceed = completedCount === 8
 
   const planPreview = useMemo(() => {
     if (!goal && !frequency) return "Lịch tập sẽ được dựng sau khi bạn chọn xong tiêu chí."
@@ -95,6 +99,8 @@ export default function OnboardingPage() {
       equipment,
       duration,
       frequency,
+      weight: Number(weight),
+      height: Number(height),
     }
     setCriteria(criteria)
     setCookiesAccepted(allowStorage)
@@ -249,6 +255,54 @@ export default function OnboardingPage() {
                   {item}
                 </ChoiceButton>
               ))}
+            </div>
+          </section>
+
+          <section>
+            <p className="mb-3 font-heading text-xs font-semibold uppercase tracking-[0.24em]" style={{ color: "var(--color-text-secondary)" }}>
+              Cân nặng & Chiều cao
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1.5 block font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                  Cân nặng (kg)
+                </label>
+                <input
+                  type="number"
+                  min={20}
+                  max={300}
+                  step={0.5}
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
+                  placeholder="VD: 70"
+                  className="min-h-11 w-full rounded-2xl px-4 font-heading text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                  style={{
+                    background: "rgba(255,255,255,0.045)",
+                    border: `1px solid ${weightValid ? "var(--color-primary)" : "var(--color-border)"}`,
+                    color: "var(--color-text)",
+                  }}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                  Chiều cao (cm)
+                </label>
+                <input
+                  type="number"
+                  min={100}
+                  max={250}
+                  step={1}
+                  value={height}
+                  onChange={(e) => setHeight(e.target.value)}
+                  placeholder="VD: 175"
+                  className="min-h-11 w-full rounded-2xl px-4 font-heading text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                  style={{
+                    background: "rgba(255,255,255,0.045)",
+                    border: `1px solid ${heightValid ? "var(--color-primary)" : "var(--color-border)"}`,
+                    color: "var(--color-text)",
+                  }}
+                />
+              </div>
             </div>
           </section>
 
