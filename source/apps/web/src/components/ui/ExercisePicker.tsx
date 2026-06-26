@@ -53,7 +53,7 @@ export default function ExercisePicker({
       if (replaceMode && ex.id === replaceMode.exerciseId) return false
       const mapped = MUSCLE_GROUP_MAP[selectedMuscleGroup]
       if (!mapped?.includes(ex.muscleGroup)) return false
-      if (!replaceMode && ex.equipment !== selectedEquipment) return false
+      if (ex.equipment !== selectedEquipment) return false
       if (searchQuery) {
         const q = searchQuery.toLowerCase()
         const name = ex.name.toLowerCase()
@@ -205,38 +205,36 @@ export default function ExercisePicker({
           </div>
 
           {/* Equipment filter */}
-          {!replaceMode && (
-            <div className="px-5 pb-4">
-              <p className="font-heading font-semibold text-xs mb-2" style={{ color: "var(--color-text-secondary)" }}>
-                THIẾT BỊ
-              </p>
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-                {SORTED_EQUIPMENT.filter((eq) => showAllEquipment || POPULAR_EQUIPMENT.has(eq)).map((eq) => (
-                  <button
-                    key={eq}
-                    onClick={() => setSelectedEquipment(eq)}
-                    className="px-3 py-1.5 rounded-xl font-heading font-semibold text-xs whitespace-nowrap transition-all active:scale-95 flex-shrink-0"
-                    style={{
-                      background: eq === selectedEquipment ? "var(--color-primary)" : "var(--color-surface-subtle)",
-                      color: eq === selectedEquipment ? "#fff" : "var(--color-text)",
-                    }}
-                  >
-                    {EQUIPMENT_VI[eq]}
-                  </button>
-                ))}
+          <div className="px-5 pb-4">
+            <p className="font-heading font-semibold text-xs mb-2" style={{ color: "var(--color-text-secondary)" }}>
+              THIẾT BỊ
+            </p>
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {SORTED_EQUIPMENT.filter((eq) => showAllEquipment || POPULAR_EQUIPMENT.has(eq)).map((eq) => (
                 <button
-                  onClick={() => setShowAllEquipment(!showAllEquipment)}
+                  key={eq}
+                  onClick={() => setSelectedEquipment(eq)}
                   className="px-3 py-1.5 rounded-xl font-heading font-semibold text-xs whitespace-nowrap transition-all active:scale-95 flex-shrink-0"
                   style={{
-                    color: "var(--color-primary)",
-                    background: "rgba(var(--color-primary-rgb), 0.08)",
+                    background: eq === selectedEquipment ? "var(--color-primary)" : "var(--color-surface-subtle)",
+                    color: eq === selectedEquipment ? "#fff" : "var(--color-text)",
                   }}
                 >
-                  {showAllEquipment ? "Thu gọn" : `Xem thêm`}
+                  {EQUIPMENT_VI[eq]}
                 </button>
-              </div>
+              ))}
+              <button
+                onClick={() => setShowAllEquipment(!showAllEquipment)}
+                className="px-3 py-1.5 rounded-xl font-heading font-semibold text-xs whitespace-nowrap transition-all active:scale-95 flex-shrink-0"
+                style={{
+                  color: "var(--color-primary)",
+                  background: "rgba(var(--color-primary-rgb), 0.08)",
+                }}
+              >
+                {showAllEquipment ? "Thu gọn" : `Xem thêm`}
+              </button>
             </div>
-          )}
+          </div>
 
           {/* Select all */}
           {!replaceMode && (
