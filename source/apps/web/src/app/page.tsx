@@ -120,7 +120,7 @@ export default function HomePage() {
         </div>
 
         <section className="mb-6">
-          <MuscleGroupSelector selected={selectedMuscles} onChange={setSelectedMuscles} />
+          <MuscleGroupSelector selected={selectedMuscles} onChange={setSelectedMuscles} gender={state.criteria?.gender} />
         </section>
 
         {suggestedExercises.length > 0 && (
