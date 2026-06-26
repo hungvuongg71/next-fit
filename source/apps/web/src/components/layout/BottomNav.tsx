@@ -1,11 +1,12 @@
 "use client"
 
-import { Home, Dumbbell, BarChart2, User } from "lucide-react"
+import { Home, Dumbbell, BarChart2, User, Calendar } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 
 const NAV_ITEMS = [
   { href: "/", icon: Home, label: "Home" },
+  { href: "/plan", icon: Calendar, label: "Plan" },
   { href: "/workout", icon: Dumbbell, label: "Workout" },
   { href: "/stats", icon: BarChart2, label: "Stat" },
   { href: "/profile", icon: User, label: "Profile" },

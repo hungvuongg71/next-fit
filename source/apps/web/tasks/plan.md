@@ -1,73 +1,130 @@
-# Implementation Plan: Codebase Cleanup & Quality
+# Plan: Muscle Group → Suggested Exercises (Homepage Redesign)
 
-## Overview
+## Objective
 
-Dọn dẹp codebase và nâng cao chất lượng dựa trên kết quả code review. Các task được thiết kế theo vertical slices — mỗi task để lại hệ thống ở trạng thái hoạt động ổn định. Ưu tiên xử lý các vấn đề critical trước (rác git, lỗi ESLint, theme duplication), sau đó là các cải thiện về maintainability (constants, tests, type safety).
+Thay thế trải nghiệm chính của homepage: user chọn nhóm cơ → web generate 5-6 bài tập gợi ý → user chỉnh sửa (thay thế/xóa/thêm) → bắt đầu workout. Giáo án tuần thu gọn thành section phụ.
 
-## Architecture Decisions
+## UX Flow
 
-- **Dependency thứ tự:** Xoá file rác → sửa lỗi biên dịch → gộp code trùng → cải thiện type safety → thêm tests
-- **Không thay đổi logic nghiệp vụ:** Tất cả task đều là refactor/code hygiene, không thêm tính năng mới
-- **Mỗi task phải để lại code sạch:** Build pass, không warning mới
+```
+Homepage:
+┌──────────────────────────────────┐
+│ Bạn muốn tập nhóm cơ nào?        │
+│ Hãy chọn nhóm cơ để nhận gợi ý  │
+│                                  │
+│ [🏋️ Ngực]  [🏋️ Lưng]  [🏋️ Chân]│ ← 3-col grid, multi-select
+│ [🏋️ Vai]   [🏋️ Tay]   [🏋️ Bụng]│
+│                                  │
+│ (khi đã chọn 1+ nhóm cơ)         │
+│ Bài tập gợi ý (X bài):           │ ← auto-generate
+│ [Bài tập 1]  [Thay thế] [Xóa]   │
+│ [Bài tập 2]  [Thay thế] [Xóa]   │
+│ ...                              │
+│ [+ Thêm bài tập]                 │
+│ [🔄 Hoàn tác]                    │
+│                                  │
+│ [Bắt Đầu Workout] ← fixed bottom │
+├──────────────────────────────────┤
+│ Giáo án tuần            [Chi tiết]│ ← compact section
+│ [T2] [T3] [T4] ...              │
+└──────────────────────────────────┘
+```
 
-## Task List
+## Kiến trúc
 
-### Phase 1: Housekeeping (Foundation)
+### Files
 
-- [ ] Task 1: Xoá 4 file JSON exercise trùng lặng khỏi git tracking
-- [ ] Task 2: Xoá boilerplate create-next-app (README, public SVGs, empty api/)
-- [ ] Task 3: Consolidate theme config (theme.ts + design-tokens.ts)
+| File | Thay đổi |
+|------|----------|
+| `src/app/page.tsx` | Rewrite: muscle group grid + suggestions + compact plan section |
+| `src/components/ui/MuscleGroupSelector.tsx` | **New**: grid các muscle group card (multi-select) |
+| `src/lib/suggestions.ts` | **New**: `suggestExercises(muscles, count)` — chọn bài tập theo nhóm cơ |
 
-### Checkpoint: Phase 1
-- [ ] `git status` sạch, không còn file rác
-- [ ] Build thành công: `pnpm build`
-- [ ] ESLint pass: `pnpm lint`
-- [ ] Theme switching hoạt động trên `/themes` và `/profile`
+### Data Flow
 
-### Phase 2: Maintainability & Type Safety
+```
+[MUSCLE_GROUPS] → MuscleGroupSelector (chọn nhiều)
+  ↓ selectedMuscles
+[suggestExercises(selectedMuscles, 6)]
+  ↓ suggestedExercises
+[SuggestionList] → replace/delete/add (local state)
+  ↓ "Bắt Đầu Workout"
+setTodayExercises(suggestedExercises) + startWorkout()
+  → router.push("/workout")
+```
 
-- [ ] Task 4: Extract magic strings + localStorage keys vào constants
-- [ ] Task 5: Consolidate duplicate equipment/frequency lists vào 1 source
-- [ ] Task 6: Fix ESLint `no-explicit-any` errors
-- [ ] Task 7: Tighten Gender type + naming cleanup
+### suggestExercises logic
 
-### Checkpoint: Phase 2
-- [ ] `pnpm lint` = 0 errors
-- [ ] `pnpm build` thành công
-- [ ] Equipment picker hoạt động trên Home + Onboarding + ExercisePicker
+```typescript
+suggestExercises(muscleGroups: MuscleGroup[], count = 6): Exercise[]
+```
+1. Lấy danh sách exercise từ MOCK_EXERCISES match từng nhóm cơ (dùng MUSCLE_GROUP_MAP)
+2. Phân bố đều: count / số nhóm cơ (làm tròn)
+3. Ưu tiên exercise có equipment khác nhau (variety)
+4. Trộn ngẫu nhiên trong mỗi nhóm
 
-### Phase 3: Performance & UX
+### State
 
-- [ ] Task 8: Debounce localStorage writes in context
-- [ ] Task 9: Add `loading="lazy"` to all exercise images
-- [ ] Task 10: Add `React.memo` to ExerciseCard
+Local state trên homepage:
+- `selectedMuscles: MuscleGroup[]` — nhóm cơ đã chọn
+- `suggestedExercises: Exercise[]` — bài tập gợi ý hiện tại
+- `savedSuggestions: Exercise[]` — bản snapshot để undo
+- `replaceTarget: { exercise: Exercise; index: number } | null` — cho replace
 
-### Checkpoint: Phase 3
-- [ ] Workout flow hoạt động không bị giật
-- [ ] Images load đúng trên tất cả pages
+### UI Components
 
-### Phase 4: Testing (Quality)
+**MuscleGroupSelector:**
+- Grid 3 cột
+- Mỗi card: hình placeholder (gradient màu), tên nhóm cơ (VI)
+- Click → toggle select, border highlight
+- Selected state: primary border + glow
 
-- [ ] Task 11: Unit tests for split algorithm core functions
-- [ ] Task 12: Unit tests for context state transitions
-- [ ] Task 13: Update README with actual project info
+**Suggested exercises list:**
+- Mỗi bài là ExerciseCard-like component
+- 3 nút action: Thay thế (⟳), Xóa (trash), kèm confirm
+- "Thêm bài tập" button → mở ExercisePicker (add mode)
+- "Hoàn tác" button → restore savedSuggestions
 
-### Checkpoint: Phase 4
-- [ ] All tests pass
-- [ ] Build succeeds
-- [ ] Ready for review
+## Tasks
 
-## Risks and Mitigations
+### Task 1: Tạo suggestExercises utility
+- Tạo `src/lib/suggestions.ts`
+- Import `MOCK_EXERCISES`, `MUSCLE_GROUP_MAP`
+- Hàm `suggestExercises(muscles, count)` → phân bố đều, shuffle
+- Test với 2-3 nhóm cơ
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Git rm file exercise sẽ ảnh hưởng import | High | Kiểm tra file nào còn reference tới trong codebase trước khi xoá |
-| Theme consolidation có thể break CSS variables | High | Test theme switching trên cả 3 themes sau khi gộp |
-| Thêm React.memo có thể gây bug nếu props thay đổi không đúng | Low | Chỉ dùng React.memo đơn giản, không custom comparator |
-| Tests cần test framework setup | Medium | Dùng vitest (phù hợp với monorepo, dùng được ESM) |
+### Task 2: Tạo MuscleGroupSelector component  
+- Tạo `src/components/ui/MuscleGroupSelector.tsx`
+- Props: `selected: MuscleGroup[]`, `onChange: (groups) => void`
+- Grid 3 cột, card có placeholder hình (gradient)
+- Toggle select, highlight border
+- Import MUSCLE_GROUPS, MUSCLE_GROUPS_VI
 
-## Open Questions
+### Task 3: Rewrite homepage
+- Rewrite `src/app/page.tsx`
+- Header: "Bạn muốn tập nhóm cơ nào?"
+- MuscleGroupSelector section
+- Suggested exercises section (auto-generate khi selectedMuscles thay đổi)
+- Action buttons: thêm bài, hoàn tác
+- Compact weekly plan section (dạng horizontal scroll)
+- Fixed bottom "Bắt Đầu Workout" button
+- ExercisePicker + ExerciseModal integration
 
-- Có cần giữ `exercises_100_sample.json` cho testing không? (recommend: giữ lại)
-- Dùng vitest hay jest cho unit tests? (recommend: vitest vì monorepo + ESM support)
-- `design-tokens.ts` có nhiều chi tiết hơn — có muốn giữ làm canonical và xoá `theme.ts` không? (recommend: giữ design-tokens.ts vì có generateCSSVariables helper)
+### Task 4: Cleanup
+- Xóa code cũ không dùng
+- Build + test (105 tests)
+
+## Checkpoints
+
+| # | Checkpoint | Sau task | Verify |
+|---|-----------|----------|--------|
+| 1 | suggestExercises | Task 1 | `npm run test` |
+| 2 | MuscleGroupSelector | Task 2 | `npm run build` |
+| 3 | Homepage rewrite | Task 3 | `npm run build` |
+| 4 | Tất cả pass | Task 4 | `npm run build && npm run test` |
+
+## Boundaries
+
+- **Luôn làm:** Multi-select muscle group; auto-generate khi chọn; replace/xóa/thêm từng bài; undo snapshot
+- **Chưa làm:** Hình ảnh real (user cung cấp sau); phân tích level/goal để gợi ý (chỉ dựa trên nhóm cơ); pagination
+- **Giữ nguyên:** PlanEditModal, CookieConsent, BottomNav, TopHeader

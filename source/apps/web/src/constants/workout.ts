@@ -33,11 +33,6 @@ export const DYNAMIC_STRETCHES: Record<string, { name_vi: string; duration: stri
     { name_vi: "Bird-Dog", duration: "30s" },
     { name_vi: "Dead Bug", duration: "30s" },
   ],
-  Abs: [
-    { name_vi: "Cat-Cow", duration: "30s" },
-    { name_vi: "Bird-Dog", duration: "30s" },
-    { name_vi: "Dead Bug", duration: "30s" },
-  ],
   Cardio: [
     { name_vi: "Bật nhảy tại chỗ", duration: "45s" },
     { name_vi: "Chạy nâng cao đùi", duration: "45s" },

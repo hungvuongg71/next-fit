@@ -16,14 +16,30 @@ const SORTED_EQUIPMENT = [...EQUIPMENT].sort((a, b) => {
   return aPop - bPop
 })
 
+const EXERCISE_TO_GROUP: Record<string, MuscleGroup> = {}
+for (const [group, muscles] of Object.entries(MUSCLE_GROUP_MAP)) {
+  for (const muscle of muscles) {
+    EXERCISE_TO_GROUP[muscle] = group as MuscleGroup
+  }
+}
+
 interface ExercisePickerProps {
   isOpen: boolean
   onClose: () => void
   onAdd: (exercises: Exercise[]) => void
   selectedIds?: Set<string>
+  replaceMode?: { exerciseId: string; muscleGroup: string }
+  onReplace?: (exerciseId: string, newExercise: Exercise) => void
 }
 
-export default function ExercisePicker({ isOpen, onClose, onAdd, selectedIds: externalSelected }: ExercisePickerProps) {
+export default function ExercisePicker({
+  isOpen,
+  onClose,
+  onAdd,
+  selectedIds: externalSelected,
+  replaceMode,
+  onReplace,
+}: ExercisePickerProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<MuscleGroup>(MUSCLE_GROUPS[0])
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment>(SORTED_EQUIPMENT[0])
@@ -34,9 +50,10 @@ export default function ExercisePicker({ isOpen, onClose, onAdd, selectedIds: ex
 
   const filtered = useMemo(() => {
     return MOCK_EXERCISES.filter((ex) => {
+      if (replaceMode && ex.id === replaceMode.exerciseId) return false
       const mapped = MUSCLE_GROUP_MAP[selectedMuscleGroup]
       if (!mapped?.includes(ex.muscleGroup)) return false
-      if (ex.equipment !== selectedEquipment) return false
+      if (!replaceMode && ex.equipment !== selectedEquipment) return false
       if (searchQuery) {
         const q = searchQuery.toLowerCase()
         const name = ex.name.toLowerCase()
@@ -45,7 +62,7 @@ export default function ExercisePicker({ isOpen, onClose, onAdd, selectedIds: ex
       }
       return true
     })
-  }, [searchQuery, selectedMuscleGroup, selectedEquipment])
+  }, [searchQuery, selectedMuscleGroup, selectedEquipment, replaceMode])
 
   const allFilteredSelected = useMemo(
     () => filtered.length > 0 && filtered.every((e) => selectedIds.has(e.id)),
@@ -55,20 +72,26 @@ export default function ExercisePicker({ isOpen, onClose, onAdd, selectedIds: ex
   useEffect(() => {
     if (isOpen) {
       setSearchQuery("")
-      setSelectedMuscleGroup(MUSCLE_GROUPS[0])
+      setSelectedMuscleGroup(
+        replaceMode ? (EXERCISE_TO_GROUP[replaceMode.muscleGroup] ?? MUSCLE_GROUPS[0]) : MUSCLE_GROUPS[0],
+      )
       setSelectedEquipment(SORTED_EQUIPMENT[0])
       setSelectedIds(new Set(externalSelected ?? []))
       setTimeout(() => inputRef.current?.focus(), 100)
     }
-  }, [isOpen, externalSelected])
+  }, [isOpen, externalSelected, replaceMode])
 
   const toggleExercise = (ex: Exercise) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(ex.id)) next.delete(ex.id)
-      else next.add(ex.id)
-      return next
-    })
+    if (replaceMode) {
+      setSelectedIds(new Set([ex.id]))
+    } else {
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        if (next.has(ex.id)) next.delete(ex.id)
+        else next.add(ex.id)
+        return next
+      })
+    }
   }
 
   const toggleSelectAll = () => {
@@ -89,14 +112,15 @@ export default function ExercisePicker({ isOpen, onClose, onAdd, selectedIds: ex
 
   const handleSubmit = () => {
     const selected = MOCK_EXERCISES.filter((e) => selectedIds.has(e.id))
-    onAdd(selected)
+    if (replaceMode && onReplace && selected.length > 0) {
+      onReplace(replaceMode.exerciseId, selected[0])
+    } else {
+      onAdd(selected)
+    }
     onClose()
   }
 
-  const selectedExercises = useMemo(
-    () => MOCK_EXERCISES.filter((e) => selectedIds.has(e.id)),
-    [selectedIds],
-  )
+  const selectedExercises = useMemo(() => MOCK_EXERCISES.filter((e) => selectedIds.has(e.id)), [selectedIds])
 
   if (!isOpen) return null
 
@@ -123,7 +147,7 @@ export default function ExercisePicker({ isOpen, onClose, onAdd, selectedIds: ex
         {/* Header */}
         <div className="flex items-center justify-between px-5 pb-3 flex-shrink-0">
           <h2 className="font-display font-bold text-lg" style={{ color: "var(--color-text)" }}>
-            Thêm bài tập
+            {replaceMode ? "Thay thế bài tập" : "Thêm bài tập"}
           </h2>
           <button
             onClick={onClose}
@@ -138,7 +162,7 @@ export default function ExercisePicker({ isOpen, onClose, onAdd, selectedIds: ex
         {/* Scrollable area */}
         <div className="flex-1 overflow-y-auto">
           {/* Search */}
-          <div className="px-5 pb-3">
+          <div className="px-5 pb-3 mt-3">
             <div className="relative">
               <Search
                 size={16}
@@ -181,61 +205,63 @@ export default function ExercisePicker({ isOpen, onClose, onAdd, selectedIds: ex
           </div>
 
           {/* Equipment filter */}
-          <div className="px-5 pb-4">
-            <p className="font-heading font-semibold text-xs mb-2" style={{ color: "var(--color-text-secondary)" }}>
-              THIẾT BỊ
-            </p>
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-              {SORTED_EQUIPMENT
-                .filter((eq) => showAllEquipment || POPULAR_EQUIPMENT.has(eq))
-                .map((eq) => (
+          {!replaceMode && (
+            <div className="px-5 pb-4">
+              <p className="font-heading font-semibold text-xs mb-2" style={{ color: "var(--color-text-secondary)" }}>
+                THIẾT BỊ
+              </p>
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                {SORTED_EQUIPMENT.filter((eq) => showAllEquipment || POPULAR_EQUIPMENT.has(eq)).map((eq) => (
+                  <button
+                    key={eq}
+                    onClick={() => setSelectedEquipment(eq)}
+                    className="px-3 py-1.5 rounded-xl font-heading font-semibold text-xs whitespace-nowrap transition-all active:scale-95 flex-shrink-0"
+                    style={{
+                      background: eq === selectedEquipment ? "var(--color-primary)" : "var(--color-surface-subtle)",
+                      color: eq === selectedEquipment ? "#fff" : "var(--color-text)",
+                    }}
+                  >
+                    {EQUIPMENT_VI[eq]}
+                  </button>
+                ))}
                 <button
-                  key={eq}
-                  onClick={() => setSelectedEquipment(eq)}
+                  onClick={() => setShowAllEquipment(!showAllEquipment)}
                   className="px-3 py-1.5 rounded-xl font-heading font-semibold text-xs whitespace-nowrap transition-all active:scale-95 flex-shrink-0"
                   style={{
-                    background: eq === selectedEquipment ? "var(--color-primary)" : "var(--color-surface-subtle)",
-                    color: eq === selectedEquipment ? "#fff" : "var(--color-text)",
+                    color: "var(--color-primary)",
+                    background: "rgba(var(--color-primary-rgb), 0.08)",
                   }}
                 >
-                  {EQUIPMENT_VI[eq]}
+                  {showAllEquipment ? "Thu gọn" : `Xem thêm`}
                 </button>
-              ))}
+              </div>
+            </div>
+          )}
+
+          {/* Select all */}
+          {!replaceMode && (
+            <div className="px-5 pb-2">
               <button
-                onClick={() => setShowAllEquipment(!showAllEquipment)}
-                className="px-3 py-1.5 rounded-xl font-heading font-semibold text-xs whitespace-nowrap transition-all active:scale-95 flex-shrink-0"
+                onClick={toggleSelectAll}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl font-heading font-semibold text-xs transition-all active:scale-95"
                 style={{
                   color: "var(--color-primary)",
                   background: "rgba(var(--color-primary-rgb), 0.08)",
                 }}
               >
-                {showAllEquipment ? "Thu gọn" : `Xem thêm`}
+                <div
+                  className="w-4 h-4 rounded flex items-center justify-center"
+                  style={{
+                    border: `1.5px solid var(--color-primary)`,
+                    background: allFilteredSelected ? "var(--color-primary)" : "transparent",
+                  }}
+                >
+                  {allFilteredSelected && <Check size={10} strokeWidth={3} style={{ color: "#fff" }} />}
+                </div>
+                {allFilteredSelected ? "Bỏ chọn tất cả" : `Chọn tất cả (${filtered.length})`}
               </button>
             </div>
-          </div>
-
-          {/* Select all */}
-          <div className="px-5 pb-2">
-            <button
-              onClick={toggleSelectAll}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl font-heading font-semibold text-xs transition-all active:scale-95"
-              style={{
-                color: "var(--color-primary)",
-                background: "rgba(var(--color-primary-rgb), 0.08)",
-              }}
-            >
-              <div
-                className="w-4 h-4 rounded flex items-center justify-center"
-                style={{
-                  border: `1.5px solid var(--color-primary)`,
-                  background: allFilteredSelected ? "var(--color-primary)" : "transparent",
-                }}
-              >
-                {allFilteredSelected && <Check size={10} strokeWidth={3} style={{ color: "#fff" }} />}
-              </div>
-              {allFilteredSelected ? "Bỏ chọn tất cả" : `Chọn tất cả (${filtered.length})`}
-            </button>
-          </div>
+          )}
 
           {/* Exercise list */}
           <div className="px-5 pb-4 space-y-2">
@@ -272,10 +298,7 @@ export default function ExercisePicker({ isOpen, onClose, onAdd, selectedIds: ex
                       }}
                       className="flex-shrink-0 cursor-pointer"
                     >
-                      <ExerciseThumbnail
-                        exercise={ex}
-                        className="w-12 h-12 rounded-xl object-cover"
-                      />
+                      <ExerciseThumbnail exercise={ex} className="w-12 h-12 rounded-xl object-cover" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-heading font-semibold text-sm truncate" style={{ color: "var(--color-text)" }}>
@@ -308,18 +331,17 @@ export default function ExercisePicker({ isOpen, onClose, onAdd, selectedIds: ex
               color: selectedExercises.length > 0 ? "#fff" : "var(--color-text-secondary)",
             }}
           >
-            {selectedExercises.length > 0
-              ? `Thêm ${selectedExercises.length} bài tập`
-              : "Chọn bài tập"}
+            {replaceMode
+              ? selectedExercises.length > 0
+                ? "Thay thế"
+                : "Chọn bài tập"
+              : selectedExercises.length > 0
+                ? `Thêm ${selectedExercises.length} bài tập`
+                : "Chọn bài tập"}
           </button>
         </div>
       </div>
-      {previewExercise && (
-        <ExerciseModal
-          exercise={previewExercise}
-          onClose={() => setPreviewExercise(null)}
-        />
-      )}
+      {previewExercise && <ExerciseModal exercise={previewExercise} onClose={() => setPreviewExercise(null)} />}
     </div>
   )
 }
