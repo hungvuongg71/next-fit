@@ -58,12 +58,14 @@ export default function HomePage() {
   }, [selectedMuscles])
 
   const handleConfirmPlanDay = (day: DayPlan) => {
-    setTodayExercises(day.exercises.map((e) => ({
-      ...e,
-      sets: e.plannedSets,
-      reps: e.plannedReps,
-      restSeconds: e.plannedRestSeconds,
-    })))
+    setTodayExercises(
+      day.exercises.map((e) => ({
+        ...e,
+        sets: e.plannedSets,
+        reps: e.plannedReps,
+        restSeconds: e.plannedRestSeconds,
+      })),
+    )
     setSelectedPlanDay(null)
     startWorkout()
     router.push("/workout")
@@ -109,18 +111,16 @@ export default function HomePage() {
             className="font-display font-extrabold text-3xl leading-tight mb-1"
             style={{ color: "var(--color-text)" }}
           >
-            Bạn muốn tập nhóm cơ nào?
+            Chọn nhóm cơ hoặc giáo án để bắt đầu buổi tập!
           </h1>
-          <p className="font-body text-sm" style={{ color: "var(--color-text-secondary)" }}>
-            Chọn nhóm cơ để nhận bài tập gợi ý
-          </p>
+          <br />
+          <h2 className="font-heading font-semibold text-sm" style={{ color: "var(--color-text-secondary)" }}>
+            Lựa chọn 1: Chọn nhóm cơ để nhận bài tập gợi ý
+          </h2>
         </div>
 
         <section className="mb-6">
-          <MuscleGroupSelector
-            selected={selectedMuscles}
-            onChange={setSelectedMuscles}
-          />
+          <MuscleGroupSelector selected={selectedMuscles} onChange={setSelectedMuscles} />
         </section>
 
         {suggestedExercises.length > 0 && (
@@ -145,7 +145,12 @@ export default function HomePage() {
                 <div
                   key={`${ex.id}-${i}`}
                   onClick={() => setViewingExercise(ex)}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setViewingExercise(ex) } }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      setViewingExercise(ex)
+                    }
+                  }}
                   role="button"
                   tabIndex={0}
                   className="flex cursor-pointer items-center gap-3 rounded-2xl p-3 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
@@ -192,7 +197,11 @@ export default function HomePage() {
             <button
               onClick={() => setShowPicker(true)}
               className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-heading text-xs font-semibold transition-all active:scale-[0.98]"
-              style={{ background: "var(--color-surface-subtle)", border: "1px dashed var(--color-border)", color: "var(--color-text-secondary)" }}
+              style={{
+                background: "var(--color-surface-subtle)",
+                border: "1px dashed var(--color-border)",
+                color: "var(--color-text-secondary)",
+              }}
             >
               <Plus size={14} aria-hidden="true" />
               Thêm bài tập
@@ -205,7 +214,7 @@ export default function HomePage() {
           <section>
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-heading font-semibold text-sm" style={{ color: "var(--color-text-secondary)" }}>
-                Giáo án tuần
+                Lựa chọn 2: Giáo án tuần
               </h2>
               <button
                 onClick={() => router.push("/plan")}
@@ -219,7 +228,7 @@ export default function HomePage() {
               {state.weeklyPlan.days.map((day, i) => {
                 const dayOfWeek = new Date().getDay()
                 const todayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-                const isToday = i === (todayIndex % state.weeklyPlan!.days.length)
+                const isToday = i === todayIndex % state.weeklyPlan!.days.length
                 return (
                   <button
                     key={i}
@@ -274,9 +283,7 @@ export default function HomePage() {
       )}
 
       <BottomNav />
-      {viewingExercise && (
-        <ExerciseModal exercise={viewingExercise} onClose={() => setViewingExercise(null)} />
-      )}
+      {viewingExercise && <ExerciseModal exercise={viewingExercise} onClose={() => setViewingExercise(null)} />}
       <ExercisePicker
         isOpen={showPicker}
         onClose={() => setShowPicker(false)}
@@ -299,10 +306,21 @@ export default function HomePage() {
         />
       )}
       {exerciseToRemove && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 px-4 pb-5" role="dialog" aria-modal="true" aria-labelledby="remove-exercise-title">
-          <div className="w-full max-w-md rounded-[28px] p-5 animate-slideUp" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 px-4 pb-5"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="remove-exercise-title"
+        >
+          <div
+            className="w-full max-w-md rounded-[28px] p-5 animate-slideUp"
+            style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+          >
             <div className="flex items-center gap-3 mb-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl" style={{ background: "rgba(214,69,69,0.14)" }}>
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl"
+                style={{ background: "rgba(214,69,69,0.14)" }}
+              >
                 <Trash2 size={20} style={{ color: "#D64545" }} aria-hidden="true" />
               </div>
               <h2 id="remove-exercise-title" className="font-display text-2xl font-extrabold">

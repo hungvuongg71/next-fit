@@ -5,3 +5,5 @@ export const STORAGE_KEYS = {
   WEEKLY_PLAN: "nextfit-weekly-plan",
   WORKOUT_SESSION: "nextfit-workout-session",
 } as const
+
+export const BASE_PATH = "/next-fit"

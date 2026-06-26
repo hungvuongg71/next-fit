@@ -52,7 +52,7 @@ export const PREMIUM_ATHLETIC_THEME = {
   // Typography - Font pairings from @fontsource
   typography: {
     fontFamily: {
-      display: '"Syne", system-ui, sans-serif', // Bold, premium feel
+      display: '"Be Vietnam Pro", system-ui, sans-serif', // Bold, premium feel
       body: '"Plus Jakarta Sans", system-ui, sans-serif', // Clean, modern readability
       mono: '"Rubik Mono One", monospace', // Data displays, accent elements
     },
@@ -183,8 +183,8 @@ export const CYBER_ATHLETE_THEME = {
   // Typography - Bold, angular fonts
   typography: {
     fontFamily: {
-      display: '"Space Grotesk", system-ui, sans-serif', // Angular, tech-forward
-      body: '"Space Grotesk", system-ui, sans-serif', // Consistent geometric style
+      display: '"Be Vietnam Pro", system-ui, sans-serif', // Angular, tech-forward
+      body: '"Be Vietnam Pro", system-ui, sans-serif', // Consistent geometric style
       mono: '"Rubik Mono One", monospace', // Perfect for data visualization
     },
 
