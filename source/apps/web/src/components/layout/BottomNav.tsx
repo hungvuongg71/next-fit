@@ -27,7 +27,7 @@ export default function BottomNav() {
       aria-label="Main navigation"
     >
       {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
-        const active = pathname === href
+        const active = pathname === href || pathname === href + "/"
         return (
           <Link
             key={href}

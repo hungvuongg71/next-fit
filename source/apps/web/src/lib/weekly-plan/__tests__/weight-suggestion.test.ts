@@ -2,41 +2,67 @@ import { describe, it, expect } from "vitest"
 import { suggestWeight, classifyExercise, formatWeight } from "../weight-suggestion"
 import type { Exercise } from "@/types"
 
+const DEFAULT_FIELDS = {
+  difficulty_level: "Intermediate",
+  prime_mover_muscle: "",
+  secondary_muscle: "",
+  tertiary_muscle: "",
+  primary_items: 1,
+  secondary_equipment: "",
+  secondary_items: 0,
+  posture: "",
+  single_or_double_arm: "",
+  continuous_or_alternating_arms: "",
+  grip: "",
+  load_position_ending: "",
+  continuous_or_alternating_legs: "",
+  foot_elevation: "",
+  combination_exercises: "",
+  movement_pattern_1: "",
+  movement_pattern_2: "",
+  movement_pattern_3: "",
+  plane_of_motion_1: "",
+  plane_of_motion_2: "",
+  plane_of_motion_3: "",
+  force_type: "",
+  mechanics: "",
+  laterality: "",
+  primary_exercise_classification: "",
+  short_youtube_demonstration: "",
+  in_depth_youtube_explanation: "",
+}
+
 function makeEx(overrides: Partial<Exercise> = {}): Exercise {
   return {
+    ...DEFAULT_FIELDS,
     id: "ex1",
     name: "Test Exercise",
-    muscleGroup: "Chest",
-    equipment: "Barbell",
-    category: "Upper Body",
-    level: "Intermediate",
-    sets: 4,
-    reps: "6-8",
-    restSeconds: 90,
-    description: "Test",
+    target_muscle_group: "Chest",
+    primary_equipment: "Barbell",
+    body_region: "Upper Body",
     ...overrides,
   }
 }
 
 describe("classifyExercise", () => {
   it("classifies barbell chest as upperCompound", () => {
-    expect(classifyExercise(makeEx({ muscleGroup: "Chest", equipment: "Barbell", category: "Upper Body" }))).toBe("upperCompound")
+    expect(classifyExercise(makeEx({ target_muscle_group: "Chest", primary_equipment: "Barbell", body_region: "Upper Body" }))).toBe("upperCompound")
   })
 
   it("classifies barbell quad as lowerCompound", () => {
-    expect(classifyExercise(makeEx({ muscleGroup: "Quadriceps", equipment: "Barbell", category: "Lower Body" }))).toBe("lowerCompound")
+    expect(classifyExercise(makeEx({ target_muscle_group: "Quadriceps", primary_equipment: "Barbell", body_region: "Lower Body" }))).toBe("lowerCompound")
   })
 
   it("classifies bodyweight exercise as accessory", () => {
-    expect(classifyExercise(makeEx({ equipment: "Bodyweight", category: "Upper Body" }))).toBe("accessory")
+    expect(classifyExercise(makeEx({ primary_equipment: "Bodyweight", body_region: "Upper Body" }))).toBe("accessory")
   })
 
   it("classifies cable exercise as accessory", () => {
-    expect(classifyExercise(makeEx({ equipment: "Cable", category: "Upper Body" }))).toBe("accessory")
+    expect(classifyExercise(makeEx({ primary_equipment: "Cable", body_region: "Upper Body" }))).toBe("accessory")
   })
 
   it("classifies dumbbell chest as upperCompound", () => {
-    expect(classifyExercise(makeEx({ equipment: "Dumbbell", category: "Upper Body" }))).toBe("upperCompound")
+    expect(classifyExercise(makeEx({ primary_equipment: "Dumbbell", body_region: "Upper Body" }))).toBe("upperCompound")
   })
 })
 
@@ -59,7 +85,7 @@ describe("suggestWeight", () => {
   })
 
   it("returns undefined for accessory exercises", () => {
-    const result = suggestWeight(makeEx({ equipment: "Cable", category: "Upper Body" }), 80, "Intermediate")
+    const result = suggestWeight(makeEx({ primary_equipment: "Cable", body_region: "Upper Body" }), 80, "Intermediate")
     expect(result).toBeUndefined()
   })
 

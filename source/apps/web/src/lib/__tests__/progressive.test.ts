@@ -52,45 +52,69 @@ describe("suggestWarmup", () => {
   })
 
   it("returns stretches matching target muscles", () => {
-    const result = suggestWarmup(["Legs"])
+    const result = suggestWarmup(["Quadriceps"])
     expect(result.length).toBeGreaterThan(0)
   })
 
   it("returns at most 4 stretches", () => {
-    const result = suggestWarmup(["Chest", "Back", "Legs", "Shoulders", "Arms"])
+    const result = suggestWarmup(["Chest", "Back", "Quadriceps", "Shoulders", "Biceps"])
     expect(result.length).toBeLessThanOrEqual(4)
   })
 
   it("deduplicates matching stretches", () => {
-    const result = suggestWarmup(["Core", "Back"])
+    const result = suggestWarmup(["Abdominals", "Back"])
     const unique = new Set(result.map((w) => w.name_vi))
     expect(unique.size).toBe(result.length)
   })
 })
 
+const BASE_EXERCISE = {
+  prime_mover_muscle: "",
+  secondary_muscle: "",
+  tertiary_muscle: "",
+  primary_items: 1,
+  secondary_equipment: "",
+  secondary_items: 0,
+  posture: "",
+  single_or_double_arm: "",
+  continuous_or_alternating_arms: "",
+  grip: "",
+  load_position_ending: "",
+  continuous_or_alternating_legs: "",
+  foot_elevation: "",
+  combination_exercises: "",
+  movement_pattern_1: "",
+  movement_pattern_2: "",
+  movement_pattern_3: "",
+  plane_of_motion_1: "",
+  plane_of_motion_2: "",
+  plane_of_motion_3: "",
+  body_region: "",
+  force_type: "",
+  mechanics: "",
+  laterality: "",
+  primary_exercise_classification: "",
+  short_youtube_demonstration: "",
+  in_depth_youtube_explanation: "",
+}
+
 describe("suggestWarmupSets", () => {
   const benchPress: Exercise = {
+    ...BASE_EXERCISE,
     id: "bench-1",
     name: "Barbell Bench Press",
-    muscleGroup: "Chest",
-    level: "Intermediate",
-    equipment: "Barbell",
-    sets: 3,
-    reps: "8-12",
-    restSeconds: 60,
-    description: "",
+    target_muscle_group: "Chest",
+    difficulty_level: "Intermediate",
+    primary_equipment: "Barbell",
   }
 
   const pushUp: Exercise = {
+    ...BASE_EXERCISE,
     id: "pushup-1",
     name: "Push Up",
-    muscleGroup: "Chest",
-    level: "Beginner",
-    equipment: "Bodyweight",
-    sets: 3,
-    reps: "10-15",
-    restSeconds: 60,
-    description: "",
+    target_muscle_group: "Chest",
+    difficulty_level: "Beginner",
+    primary_equipment: "Bodyweight",
   }
 
   it("skips bodyweight exercises", () => {
@@ -116,39 +140,30 @@ describe("suggestWarmupSets", () => {
 
 describe("rotateExercise", () => {
   const benchPress: Exercise = {
+    ...BASE_EXERCISE,
     id: "bench-1",
     name: "Barbell Bench Press",
-    muscleGroup: "Chest",
-    level: "Intermediate",
-    equipment: "Barbell",
-    sets: 3,
-    reps: "8-12",
-    restSeconds: 60,
-    description: "",
+    target_muscle_group: "Chest",
+    difficulty_level: "Intermediate",
+    primary_equipment: "Barbell",
   }
 
   const inclinePress: Exercise = {
+    ...BASE_EXERCISE,
     id: "incline-1",
     name: "Incline Barbell Press",
-    muscleGroup: "Chest",
-    level: "Intermediate",
-    equipment: "Barbell",
-    sets: 3,
-    reps: "8-12",
-    restSeconds: 60,
-    description: "",
+    target_muscle_group: "Chest",
+    difficulty_level: "Intermediate",
+    primary_equipment: "Barbell",
   }
 
   const pushUp: Exercise = {
+    ...BASE_EXERCISE,
     id: "pushup-1",
     name: "Push Up",
-    muscleGroup: "Chest",
-    level: "Beginner",
-    equipment: "Bodyweight",
-    sets: 3,
-    reps: "10-15",
-    restSeconds: 60,
-    description: "",
+    target_muscle_group: "Chest",
+    difficulty_level: "Beginner",
+    primary_equipment: "Bodyweight",
   }
 
   const allExercises = [benchPress, inclinePress, pushUp]
@@ -161,14 +176,14 @@ describe("rotateExercise", () => {
   it("returns variant with same equipment if available", () => {
     const recentIds = new Set(["bench-1"])
     const result = rotateExercise(benchPress, allExercises, recentIds)
-    expect(result.equipment).toBe("Barbell")
-    expect(result.muscleGroup).toBe("Chest")
+    expect(result.primary_equipment).toBe("Barbell")
+    expect(result.target_muscle_group).toBe("Chest")
   })
 
   it("falls back to same muscle group variant", () => {
     const recentIds = new Set(["bench-1", "incline-1"])
     const result = rotateExercise(benchPress, allExercises, recentIds)
-    expect(result.muscleGroup).toBe("Chest")
+    expect(result.target_muscle_group).toBe("Chest")
   })
 
   it("returns original if no variants available", () => {

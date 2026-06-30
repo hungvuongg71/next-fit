@@ -10,6 +10,7 @@ import { useApp } from "@/state/context"
 import ExerciseThumbnail from "@/components/ui/ExerciseThumbnail"
 import { Exercise, ExerciseLogEntry, ExerciseProgress, MuscleGroup, WorkoutSet } from "@/types"
 import { STORAGE_KEYS } from "@/constants/storage"
+import { DEFAULT_SETS, DEFAULT_REST_SECONDS } from "@/lib/data"
 import { suggestNextWeight, getLogsForExercise } from "@/lib/progressive"
 import WarmupSection from "@/components/ui/WarmupSection"
 import ProgressChart from "@/components/ui/ProgressChart"
@@ -22,7 +23,7 @@ function formatElapsed(seconds: number) {
 }
 
 function buildWarmupWeight(exercise: Exercise, logs: Record<string, ExerciseLogEntry[]>): number | null {
-  if (exercise.equipment === "Bodyweight") return null
+  if (exercise.primary_equipment === "Bodyweight") return null
   const exLogs = getLogsForExercise(logs, exercise.id)
   if (exLogs.length > 0) {
     return Math.max(5, +(suggestNextWeight(exLogs).weight * 0.5).toFixed(1))
@@ -42,7 +43,7 @@ function buildProgress(exercises: Exercise[], logs: Record<string, ExerciseLogEn
       completed: false,
       sets: [
         ...warmup,
-        ...Array.from({ length: exercise.sets }, (): WorkoutSet => ({ reps: null, weight: null, completed: false })),
+        ...Array.from({ length: DEFAULT_SETS }, (): WorkoutSet => ({ reps: null, weight: null, completed: false })),
       ],
     }
   })
@@ -59,7 +60,7 @@ export default function WorkoutPage() {
   const [replaceTarget, setReplaceTarget] = useState<Exercise | null>(null)
   const [exerciseToRemove, setExerciseToRemove] = useState<Exercise | null>(null)
   const replaceModeProp = useMemo(
-    () => (replaceTarget ? { exerciseId: replaceTarget.id, muscleGroup: replaceTarget.muscleGroup } : undefined),
+    () => (replaceTarget ? { exerciseId: replaceTarget.id, muscleGroup: replaceTarget.target_muscle_group } : undefined),
     [replaceTarget],
   )
   const [showCompleted, setShowCompleted] = useState(false)
@@ -86,7 +87,7 @@ export default function WorkoutPage() {
   const progress = useMemo(() => {
     if (state.exerciseProgress.length) {
       return state.exerciseProgress.map((item) => {
-        if (item.exercise.equipment === "Bodyweight") return item
+        if (item.exercise.primary_equipment === "Bodyweight") return item
         if (item.sets[0]?.isWarmup) return item
         const warmupWeight = buildWarmupWeight(item.exercise, exerciseLogs)
         return {
@@ -236,7 +237,7 @@ export default function WorkoutPage() {
       active: true,
       exerciseName: exercise.name,
       setNumber: setIndex + 1,
-      restSeconds: exercise.restSeconds,
+      restSeconds: DEFAULT_REST_SECONDS,
       startedAt: Date.now(),
     })
   }
@@ -244,7 +245,7 @@ export default function WorkoutPage() {
   const saveExerciseLogs = () => {
     const newLogs = { ...exerciseLogs }
     for (const item of progress) {
-      const isBw = item.exercise.equipment === "Bodyweight"
+      const isBw = item.exercise.primary_equipment === "Bodyweight"
       const completedSets = item.sets.filter((s) => s.completed && s.reps !== null && (isBw || s.weight !== null))
       if (completedSets.length === 0) continue
       const best = completedSets.reduce((max, s) =>
@@ -453,11 +454,11 @@ export default function WorkoutPage() {
 
       <main className="mx-auto grid w-full max-w-4xl gap-4 px-4 pb-36 pt-4">
         <WarmupSection
-          targetMuscles={state.todayExercises.map((ex) => ex.muscleGroup as MuscleGroup)}
+          targetMuscles={state.todayExercises.map((ex) => ex.target_muscle_group as MuscleGroup)}
         />
         {progress.map((item, exerciseIndex) => {
           const exerciseCompleted = workingSetsOf(item.sets).every((set) => set.completed)
-          const isBodyweight = item.exercise.equipment === "Bodyweight"
+          const isBodyweight = item.exercise.primary_equipment === "Bodyweight"
           const warmupCount = item.sets.filter((s) => s.isWarmup).length
           return (
             <section
@@ -485,7 +486,7 @@ export default function WorkoutPage() {
                     <div className="min-w-0">
                       <h2 className="font-heading text-sm font-semibold leading-tight">{item.exercise.name}</h2>
                       <p className="mt-1 font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                        {item.exercise.equipment} · {item.exercise.muscleGroup_vi ?? item.exercise.muscleGroup} · {item.exercise.restSeconds}s nghỉ
+                        {item.exercise.primary_equipment} · {item.exercise.target_muscle_group} · {DEFAULT_REST_SECONDS}s nghỉ
                       </p>
                       {lastPerf[item.exercise.id] && (
                         <p className="mt-1.5 font-number text-[11px]" style={{ color: "var(--color-primary)" }}>
@@ -612,7 +613,7 @@ export default function WorkoutPage() {
                         />
                       )}
                       <span className="text-center font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                        {item.exercise.restSeconds}s
+                        {DEFAULT_REST_SECONDS}s
                       </span>
                       {!isBodyweight && !set.isWarmup && item.sets.length > 1 && (
                         <button

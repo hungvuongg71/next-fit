@@ -36,6 +36,7 @@ const ACCESSORY_FACTOR: Record<Level, [number, number]> = {
 const FEMALE_UPPER_MULTIPLIER = 0.7
 
 const COMPOUND_UPPER_MUSCLES = new Set([
+  "Back",
   "Chest",
   "Shoulders",
   "Triceps",
@@ -54,15 +55,15 @@ const COMPOUND_LOWER_MUSCLES = new Set([
 const BARBELL_DUMBBELL = new Set(["Barbell", "Dumbbell", "Trap Bar"])
 
 export function classifyExercise(exercise: Exercise): "upperCompound" | "lowerCompound" | "accessory" {
-  const isPrimaryCompound = BARBELL_DUMBBELL.has(exercise.equipment) &&
-    ["Full Body", "Upper Body", "Lower Body"].includes(exercise.category ?? "")
+  const isPrimaryCompound = BARBELL_DUMBBELL.has(exercise.primary_equipment) &&
+    ["Full Body", "Upper Body", "Lower Body"].includes(exercise.body_region ?? "")
 
   if (!isPrimaryCompound) return "accessory"
 
-  if (COMPOUND_UPPER_MUSCLES.has(exercise.muscleGroup)) return "upperCompound"
-  if (COMPOUND_LOWER_MUSCLES.has(exercise.muscleGroup)) return "lowerCompound"
+  if (COMPOUND_UPPER_MUSCLES.has(exercise.target_muscle_group)) return "upperCompound"
+  if (COMPOUND_LOWER_MUSCLES.has(exercise.target_muscle_group)) return "lowerCompound"
 
-  if (exercise.category === "Full Body") return "lowerCompound"
+  if (exercise.body_region === "Full Body") return "lowerCompound"
 
   return "accessory"
 }

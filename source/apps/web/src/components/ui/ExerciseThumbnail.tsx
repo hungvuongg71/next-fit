@@ -21,15 +21,14 @@ interface ExerciseThumbnailProps {
 export default function ExerciseThumbnail({ exercise, className, style, onError }: ExerciseThumbnailProps) {
   const urls = useMemo(() => {
     const list: string[] = []
-    if (exercise.image) list.push(exercise.image)
-    const vThumb = getYouTubeThumbnailUrl(exercise.video)
+    const vThumb = getYouTubeThumbnailUrl(exercise.in_depth_youtube_explanation)
     if (vThumb) list.push(vThumb)
-    const gThumb = getYouTubeThumbnailUrl(exercise.exerciseDbGif)
-    if (gThumb) list.push(gThumb)
+    const sThumb = getYouTubeThumbnailUrl(exercise.short_youtube_demonstration)
+    if (sThumb) list.push(sThumb)
     if (vThumb) list.push(vThumb.replace("hqdefault", "default"))
-    if (gThumb) list.push(gThumb.replace("hqdefault", "default"))
-    if (exercise.video) list.push(exercise.video)
-    if (exercise.exerciseDbGif) list.push(exercise.exerciseDbGif)
+    if (sThumb) list.push(sThumb.replace("hqdefault", "default"))
+    if (exercise.in_depth_youtube_explanation) list.push(exercise.in_depth_youtube_explanation)
+    if (exercise.short_youtube_demonstration) list.push(exercise.short_youtube_demonstration)
     return list
   }, [exercise])
 

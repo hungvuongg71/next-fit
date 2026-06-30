@@ -6,7 +6,7 @@ const fullCriteria: UserCriteria = {
   gender: "Nam",
   level: "Intermediate",
   goal: "Hypertrophy",
-  muscleGroups: ["Chest", "Back", "Legs", "Shoulders", "Arms", "Core"],
+  muscleGroups: ["Chest", "Back", "Quadriceps", "Shoulders", "Biceps", "Abdominals"],
   duration: "45 min",
   equipment: ["Barbell", "Dumbbell", "Bodyweight"],
   frequency: "4 ngày",

@@ -1,14 +1,5 @@
-import { Exercise, MuscleGroup, Level, Goal, Gender } from "@/types"
-
-export const MUSCLE_GROUP_MAP: Record<MuscleGroup, string[]> = {
-  Chest: ["Chest"],
-  Back: ["Back"],
-  Legs: ["Quadriceps", "Hamstrings", "Glutes", "Calves", "Adductors", "Abductors", "Hip Flexors", "Shins"],
-  Shoulders: ["Shoulders", "Trapezius"],
-  Arms: ["Biceps", "Triceps", "Forearms"],
-  Core: ["Abdominals"],
-  Cardio: ["Cardio"],
-}
+import { Exercise, Level, Goal, Gender } from "@/types"
+import { DEFAULT_REPS } from "@/lib/data"
 
 const UPPER_BODY_GROUPS = new Set([
   "Chest", "Shoulders", "Back", "Biceps", "Triceps", "Forearms", "Trapezius",
@@ -16,6 +7,7 @@ const UPPER_BODY_GROUPS = new Set([
 
 const LOWER_BODY_GROUPS = new Set([
   "Quadriceps", "Hamstrings", "Glutes", "Calves", "Adductors", "Abductors",
+  "Hip Flexors", "Shins",
 ])
 
 const LEVEL_ORDER: Record<string, number> = {
@@ -61,15 +53,15 @@ export function parseAvgReps(reps: string): number | null {
 }
 
 export function compoundScore(ex: Exercise, gender?: string): number {
-  const cat = CATEGORY_COMPOUND_SCORE[ex.category ?? ""] ?? 0.4
-  const secondaryBonus = ex.musclesSecondary?.length ? 0.1 : 0
-  const equipmentBonus = ["Barbell", "Trap Bar"].includes(ex.equipment) ? 0.05 : 0
+  const cat = CATEGORY_COMPOUND_SCORE[ex.body_region ?? ""] ?? 0.4
+  const secondaryBonus = ex.secondary_muscle ? 0.1 : 0
+  const equipmentBonus = ["Barbell", "Trap Bar"].includes(ex.primary_equipment) ? 0.05 : 0
 
   let genderBonus = 0
-  if (gender === "Nam" && cat >= 0.5 && UPPER_BODY_GROUPS.has(ex.muscleGroup)) {
+  if (gender === "Nam" && cat >= 0.5 && UPPER_BODY_GROUPS.has(ex.target_muscle_group)) {
     genderBonus = 0.1
   }
-  if (gender === "Nữ" && cat >= 0.5 && LOWER_BODY_GROUPS.has(ex.muscleGroup)) {
+  if (gender === "Nữ" && cat >= 0.5 && LOWER_BODY_GROUPS.has(ex.target_muscle_group)) {
     genderBonus = 0.1
   }
 
@@ -108,8 +100,8 @@ export function repScore(
 
 export function goalScore(ex: Exercise, goal: Goal, gender?: string): number {
   const compound = compoundScore(ex, gender)
-  const avgReps = parseAvgReps(ex.reps)
-  const rep = avgReps !== null ? repScore(avgReps, goal, gender, ex.muscleGroup) : 0.5
+  const avgReps = parseAvgReps(DEFAULT_REPS)
+  const rep = avgReps !== null ? repScore(avgReps, goal, gender, ex.target_muscle_group) : 0.5
 
   switch (goal) {
     case "Strength":
@@ -123,7 +115,7 @@ export function goalScore(ex: Exercise, goal: Goal, gender?: string): number {
 
 export function fatiguePenalty(ex: Exercise, fatiguedMuscles: Set<string>): number {
   if (fatiguedMuscles.size === 0) return 0
-  const allMuscles = [...(ex.muscles ?? []), ...(ex.musclesSecondary ?? [])]
+  const allMuscles = [ex.prime_mover_muscle, ex.secondary_muscle].filter(Boolean)
   const overlap = allMuscles.filter((m) => fatiguedMuscles.has(m)).length
   return overlap * 0.15
 }

@@ -1,95 +1,105 @@
-# Spec: Thay thế bài tập trong Workout
+# Spec: Ưu tiên bài tập Barbell/Dumbbell trong gợi ý
 
 ## Objective
 
-Cho phép user thay thế bài tập không phù hợp trong lúc workout bằng cách bấm nút Replace → mở ExercisePicker (lọc cùng nhóm cơ) → chọn 1 bài → replace bài cũ. Progress của bài cũ bị reset.
+Hiện tại `suggestExercises()` lọc cứng theo equipment (chỉ lấy bài tập matching equipment). Sửa thành **ưu tiên Barbell/Dumbbell lên đầu**, nếu không đủ thì bổ sung từ các thiết bị khác trong profile.
+
+**Ví dụ:** User có equipment `["Barbell", "Dumbbell", "Cable", "Kettlebell"]`, chọn Chest, count=6:
+1. Lấy tất cả Chest + Barbell/Dumbbell → shuffle → lấy tối đa 6
+2. Nếu chưa đủ 6, bổ sung từ Chest + các equipment còn lại (Cable, Kettlebell) → shuffle → fill cho đủ 6
 
 ## Tech Stack
 
-- Next.js 16, React 19, TypeScript 5, Tailwind CSS 4
-- lucide-react icons
-- State: React Context + localStorage
+Next.js 16 + React 19 + TypeScript 5 + Vitest 4 (không đổi)
 
 ## Commands
 
 ```
-Build: npm run build
-Dev:   npm run dev
-Test:  npm run test
-Lint:  npm run lint
+Test: pnpm --filter=nextfit vitest run
+Lint: pnpm --filter=nextfit lint
 ```
 
-## Project Structure (files ảnh hưởng)
+## Project Structure
 
 ```
-src/components/ui/ExercisePicker.tsx    → Thêm replaceMode prop (single select, title, pre-filter)
-src/state/context.tsx                   → replaceExercise cập nhật cả exerciseProgress
-src/app/workout/page.tsx                → Thêm nút Replace trong exercise card header
+src/lib/suggestions.ts                → [EDIT] Logic ưu tiên
+src/lib/__tests__/suggestions.test.ts → [EDIT] Sửa/sửa test cho phù hợp
 ```
 
-## Data Flow
+Chỉ 2 files.
 
-```
-[ Nút Replace ] → open ExercisePicker (replaceMode, muscleGroup=current)
-  → user chọn 1 bài → bấm "Thay thế"
-  → onReplace(exerciseId, newExercise) được gọi
-  → context.replaceExercise updates todayExercises + exerciseProgress
-  → component re-render với bài mới, progress reset
-```
-
-## UI Changes
-
-### Workout Page — Nút Replace
-```
-[Exercise Card Header]
-┌──────────────────────────────────────────┐
-│ [img]  Tên bài                    3/4   │
-│        Dumbbell · Ngực · 90s nghỉ       │
-│        Lần trước: 10 reps × 40kg        │
-│        [Thay thế]                        │  ← nút mới
-└──────────────────────────────────────────┘
-```
-
-- Nút "Thay thế" ở cuối phần thông tin exercise, trước phần sets
-- Chỉ hiển thị khi exercise chưa hoàn thành (không phải tất cả sets đã check)
-- Icon: `RefreshCw` hoặc `Shuffle` size 12
-- Style: text-xs, primary color, rounded-xl
-
-### ExercisePicker — Replace Mode
-
-Khi mở từ workout với `replaceMode`:
-- Title: "Thay thế bài tập" (thay vì "Thêm bài tập")
-- Pre-select: muscle group của bài đang replace (không show equipment filter)
-- Single select: chỉ chọn được 1 bài (checkbox → radio behavior)
-- Submit button: "Thay thế" (thay vì "Thêm N bài tập"), disable khi chưa chọn
-- Sau khi chọn + submit → gọi `onReplace` → đóng picker
-
-### Context — replaceExercise
+## Code Style
 
 ```typescript
-replaceExercise(id: string, newEx: Exercise)
+export function suggestExercises(
+  muscleGroups: MuscleGroup[],
+  equipment: string[] = DEFAULT_EQUIPMENT,
+  count = 6,
+): Exercise[] {
+  if (muscleGroups.length === 0) return []
+  const targets = new Set(muscleGroups)
+  const equipSet = new Set(equipment.length > 0 ? equipment : DEFAULT_EQUIPMENT)
+
+  const pool = MOCK_EXERCISES.filter((ex) =>
+    targets.has(ex.target_muscle_group as MuscleGroup) && equipSet.has(ex.primary_equipment),
+  )
+
+  const priority = ["Barbell", "Dumbbell"]
+  const priorityExercises = pool.filter((ex) => priority.includes(ex.primary_equipment))
+  const otherExercises = pool.filter((ex) => !priority.includes(ex.primary_equipment))
+
+  const shuffledPriority = shuffle(priorityExercises)
+  const shuffledOther = shuffle(otherExercises)
+
+  const result: Exercise[] = []
+  for (const ex of shuffledPriority) {
+    if (result.length >= count) break
+    result.push(ex)
+  }
+  for (const ex of shuffledOther) {
+    if (result.length >= count) break
+    result.push(ex)
+  }
+  return result
+}
 ```
-- `todayExercises`: replace exercise by id
-- `exerciseProgress`: replace exercise progress (reset sets theo exercise mới)
-- Không đổi: workoutStarted, workoutCompleted, v.v.
 
-## OnConfirm (workout page)
+Giữ nguyên shuffle giữa các bài trong cùng nhóm ưu tiên.
 
-Khi ExercisePicker submit với replaceMode:
-1. `replaceExercise(exerciseId, newExercise)` — updates context
-2. Reset local UI (nếu exercise đang được chọn/selectedExercise)
-3. Đóng picker
+## Testing Strategy
 
-## Acceptance Criteria
+Giữ vitest. Cập nhật/sửa test:
 
-1. Nút "Thay thế" hiển thị trên mỗi exercise card (trừ khi đã hoàn thành)
-2. Bấm → ExercisePicker mở với muscle group của bài đang replace
-3. ExercisePicker ở chế độ single select, title "Thay thế bài tập"
-4. Chọn 1 bài → bấm "Thay thế" → bài cũ bị thay, progress reset
-5. Build + 105 tests pass
+| Test | Mô tả |
+|------|-------|
+| `trả về Barbell/Dumbbell trước` | Khi có cả Barbell và Dumbbell trong pool, chúng xuất hiện trước các equipment khác |
+| `bổ sung từ equipment khác nếu thiếu` | Filter sao cho chỉ có 1 bài Barbell, count=3 → 1 Barbell + 2 từ equipment khác |
+| `chỉ Barbell/Dumbbell nếu đủ` | Filter sao cho có >=6 bài Barbell/Dumbbell → kết quả toàn Barbell/Dumbbell |
+| `default equipment fallback` | equipment = [] → dùng default (vẫn ưu tiên Barbell/Dumbbell) |
+| `không có Barbell/Dumbbell` | Equipment list không có Barbell/Dumbbell → lấy từ equipment khác |
+| `empty muscle groups → []` | Giữ nguyên |
 
 ## Boundaries
 
-- **Luôn làm:** Filter cùng muscle group; single select; reset progress khi replace
-- **Hỏi trước:** Replace bài đã hoàn thành (hiện tại không cho); multi-replace; replace ảnh hưởng tới session save
-- **Không làm:** Thay đổi `Exercise` data type; sửa `onAdd` behavior cho non-replace mode
+**Always do:**
+- Barbell/Dumbbell luôn đứng trước trong result array
+- Shuffle trong cùng nhóm ưu tiên
+- Giữ nguyên default equipment fallback
+
+**Ask first:**
+- Thêm equipment khác vào priority list (ví dụ: Cable)
+- Thay đổi thứ tự ưu tiên
+
+**Never do:**
+- Thay đổi weekly plan / session-builder logic
+- Thêm dependencies
+
+## Success Criteria
+
+1. `suggestExercises(["Chest"], ["Barbell", "Dumbbell", "Cable"], 6)` → các bài Barbell/Dumbbell đứng trước Cable
+2. `suggestExercises(["Chest"], ["Barbell", "Cable"], 3)` với 1 bài Barbell → result[0] là Barbell, result[1..2] là Cable
+3. All existing tests pass (đã update)
+
+## Open Questions
+
+Không có.

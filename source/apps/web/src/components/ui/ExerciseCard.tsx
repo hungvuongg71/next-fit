@@ -73,10 +73,7 @@ const ExerciseCard = memo(function ExerciseCard({
           {exercise.name}
         </p>
         <p className="font-body text-xs mb-1.5" style={{ color: "var(--color-text-secondary)" }}>
-          {exercise.muscleGroup_vi ?? exercise.muscleGroup} · {exercise.level_vi ?? exercise.level}
-        </p>
-        <p className="font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
-          {exercise.sets} Sets · {exercise.reps} Reps · {exercise.restSeconds}s Rest
+          {exercise.target_muscle_group} · {exercise.difficulty_level}
         </p>
       </div>
 

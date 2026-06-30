@@ -51,6 +51,16 @@ function StatsContent() {
     [state.workoutHistory, selectedId],
   )
 
+  const summary = useMemo(() => {
+    const history = state.workoutHistory
+    const totalWorkouts = history.length
+    const totalSets = history.reduce((sum, entry) => sum + entry.completedSets, 0)
+    const totalVolume = history.reduce((sum, entry) => sum + entry.totalVolume, 0)
+    const totalSeconds = history.reduce((sum, entry) => sum + entry.durationSeconds, 0)
+    const maxSets = Math.max(1, ...history.slice(0, 7).map((entry) => entry.completedSets))
+    return { totalWorkouts, totalSets, totalVolume, totalSeconds, maxSets }
+  }, [state.workoutHistory])
+
   if (entry) {
     return (
       <div className="min-h-dvh" style={{ background: "var(--color-bg)", color: "var(--color-text)" }}>
@@ -107,7 +117,7 @@ function StatsContent() {
             <section className="mt-5 grid gap-4">
               {entry.exerciseDetails.map((detail, exerciseIndex) => {
                 const warmupCount = detail.sets.filter((s) => s.isWarmup).length
-                const isBodyweight = detail.exercise.equipment === "Bodyweight"
+                const isBodyweight = detail.exercise.primary_equipment === "Bodyweight"
                 return (
                   <div
                     key={`${detail.exercise.id}-${exerciseIndex}`}
@@ -118,7 +128,7 @@ function StatsContent() {
                       <div>
                         <h2 className="font-heading text-sm font-semibold">{detail.exercise.name}</h2>
                         <p className="mt-1 font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                          {detail.exercise.equipment} · {detail.exercise.muscleGroup_vi ?? detail.exercise.muscleGroup}
+                          {detail.exercise.primary_equipment} · {detail.exercise.target_muscle_group}
                         </p>
                       </div>
                       <span
@@ -200,16 +210,6 @@ function StatsContent() {
       </div>
     )
   }
-
-  const summary = useMemo(() => {
-    const history = state.workoutHistory
-    const totalWorkouts = history.length
-    const totalSets = history.reduce((sum, entry) => sum + entry.completedSets, 0)
-    const totalVolume = history.reduce((sum, entry) => sum + entry.totalVolume, 0)
-    const totalSeconds = history.reduce((sum, entry) => sum + entry.durationSeconds, 0)
-    const maxSets = Math.max(1, ...history.slice(0, 7).map((entry) => entry.completedSets))
-    return { totalWorkouts, totalSets, totalVolume, totalSeconds, maxSets }
-  }, [state.workoutHistory])
 
   return (
     <div className="min-h-dvh" style={{ background: "var(--color-bg)", color: "var(--color-text)" }}>

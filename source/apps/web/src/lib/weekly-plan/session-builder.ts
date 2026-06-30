@@ -1,23 +1,13 @@
-import type { Exercise, Level, Goal, Gender, MuscleGroup } from "@/types"
+import type { Exercise, Level, Goal, Gender } from "@/types"
 import type { SessionBuilderInput, PlannedExercise, ExerciseRole } from "./types"
 import { MOCK_EXERCISES } from "@/lib/data"
-import { matchesLevel, compoundScore, parseAvgReps, MUSCLE_GROUP_MAP } from "@/lib/split"
+import { matchesLevel, compoundScore, parseAvgReps } from "@/lib/split"
 import { computeSets, computeReps, computeRest } from "./volume-manager"
 import { suggestWeight } from "./weight-suggestion"
 
-function resolveDetailed(broadGroups: string[]): Set<string> {
-  const result = new Set<string>()
-  for (const bg of broadGroups) {
-    const mapped = MUSCLE_GROUP_MAP[bg as MuscleGroup]
-    if (mapped) mapped.forEach((m: string) => result.add(m))
-  }
-  return result
-}
-
 function equipmentMatches(ex: Exercise, userEquipment: string[]): boolean {
   if (userEquipment.length === 0) return true
-  if (userEquipment.includes(ex.equipment)) return true
-  if (ex.equipmentList?.some((eq) => userEquipment.includes(eq))) return true
+  if (userEquipment.includes(ex.primary_equipment)) return true
   return false
 }
 
@@ -25,12 +15,9 @@ const MAIN_LIFT_EQUIPMENT = new Set(["Barbell", "Dumbbell", "Trap Bar"])
 
 function mainLiftScore(ex: Exercise): number {
   const base = compoundScore(ex)
-  const secondaryBonus = ex.musclesSecondary?.length ? 0.15 : 0
-  const equipBonus = MAIN_LIFT_EQUIPMENT.has(ex.equipment) ? 0.1 : 0
-  const setsBonus = (ex.sets ?? 3) >= 4 ? 0.1 : 0
-  const avgReps = parseAvgReps(ex.reps)
-  const repBonus = avgReps !== null && avgReps <= 8 ? 0.05 : 0
-  return base + secondaryBonus + equipBonus + setsBonus + repBonus
+  const secondaryBonus = ex.secondary_muscle ? 0.15 : 0
+  const equipBonus = MAIN_LIFT_EQUIPMENT.has(ex.primary_equipment) ? 0.1 : 0
+  return base + secondaryBonus + equipBonus
 }
 
 function scoreByRole(ex: Exercise, role: ExerciseRole): number {
@@ -73,12 +60,12 @@ export function buildDaySession(input: SessionBuilderInput): PlannedExercise[] {
     bodyWeight,
   } = input
 
-  const detailedGroups = resolveDetailed(targetMuscleGroups)
+  const detailedGroups = new Set(targetMuscleGroups)
 
   const candidates = MOCK_EXERCISES.filter((ex) => {
-    if (!detailedGroups.has(ex.muscleGroup)) return false
+    if (!detailedGroups.has(ex.target_muscle_group)) return false
     if (!equipmentMatches(ex, equipment)) return false
-    if (!matchesLevel(ex.level, level)) return false
+    if (!matchesLevel(ex.difficulty_level, level)) return false
     return true
   })
 

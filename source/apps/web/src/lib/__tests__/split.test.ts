@@ -13,16 +13,36 @@ function makeExercise(overrides: Partial<Exercise> = {}): Exercise {
   return {
     id: "test-1",
     name: "Test Exercise",
-    muscleGroup: "Chest",
-    level: "Intermediate",
-    equipment: "Dumbbell",
-    sets: 3,
-    reps: "8-12",
-    restSeconds: 60,
-    description: "A test exercise",
-    category: "Upper Body",
-    muscles: ["Pectoralis Major"],
-    musclesSecondary: ["Triceps", "Front Delts"],
+    target_muscle_group: "Chest",
+    difficulty_level: "Intermediate",
+    primary_equipment: "Dumbbell",
+    body_region: "Upper Body",
+    prime_mover_muscle: "Pectoralis Major",
+    secondary_muscle: "Triceps",
+    tertiary_muscle: "",
+    primary_items: 1,
+    secondary_equipment: "",
+    secondary_items: 0,
+    posture: "",
+    single_or_double_arm: "",
+    continuous_or_alternating_arms: "",
+    grip: "",
+    load_position_ending: "",
+    continuous_or_alternating_legs: "",
+    foot_elevation: "",
+    combination_exercises: "",
+    movement_pattern_1: "",
+    movement_pattern_2: "",
+    movement_pattern_3: "",
+    plane_of_motion_1: "",
+    plane_of_motion_2: "",
+    plane_of_motion_3: "",
+    force_type: "",
+    mechanics: "",
+    laterality: "",
+    primary_exercise_classification: "",
+    short_youtube_demonstration: "",
+    in_depth_youtube_explanation: "",
     ...overrides,
   }
 }
@@ -62,18 +82,18 @@ describe("matchesLevel", () => {
 
 describe("compoundScore", () => {
   it("gives full body exercises highest score", () => {
-    const ex = makeExercise({ category: "Full Body" })
-    expect(compoundScore(ex)).toBeGreaterThan(compoundScore(makeExercise({ category: "Core" })))
+    const ex = makeExercise({ body_region: "Full Body" })
+    expect(compoundScore(ex)).toBeGreaterThan(compoundScore(makeExercise({ body_region: "Core" })))
   })
 
   it("gives barbell exercises small equipment bonus", () => {
-    const barbell = makeExercise({ category: "Upper Body", equipment: "Barbell" })
-    const dumbbell = makeExercise({ category: "Upper Body", equipment: "Dumbbell" })
+    const barbell = makeExercise({ body_region: "Upper Body", primary_equipment: "Barbell" })
+    const dumbbell = makeExercise({ body_region: "Upper Body", primary_equipment: "Dumbbell" })
     expect(compoundScore(barbell)).toBeGreaterThan(compoundScore(dumbbell))
   })
 
   it("caps score at 1.0", () => {
-    const ex = makeExercise({ category: "Full Body", musclesSecondary: ["M1", "M2", "M3"], equipment: "Barbell" })
+    const ex = makeExercise({ body_region: "Full Body", secondary_muscle: "M1", primary_equipment: "Barbell" })
     expect(compoundScore(ex, "Nam")).toBeLessThanOrEqual(1)
   })
 })
@@ -109,7 +129,7 @@ describe("fatiguePenalty", () => {
   })
 
   it("increases penalty with muscle overlap", () => {
-    const ex = makeExercise({ muscles: ["Pectoralis Major"], musclesSecondary: ["Triceps", "Front Delts"] })
+    const ex = makeExercise({ prime_mover_muscle: "Pectoralis Major", secondary_muscle: "Triceps" })
     const overlap = fatiguePenalty(ex, new Set(["Triceps"]))
     const noOverlap = fatiguePenalty(ex, new Set(["Hamstrings"]))
     expect(overlap).toBeGreaterThan(noOverlap)
