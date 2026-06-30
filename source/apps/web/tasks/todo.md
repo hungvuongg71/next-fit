@@ -1,6 +1,6 @@
-# Todo
+# Todo: Fix Stats Page React Hooks Error
 
-- [ ] Task 1: suggestExercises utility
-- [ ] Task 2: MuscleGroupSelector component
-- [ ] Task 3: Rewrite homepage
-- [ ] Task 4: Cleanup, build + test
+- [x] Task 1: Move `summary` useMemo before the early return in StatsContent
+- [x] Verify: `pnpm vitest run` passes
+- [ ] Verify: Manual — list view renders
+- [ ] Verify: Manual — click workout → detail view renders without crash

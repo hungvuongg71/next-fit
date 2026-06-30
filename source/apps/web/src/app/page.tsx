@@ -48,7 +48,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (selectedMuscles.length > 0) {
-      const exercises = suggestExercises(selectedMuscles, 6)
+      const exercises = suggestExercises(selectedMuscles, state.criteria?.equipment, 6)
       setSuggestedExercises(exercises)
       setSavedSuggestions(exercises)
     } else {
@@ -58,14 +58,7 @@ export default function HomePage() {
   }, [selectedMuscles])
 
   const handleConfirmPlanDay = (day: DayPlan) => {
-    setTodayExercises(
-      day.exercises.map((e) => ({
-        ...e,
-        sets: e.plannedSets,
-        reps: e.plannedReps,
-        restSeconds: e.plannedRestSeconds,
-      })),
-    )
+    setTodayExercises(day.exercises)
     setSelectedPlanDay(null)
     startWorkout()
     router.push("/workout")
@@ -164,14 +157,13 @@ export default function HomePage() {
                       {ex.name}
                     </p>
                     <p className="font-body text-[11px] mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
-                      {ex.equipment} · {ex.muscleGroup_vi ?? ex.muscleGroup}
+                      {ex.primary_equipment} · {ex.target_muscle_group}
                     </p>
                   </div>
                   <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                     <button
                       type="button"
                       onClick={() => {
-                        const group = ex.muscleGroup as MuscleGroup
                         setSelectedReplaceIndex(i)
                       }}
                       aria-label="Thay thế bài tập"
@@ -297,7 +289,7 @@ export default function HomePage() {
           onAdd={() => {}}
           replaceMode={{
             exerciseId: suggestedExercises[selectedReplaceIndex].id,
-            muscleGroup: suggestedExercises[selectedReplaceIndex].muscleGroup,
+            muscleGroup: suggestedExercises[selectedReplaceIndex].target_muscle_group,
           }}
           onReplace={(_, newEx) => {
             handleReplaceExercise(selectedReplaceIndex, newEx)

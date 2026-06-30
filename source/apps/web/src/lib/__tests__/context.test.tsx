@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest"
 import { renderHook, act } from "@testing-library/react"
 import { AppProvider, useApp } from "@/state/context"
-import type { Exercise, ReactNode } from "react"
+import type { ReactNode } from "react"
+import type { Exercise } from "@/types"
 
 function wrapper({ children }: { children: ReactNode }) {
   return <AppProvider>{children}</AppProvider>
@@ -15,15 +16,36 @@ function makeExercise(id = "test-1"): Exercise {
   return {
     id,
     name: "Test Exercise",
-    name_vi: "Bài tập kiểm tra",
-    muscleGroup: "Chest",
-    muscleGroup_vi: "Ngực",
-    level: "Intermediate",
-    equipment: "Dumbbell",
-    sets: 3,
-    reps: "8-12",
-    restSeconds: 60,
-    description: "A test exercise",
+    difficulty_level: "Intermediate",
+    target_muscle_group: "Chest",
+    prime_mover_muscle: "",
+    secondary_muscle: "",
+    tertiary_muscle: "",
+    primary_equipment: "Dumbbell",
+    primary_items: 1,
+    secondary_equipment: "",
+    secondary_items: 0,
+    posture: "",
+    single_or_double_arm: "",
+    continuous_or_alternating_arms: "",
+    grip: "",
+    load_position_ending: "",
+    continuous_or_alternating_legs: "",
+    foot_elevation: "",
+    combination_exercises: "",
+    movement_pattern_1: "",
+    movement_pattern_2: "",
+    movement_pattern_3: "",
+    plane_of_motion_1: "",
+    plane_of_motion_2: "",
+    plane_of_motion_3: "",
+    body_region: "",
+    force_type: "",
+    mechanics: "",
+    laterality: "",
+    primary_exercise_classification: "",
+    short_youtube_demonstration: "",
+    in_depth_youtube_explanation: "",
   }
 }
 

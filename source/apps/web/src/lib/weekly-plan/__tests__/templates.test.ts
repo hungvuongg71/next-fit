@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { getTemplate, getAllTemplates, resolveDetailedMuscleGroups } from "../templates"
+import { getTemplate, getAllTemplates } from "../templates"
 
 describe("getTemplate", () => {
   it("returns FullBody for 3 ngày", () => {
@@ -48,27 +48,4 @@ describe("getAllTemplates", () => {
   })
 })
 
-describe("resolveDetailedMuscleGroups", () => {
-  it("expands Chest to Chest", () => {
-    expect(resolveDetailedMuscleGroups(["Chest"])).toEqual(["Chest"])
-  })
 
-  it("expands Legs to multiple detailed groups", () => {
-    const result = resolveDetailedMuscleGroups(["Legs"])
-    expect(result).toContain("Quadriceps")
-    expect(result).toContain("Hamstrings")
-    expect(result).toContain("Glutes")
-    expect(result).toContain("Calves")
-  })
-
-  it("expands multiple broad groups", () => {
-    const result = resolveDetailedMuscleGroups(["Chest", "Back"])
-    expect(result).toContain("Chest")
-    expect(result).toContain("Back")
-  })
-
-  it("deduplicates when groups overlap", () => {
-    const result = resolveDetailedMuscleGroups(["Arms", "Arms"])
-    expect(result.filter((m) => m === "Biceps")).toHaveLength(1)
-  })
-})

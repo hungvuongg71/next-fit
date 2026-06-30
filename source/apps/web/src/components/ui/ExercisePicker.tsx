@@ -2,11 +2,10 @@
 
 import { useState, useMemo, useEffect, useRef } from "react"
 import { Search, X, Check } from "lucide-react"
-import { Exercise, MuscleGroup, Equipment } from "@/types"
+import { Exercise, MuscleGroup } from "@/types"
 import { MOCK_EXERCISES } from "@/lib/data"
 import { MUSCLE_GROUPS, MUSCLE_GROUPS_VI } from "@/constants/muscles"
 import { EQUIPMENT, EQUIPMENT_VI, POPULAR_EQUIPMENT } from "@/constants/equipment"
-import { MUSCLE_GROUP_MAP } from "@/lib/split"
 import ExerciseThumbnail from "./ExerciseThumbnail"
 import ExerciseModal from "./ExerciseModal"
 
@@ -15,13 +14,6 @@ const SORTED_EQUIPMENT = [...EQUIPMENT].sort((a, b) => {
   const bPop = POPULAR_EQUIPMENT.has(b) ? 0 : 1
   return aPop - bPop
 })
-
-const EXERCISE_TO_GROUP: Record<string, MuscleGroup> = {}
-for (const [group, muscles] of Object.entries(MUSCLE_GROUP_MAP)) {
-  for (const muscle of muscles) {
-    EXERCISE_TO_GROUP[muscle] = group as MuscleGroup
-  }
-}
 
 interface ExercisePickerProps {
   isOpen: boolean
@@ -42,7 +34,7 @@ export default function ExercisePicker({
 }: ExercisePickerProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<MuscleGroup>(MUSCLE_GROUPS[0])
-  const [selectedEquipment, setSelectedEquipment] = useState<Equipment>(SORTED_EQUIPMENT[0])
+  const [selectedEquipment, setSelectedEquipment] = useState<string>(SORTED_EQUIPMENT[0])
   const [showAllEquipment, setShowAllEquipment] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [previewExercise, setPreviewExercise] = useState<Exercise | null>(null)
@@ -51,14 +43,11 @@ export default function ExercisePicker({
   const filtered = useMemo(() => {
     return MOCK_EXERCISES.filter((ex) => {
       if (replaceMode && ex.id === replaceMode.exerciseId) return false
-      const mapped = MUSCLE_GROUP_MAP[selectedMuscleGroup]
-      if (!mapped?.includes(ex.muscleGroup)) return false
-      if (ex.equipment !== selectedEquipment) return false
+      if (ex.target_muscle_group !== selectedMuscleGroup) return false
+      if (ex.primary_equipment !== selectedEquipment) return false
       if (searchQuery) {
         const q = searchQuery.toLowerCase()
-        const name = ex.name.toLowerCase()
-        const nameVi = ex.name_vi?.toLowerCase() ?? ""
-        return name.includes(q) || nameVi.includes(q)
+        if (!ex.name.toLowerCase().includes(q)) return false
       }
       return true
     })
@@ -73,7 +62,7 @@ export default function ExercisePicker({
     if (isOpen) {
       setSearchQuery("")
       setSelectedMuscleGroup(
-        replaceMode ? (EXERCISE_TO_GROUP[replaceMode.muscleGroup] ?? MUSCLE_GROUPS[0]) : MUSCLE_GROUPS[0],
+        replaceMode ? (replaceMode.muscleGroup as MuscleGroup) || MUSCLE_GROUPS[0] : MUSCLE_GROUPS[0],
       )
       setSelectedEquipment(SORTED_EQUIPMENT[0])
       setSelectedIds(new Set(externalSelected ?? []))
@@ -303,7 +292,7 @@ export default function ExercisePicker({
                         {ex.name}
                       </p>
                       <p className="font-body text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
-                        {ex.muscleGroup_vi ?? ex.muscleGroup} · {ex.level_vi ?? ex.level}
+                        {ex.target_muscle_group} · {ex.difficulty_level}
                       </p>
                     </div>
                   </button>

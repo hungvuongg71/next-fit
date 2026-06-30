@@ -2,6 +2,25 @@ export const DURATIONS = ["15 min", "30 min", "45 min", "60+ min"] as const
 
 export const FREQUENCIES = ["3 ngày", "4 ngày", "5 ngày", "6 ngày"] as const
 
+export const MUSCLE_TO_WARMUP_CATEGORY: Record<string, string> = {
+  Abdominals: "Core",
+  Abductors: "Legs",
+  Adductors: "Legs",
+  Back: "Back",
+  Biceps: "Arms",
+  Calves: "Legs",
+  Chest: "Chest",
+  Forearms: "Arms",
+  Glutes: "Legs",
+  Hamstrings: "Legs",
+  "Hip Flexors": "Legs",
+  Quadriceps: "Legs",
+  Shins: "Legs",
+  Shoulders: "Shoulders",
+  Trapezius: "Shoulders",
+  Triceps: "Arms",
+}
+
 export const DYNAMIC_STRETCHES: Record<string, { name_vi: string; duration: string }[]> = {
   Chest: [
     { name_vi: "Mở ngực (Chest Opener)", duration: "30s" },

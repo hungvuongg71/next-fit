@@ -1,130 +1,58 @@
-# Plan: Muscle Group → Suggested Exercises (Homepage Redesign)
+# Implementation Plan: Fix Stats Page React Hooks Error
 
-## Objective
+## Overview
 
-Thay thế trải nghiệm chính của homepage: user chọn nhóm cơ → web generate 5-6 bài tập gợi ý → user chỉnh sửa (thay thế/xóa/thêm) → bắt đầu workout. Giáo án tuần thu gọn thành section phụ.
+Fix "Rendered fewer hooks than expected" error when clicking a workout entry on the stats page to view its detail.
 
-## UX Flow
+## Root Cause
 
-```
-Homepage:
-┌──────────────────────────────────┐
-│ Bạn muốn tập nhóm cơ nào?        │
-│ Hãy chọn nhóm cơ để nhận gợi ý  │
-│                                  │
-│ [🏋️ Ngực]  [🏋️ Lưng]  [🏋️ Chân]│ ← 3-col grid, multi-select
-│ [🏋️ Vai]   [🏋️ Tay]   [🏋️ Bụng]│
-│                                  │
-│ (khi đã chọn 1+ nhóm cơ)         │
-│ Bài tập gợi ý (X bài):           │ ← auto-generate
-│ [Bài tập 1]  [Thay thế] [Xóa]   │
-│ [Bài tập 2]  [Thay thế] [Xóa]   │
-│ ...                              │
-│ [+ Thêm bài tập]                 │
-│ [🔄 Hoàn tác]                    │
-│                                  │
-│ [Bắt Đầu Workout] ← fixed bottom │
-├──────────────────────────────────┤
-│ Giáo án tuần            [Chi tiết]│ ← compact section
-│ [T2] [T3] [T4] ...              │
-└──────────────────────────────────┘
-```
-
-## Kiến trúc
-
-### Files
-
-| File | Thay đổi |
-|------|----------|
-| `src/app/page.tsx` | Rewrite: muscle group grid + suggestions + compact plan section |
-| `src/components/ui/MuscleGroupSelector.tsx` | **New**: grid các muscle group card (multi-select) |
-| `src/lib/suggestions.ts` | **New**: `suggestExercises(muscles, count)` — chọn bài tập theo nhóm cơ |
-
-### Data Flow
+In `src/app/stats/page.tsx`, the `StatsContent` component has an **early return** (`if (entry) { return ... }`) at line 54 that skips the `summary` `useMemo` at line 204. When navigating from list view (`/stats`, 5 hooks) to detail view (`/stats?id=xxx`, 4 hooks), React detects the hook count mismatch and throws.
 
 ```
-[MUSCLE_GROUPS] → MuscleGroupSelector (chọn nhiều)
-  ↓ selectedMuscles
-[suggestExercises(selectedMuscles, 6)]
-  ↓ suggestedExercises
-[SuggestionList] → replace/delete/add (local state)
-  ↓ "Bắt Đầu Workout"
-setTodayExercises(suggestedExercises) + startWorkout()
-  → router.push("/workout")
+List render:  useRouter → useSearchParams → useApp → useMemo(entry) → useMemo(summary)  = 5 hooks ✓
+Detail render: useRouter → useSearchParams → useApp → useMemo(entry) → EARLY RETURN       = 4 hooks ✗
 ```
 
-### suggestExercises logic
+## Fix
 
-```typescript
-suggestExercises(muscleGroups: MuscleGroup[], count = 6): Exercise[]
-```
-1. Lấy danh sách exercise từ MOCK_EXERCISES match từng nhóm cơ (dùng MUSCLE_GROUP_MAP)
-2. Phân bố đều: count / số nhóm cơ (làm tròn)
-3. Ưu tiên exercise có equipment khác nhau (variety)
-4. Trộn ngẫu nhiên trong mỗi nhóm
+Move the `summary` `useMemo` above the `if (entry)` early return so all hooks are called unconditionally. The summary value is only consumed in the list view path, but computing it in detail view is harmless.
 
-### State
+## Architecture Decisions
 
-Local state trên homepage:
-- `selectedMuscles: MuscleGroup[]` — nhóm cơ đã chọn
-- `suggestedExercises: Exercise[]` — bài tập gợi ý hiện tại
-- `savedSuggestions: Exercise[]` — bản snapshot để undo
-- `replaceTarget: { exercise: Exercise; index: number } | null` — cho replace
+- **No restructuring** — just move the hook call. Minimal diff, minimal risk.
+- **No lazy evaluation** — computing summary on detail view is O(n) over workout history (max 30 entries), negligible.
 
-### UI Components
+## Task List
 
-**MuscleGroupSelector:**
-- Grid 3 cột
-- Mỗi card: hình placeholder (gradient màu), tên nhóm cơ (VI)
-- Click → toggle select, border highlight
-- Selected state: primary border + glow
+### Phase 1: Single Fix
 
-**Suggested exercises list:**
-- Mỗi bài là ExerciseCard-like component
-- 3 nút action: Thay thế (⟳), Xóa (trash), kèm confirm
-- "Thêm bài tập" button → mở ExercisePicker (add mode)
-- "Hoàn tác" button → restore savedSuggestions
+- [ ] Task 1: Move `summary` useMemo before the early return in `StatsContent`
 
-## Tasks
+### Checkpoint
+- [ ] App builds without errors
+- [ ] Manual test: list view renders normally
+- [ ] Manual test: click workout → detail view loads without crash
+- [ ] Manual test: navigate back to list view from detail view — works
 
-### Task 1: Tạo suggestExercises utility
-- Tạo `src/lib/suggestions.ts`
-- Import `MOCK_EXERCISES`, `MUSCLE_GROUP_MAP`
-- Hàm `suggestExercises(muscles, count)` → phân bố đều, shuffle
-- Test với 2-3 nhóm cơ
+## Dependencies
 
-### Task 2: Tạo MuscleGroupSelector component  
-- Tạo `src/components/ui/MuscleGroupSelector.tsx`
-- Props: `selected: MuscleGroup[]`, `onChange: (groups) => void`
-- Grid 3 cột, card có placeholder hình (gradient)
-- Toggle select, highlight border
-- Import MUSCLE_GROUPS, MUSCLE_GROUPS_VI
+- No dependencies — single file change
+- No test changes needed (no existing stats page tests)
 
-### Task 3: Rewrite homepage
-- Rewrite `src/app/page.tsx`
-- Header: "Bạn muốn tập nhóm cơ nào?"
-- MuscleGroupSelector section
-- Suggested exercises section (auto-generate khi selectedMuscles thay đổi)
-- Action buttons: thêm bài, hoàn tác
-- Compact weekly plan section (dạng horizontal scroll)
-- Fixed bottom "Bắt Đầu Workout" button
-- ExercisePicker + ExerciseModal integration
+## Risks and Mitigations
 
-### Task 4: Cleanup
-- Xóa code cũ không dùng
-- Build + test (105 tests)
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Moved code references stale variables | Low | Same closure scope — all variables still accessible |
+| `summary` computed unnecessarily in detail view | Low | O(n) on max 30 entries, negligible cost |
 
-## Checkpoints
+## Files Touched
 
-| # | Checkpoint | Sau task | Verify |
-|---|-----------|----------|--------|
-| 1 | suggestExercises | Task 1 | `npm run test` |
-| 2 | MuscleGroupSelector | Task 2 | `npm run build` |
-| 3 | Homepage rewrite | Task 3 | `npm run build` |
-| 4 | Tất cả pass | Task 4 | `npm run build && npm run test` |
+- `src/app/stats/page.tsx` — move `summary` useMemo above line 54
 
-## Boundaries
+## Verification
 
-- **Luôn làm:** Multi-select muscle group; auto-generate khi chọn; replace/xóa/thêm từng bài; undo snapshot
-- **Chưa làm:** Hình ảnh real (user cung cấp sau); phân tích level/goal để gợi ý (chỉ dựa trên nhóm cơ); pagination
-- **Giữ nguyên:** PlanEditModal, CookieConsent, BottomNav, TopHeader
+1. `pnpm vitest run` — all tests pass
+2. Manual: load `/stats` → confirm list renders
+3. Manual: click any workout → detail renders without error
+4. Manual: navigate back → list still works

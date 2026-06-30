@@ -1,6 +1,8 @@
 import { Exercise, MuscleGroup } from "@/types"
 import { MOCK_EXERCISES } from "@/lib/data"
-import { MUSCLE_GROUP_MAP } from "@/lib/split"
+
+const DEFAULT_EQUIPMENT = ["Barbell", "Dumbbell", "Cable", "Bodyweight"]
+const PRIORITY_EQUIPMENT = new Set(["Barbell", "Dumbbell"])
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
@@ -11,33 +13,33 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-export function suggestExercises(muscleGroups: MuscleGroup[], count = 6): Exercise[] {
+export function suggestExercises(
+  muscleGroups: MuscleGroup[],
+  equipment: string[] = DEFAULT_EQUIPMENT,
+  count = 6,
+): Exercise[] {
   if (muscleGroups.length === 0) return []
 
-  const byGroup: Record<string, Exercise[]> = {}
+  const targets = new Set(muscleGroups)
+  const equipSet = new Set(equipment.length > 0 ? equipment : DEFAULT_EQUIPMENT)
 
-  for (const group of muscleGroups) {
-    const targets = MUSCLE_GROUP_MAP[group]
-    if (!targets) continue
+  const pool = MOCK_EXERCISES.filter((ex) => {
+    if (!targets.has(ex.target_muscle_group as MuscleGroup)) return false
+    if (!equipSet.has(ex.primary_equipment)) return false
+    return true
+  })
 
-    byGroup[group] = MOCK_EXERCISES.filter((ex) => targets.includes(ex.muscleGroup))
-  }
+  const priorityExercises = pool.filter((ex) => PRIORITY_EQUIPMENT.has(ex.primary_equipment))
+  const otherExercises = pool.filter((ex) => !PRIORITY_EQUIPMENT.has(ex.primary_equipment))
 
-  const perGroup = Math.ceil(count / muscleGroups.length)
   const result: Exercise[] = []
-  const usedIds = new Set<string>()
-
-  for (const group of muscleGroups) {
-    const pool = shuffle(byGroup[group] ?? [])
-    let taken = 0
-    for (const ex of pool) {
-      if (taken >= perGroup) break
-      if (usedIds.has(ex.id)) continue
-      usedIds.add(ex.id)
-      result.push(ex)
-      taken++
-    }
+  for (const ex of shuffle(priorityExercises)) {
+    if (result.length >= count) break
+    result.push(ex)
   }
-
-  return shuffle(result).slice(0, count)
+  for (const ex of shuffle(otherExercises)) {
+    if (result.length >= count) break
+    result.push(ex)
+  }
+  return result
 }

@@ -76,7 +76,7 @@ describe("buildDaySession", () => {
   it("includes suggestedWeight for main compound exercises with barbell/dumbbell", () => {
     const result = buildDaySession(baseInput)
     const compounds = result.filter(
-      (ex) => ex.role === "mainCompound" && ["Barbell", "Dumbbell", "Trap Bar"].includes(ex.equipment),
+      (ex) => ex.role === "mainCompound" && ["Barbell", "Dumbbell", "Trap Bar"].includes(ex.primary_equipment),
     )
     for (const ex of compounds) {
       expect(ex.suggestedWeight).toBeDefined()
@@ -86,7 +86,7 @@ describe("buildDaySession", () => {
   it("handles leg day correctly", () => {
     const result = buildDaySession({
       ...baseInput,
-      targetMuscleGroups: ["Legs"],
+      targetMuscleGroups: ["Quadriceps", "Hamstrings", "Glutes"],
     })
     expect(result.length).toBeGreaterThan(0)
   })

@@ -60,7 +60,7 @@ export default function ExerciseModal({ exercise, onClose, onReplace }: Exercise
   }
 
   const related = MOCK_EXERCISES.filter(
-    (e) => e.id !== currentExercise.id && e.muscleGroup === currentExercise.muscleGroup,
+    (e) => e.id !== currentExercise.id && e.target_muscle_group === currentExercise.target_muscle_group,
   ).slice(0, 3)
 
   return (
@@ -98,8 +98,7 @@ export default function ExerciseModal({ exercise, onClose, onReplace }: Exercise
           )}
           <div className="flex-1 min-w-0">
             <p className="text-xs font-heading mb-1" style={{ color: "var(--color-text-secondary)" }}>
-              {currentExercise.muscleGroup_vi ?? currentExercise.muscleGroup} •{" "}
-              {currentExercise.level_vi ?? currentExercise.level}
+              {currentExercise.target_muscle_group} • {currentExercise.difficulty_level}
             </p>
             <h2
               id="exercise-title"
@@ -125,11 +124,11 @@ export default function ExerciseModal({ exercise, onClose, onReplace }: Exercise
         {/* Section 1: Video */}
         <div className="px-5 mb-5">
           {(() => {
-            const gifEmbed = getYouTubeEmbedUrl(currentExercise.exerciseDbGif)
-            const videoEmbed = getYouTubeEmbedUrl(currentExercise.video)
-            const activeEmbed = showDetailVideo ? videoEmbed : gifEmbed
-            const hasGif = !!gifEmbed
-            const hasVideo = !!videoEmbed
+            const shortEmbed = getYouTubeEmbedUrl(currentExercise.short_youtube_demonstration)
+            const depthEmbed = getYouTubeEmbedUrl(currentExercise.in_depth_youtube_explanation)
+            const activeEmbed = showDetailVideo ? depthEmbed : shortEmbed
+            const hasShort = !!shortEmbed
+            const hasDepth = !!depthEmbed
 
             if (activeEmbed) {
               return (
@@ -141,9 +140,9 @@ export default function ExerciseModal({ exercise, onClose, onReplace }: Exercise
                     style={{ height: "220px" }}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
-                    key={showDetailVideo ? "detail" : "gif"}
+                    key={showDetailVideo ? "detail" : "short"}
                   />
-                  {hasGif && hasVideo && (
+                  {hasShort && hasDepth && (
                     <button
                       onClick={() => setShowDetailVideo((v) => !v)}
                       className="self-start px-3 py-1.5 rounded-xl font-heading font-semibold text-xs transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
@@ -176,43 +175,6 @@ export default function ExerciseModal({ exercise, onClose, onReplace }: Exercise
             )
           })()}
         </div>
-
-        {/* Section 2: Description */}
-        <div className="px-5 mb-5">
-          <h3 className="font-heading font-semibold text-sm mb-2" style={{ color: "var(--color-text-secondary)" }}>
-            MÔ TẢ ĐỘNG TÁC
-          </h3>
-          <p className="font-body text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
-            {currentExercise.description}
-          </p>
-          {currentExercise.trainer && (
-            <p className="font-body text-xs mt-2" style={{ color: "var(--color-primary)" }}>
-              Huấn luyện viên: {currentExercise.trainer}
-            </p>
-          )}
-        </div>
-
-        {/* Section 3: Instructions (from ExerciseDB) */}
-        {currentExercise.exerciseDbInstructions && currentExercise.exerciseDbInstructions.length > 0 && (
-          <div className="px-5 mb-5">
-            <h3 className="font-heading font-semibold text-sm mb-2" style={{ color: "var(--color-text-secondary)" }}>
-              HƯỚNG DẪN THỰC HIỆN
-            </h3>
-            <ol className="space-y-2">
-              {(currentExercise.exerciseDbInstructions_vi ?? currentExercise.exerciseDbInstructions).map((step, i) => (
-                <li key={i} className="flex gap-2 font-body text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
-                  <span
-                    className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center font-number text-[10px] mt-0.5"
-                    style={{ background: "rgba(var(--color-primary-rgb), 0.15)", color: "var(--color-primary)" }}
-                  >
-                    {i + 1}
-                  </span>
-                  <span>{step}</span>
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
 
         {/* Section 4: Related exercises */}
         {related.length > 0 && (

@@ -98,7 +98,7 @@ function PlannedExerciseCard({ exercise }: { exercise: PlannedExercise }) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-heading font-semibold text-sm truncate" style={{ color: "var(--color-text)" }}>
-          {exercise.name_vi || exercise.name}
+          {exercise.name}
         </p>
         <div className="flex items-center gap-2 mt-1">
           <span

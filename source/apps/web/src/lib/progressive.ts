@@ -1,5 +1,5 @@
 import { Exercise, ExerciseLogEntry, MuscleGroup } from "@/types"
-import { DYNAMIC_STRETCHES } from "@/constants/workout"
+import { MUSCLE_TO_WARMUP_CATEGORY, DYNAMIC_STRETCHES } from "@/constants/workout"
 
 const ROTATION_WEEKS = 3
 
@@ -29,7 +29,8 @@ export function suggestWarmup(
   const result: { name_vi: string; duration: string }[] = []
 
   for (const muscle of targetMuscles) {
-    const stretches = DYNAMIC_STRETCHES[muscle] ?? []
+    const category = MUSCLE_TO_WARMUP_CATEGORY[muscle]
+    const stretches = category ? DYNAMIC_STRETCHES[category] ?? [] : []
     for (const s of stretches) {
       if (!seen.has(s.name_vi) && result.length < 4) {
         seen.add(s.name_vi)
@@ -47,14 +48,14 @@ export function suggestWarmupSets(
   logs: Record<string, ExerciseLogEntry[]>,
 ): WarmupSetSuggestion[] {
   return exercises
-    .filter((ex) => ex.equipment !== "Bodyweight")
+    .filter((ex) => ex.primary_equipment !== "Bodyweight")
     .map((ex) => {
       const exLogs = getLogsForExercise(logs, ex.id)
       let workingWeight = 10
 
       if (exLogs.length > 0) {
         workingWeight = suggestNextWeight(exLogs).weight
-      } else if (ex.equipment !== "Bodyweight") {
+      } else if (ex.primary_equipment !== "Bodyweight") {
         workingWeight = 10
       }
 
@@ -77,8 +78,8 @@ export function rotateExercise(
   const variants = allExercises.filter(
     (e) =>
       e.id !== exercise.id &&
-      e.muscleGroup === exercise.muscleGroup &&
-      e.equipment === exercise.equipment &&
+      e.target_muscle_group === exercise.target_muscle_group &&
+      e.primary_equipment === exercise.primary_equipment &&
       !recentIds.has(e.id),
   )
 
@@ -89,7 +90,7 @@ export function rotateExercise(
   const sameMuscle = allExercises.filter(
     (e) =>
       e.id !== exercise.id &&
-      e.muscleGroup === exercise.muscleGroup &&
+      e.target_muscle_group === exercise.target_muscle_group &&
       !recentIds.has(e.id),
   )
 

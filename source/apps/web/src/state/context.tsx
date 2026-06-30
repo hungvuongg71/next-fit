@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { AppState, UserCriteria, Exercise, ExerciseProgress, WorkoutHistoryEntry, ExerciseCompletion, WorkoutSet } from "@/types"
 import type { WeeklyPlan } from "@/lib/weekly-plan/types"
 import { STORAGE_KEYS } from "@/constants/storage"
+import { DEFAULT_SETS } from "@/lib/data"
 
 interface AppContextType {
   state: AppState
@@ -58,7 +59,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined)
 function initProgress(exercises: Exercise[]): ExerciseProgress[] {
   return exercises.map((ex) => ({
     exercise: ex,
-    sets: Array.from({ length: ex.sets }, () => ({
+    sets: Array.from({ length: DEFAULT_SETS }, () => ({
       reps: null,
       weight: null,
       completed: false,
@@ -207,7 +208,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ...prev.exerciseProgress,
         {
           exercise: ex,
-          sets: Array.from({ length: ex.sets }, (): WorkoutSet => ({ reps: null, weight: null, completed: false })),
+          sets: Array.from({ length: DEFAULT_SETS }, (): WorkoutSet => ({ reps: null, weight: null, completed: false })),
           currentSet: 0,
           completed: false,
         },
@@ -235,7 +236,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ep.exercise.id === id
           ? {
               exercise: newEx,
-              sets: Array.from({ length: newEx.sets }, () => ({
+              sets: Array.from({ length: DEFAULT_SETS }, () => ({
                 reps: null,
                 weight: null,
                 completed: false,

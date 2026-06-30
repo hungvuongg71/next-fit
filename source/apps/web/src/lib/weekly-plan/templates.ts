@@ -1,6 +1,5 @@
-import type { Frequency, MuscleGroup } from "@/types"
+import type { Frequency } from "@/types"
 import type { SplitTemplateConfig, SplitTemplate } from "./types"
-import { MUSCLE_GROUP_MAP } from "@/lib/split"
 
 const FULL_BODY: SplitTemplateConfig = {
   id: "FullBody",
@@ -9,7 +8,7 @@ const FULL_BODY: SplitTemplateConfig = {
   days: [
     {
       name: "Toàn thân A",
-      targetMuscleGroups: ["Chest", "Back", "Legs", "Core"],
+      targetMuscleGroups: ["Chest", "Back", "Quadriceps", "Hamstrings", "Glutes", "Abdominals"],
       slots: [
         { role: "mainCompound", count: 2 },
         { role: "secondaryCompound", count: 2 },
@@ -18,7 +17,7 @@ const FULL_BODY: SplitTemplateConfig = {
     },
     {
       name: "Toàn thân B",
-      targetMuscleGroups: ["Shoulders", "Back", "Legs", "Arms"],
+      targetMuscleGroups: ["Shoulders", "Trapezius", "Back", "Biceps", "Triceps", "Quadriceps", "Hamstrings", "Glutes"],
       slots: [
         { role: "mainCompound", count: 2 },
         { role: "secondaryCompound", count: 2 },
@@ -27,7 +26,7 @@ const FULL_BODY: SplitTemplateConfig = {
     },
     {
       name: "Toàn thân C",
-      targetMuscleGroups: ["Chest", "Shoulders", "Legs", "Core"],
+      targetMuscleGroups: ["Chest", "Shoulders", "Quadriceps", "Hamstrings", "Glutes", "Abdominals"],
       slots: [
         { role: "mainCompound", count: 2 },
         { role: "secondaryCompound", count: 2 },
@@ -44,7 +43,7 @@ const UPPER_LOWER: SplitTemplateConfig = {
   days: [
     {
       name: "Thân trên A",
-      targetMuscleGroups: ["Chest", "Back", "Shoulders", "Arms"],
+      targetMuscleGroups: ["Chest", "Back", "Shoulders", "Biceps", "Triceps", "Forearms"],
       slots: [
         { role: "mainCompound", count: 2 },
         { role: "secondaryCompound", count: 2 },
@@ -53,7 +52,7 @@ const UPPER_LOWER: SplitTemplateConfig = {
     },
     {
       name: "Thân dưới A",
-      targetMuscleGroups: ["Legs", "Core"],
+      targetMuscleGroups: ["Quadriceps", "Hamstrings", "Glutes", "Calves", "Abductors", "Adductors", "Abdominals"],
       slots: [
         { role: "mainCompound", count: 2 },
         { role: "secondaryCompound", count: 2 },
@@ -62,7 +61,7 @@ const UPPER_LOWER: SplitTemplateConfig = {
     },
     {
       name: "Thân trên B",
-      targetMuscleGroups: ["Chest", "Back", "Shoulders", "Arms"],
+      targetMuscleGroups: ["Chest", "Back", "Shoulders", "Biceps", "Triceps", "Forearms"],
       slots: [
         { role: "mainCompound", count: 2 },
         { role: "secondaryCompound", count: 2 },
@@ -71,7 +70,7 @@ const UPPER_LOWER: SplitTemplateConfig = {
     },
     {
       name: "Thân dưới B",
-      targetMuscleGroups: ["Legs", "Core"],
+      targetMuscleGroups: ["Quadriceps", "Hamstrings", "Glutes", "Calves", "Abductors", "Adductors", "Abdominals"],
       slots: [
         { role: "mainCompound", count: 2 },
         { role: "secondaryCompound", count: 2 },
@@ -88,7 +87,7 @@ const PPL: SplitTemplateConfig = {
   days: [
     {
       name: "Đẩy A",
-      targetMuscleGroups: ["Chest", "Shoulders", "Arms"],
+      targetMuscleGroups: ["Chest", "Shoulders", "Triceps"],
       slots: [
         { role: "mainCompound", count: 2 },
         { role: "secondaryCompound", count: 2 },
@@ -97,7 +96,7 @@ const PPL: SplitTemplateConfig = {
     },
     {
       name: "Kéo A",
-      targetMuscleGroups: ["Back", "Arms"],
+      targetMuscleGroups: ["Back", "Biceps", "Forearms"],
       slots: [
         { role: "mainCompound", count: 2 },
         { role: "secondaryCompound", count: 2 },
@@ -106,7 +105,7 @@ const PPL: SplitTemplateConfig = {
     },
     {
       name: "Chân A",
-      targetMuscleGroups: ["Legs", "Core"],
+      targetMuscleGroups: ["Quadriceps", "Hamstrings", "Glutes", "Calves", "Abductors", "Adductors", "Hip Flexors", "Abdominals"],
       slots: [
         { role: "mainCompound", count: 2 },
         { role: "secondaryCompound", count: 2 },
@@ -115,7 +114,7 @@ const PPL: SplitTemplateConfig = {
     },
     {
       name: "Đẩy B",
-      targetMuscleGroups: ["Chest", "Shoulders", "Arms"],
+      targetMuscleGroups: ["Chest", "Shoulders", "Triceps"],
       slots: [
         { role: "mainCompound", count: 2 },
         { role: "secondaryCompound", count: 2 },
@@ -124,7 +123,7 @@ const PPL: SplitTemplateConfig = {
     },
     {
       name: "Kéo B",
-      targetMuscleGroups: ["Back", "Arms"],
+      targetMuscleGroups: ["Back", "Biceps", "Forearms"],
       slots: [
         { role: "mainCompound", count: 2 },
         { role: "secondaryCompound", count: 2 },
@@ -132,8 +131,8 @@ const PPL: SplitTemplateConfig = {
       ],
     },
     {
-      name: "Chân B",
-      targetMuscleGroups: ["Legs", "Core"],
+      name: "Chân A",
+      targetMuscleGroups: ["Quadriceps", "Hamstrings", "Glutes", "Calves", "Abductors", "Adductors", "Hip Flexors", "Abdominals"],
       slots: [
         { role: "mainCompound", count: 2 },
         { role: "secondaryCompound", count: 2 },
@@ -150,7 +149,7 @@ const BRO_SPLIT: SplitTemplateConfig = {
   days: [
     {
       name: "Ngực + Tay sau",
-      targetMuscleGroups: ["Chest", "Arms"],
+      targetMuscleGroups: ["Chest", "Triceps"],
       slots: [
         { role: "mainCompound", count: 2 },
         { role: "secondaryCompound", count: 2 },
@@ -159,7 +158,7 @@ const BRO_SPLIT: SplitTemplateConfig = {
     },
     {
       name: "Lưng + Tay trước",
-      targetMuscleGroups: ["Back", "Arms"],
+      targetMuscleGroups: ["Back", "Biceps", "Forearms"],
       slots: [
         { role: "mainCompound", count: 2 },
         { role: "secondaryCompound", count: 2 },
@@ -168,7 +167,7 @@ const BRO_SPLIT: SplitTemplateConfig = {
     },
     {
       name: "Chân",
-      targetMuscleGroups: ["Legs", "Core"],
+      targetMuscleGroups: ["Quadriceps", "Hamstrings", "Glutes", "Calves", "Adductors", "Abductors", "Abdominals"],
       slots: [
         { role: "mainCompound", count: 2 },
         { role: "secondaryCompound", count: 2 },
@@ -177,7 +176,7 @@ const BRO_SPLIT: SplitTemplateConfig = {
     },
     {
       name: "Vai + Tay",
-      targetMuscleGroups: ["Shoulders", "Arms"],
+      targetMuscleGroups: ["Shoulders", "Trapezius", "Biceps", "Triceps"],
       slots: [
         { role: "mainCompound", count: 1 },
         { role: "secondaryCompound", count: 2 },
@@ -186,7 +185,7 @@ const BRO_SPLIT: SplitTemplateConfig = {
     },
     {
       name: "Chân + Core",
-      targetMuscleGroups: ["Legs", "Core"],
+      targetMuscleGroups: ["Quadriceps", "Hamstrings", "Glutes", "Calves", "Adductors", "Abductors", "Abdominals"],
       slots: [
         { role: "mainCompound", count: 2 },
         { role: "secondaryCompound", count: 2 },
@@ -203,7 +202,7 @@ const PUSH_PULL: SplitTemplateConfig = {
   days: [
     {
       name: "Đẩy A",
-      targetMuscleGroups: ["Chest", "Shoulders", "Arms"],
+      targetMuscleGroups: ["Chest", "Shoulders", "Triceps"],
       slots: [
         { role: "mainCompound", count: 2 },
         { role: "secondaryCompound", count: 2 },
@@ -212,7 +211,7 @@ const PUSH_PULL: SplitTemplateConfig = {
     },
     {
       name: "Kéo A",
-      targetMuscleGroups: ["Back", "Arms", "Core"],
+      targetMuscleGroups: ["Back", "Biceps", "Forearms", "Abdominals"],
       slots: [
         { role: "mainCompound", count: 2 },
         { role: "secondaryCompound", count: 2 },
@@ -221,7 +220,7 @@ const PUSH_PULL: SplitTemplateConfig = {
     },
     {
       name: "Đẩy B",
-      targetMuscleGroups: ["Chest", "Shoulders", "Arms"],
+      targetMuscleGroups: ["Chest", "Shoulders", "Triceps"],
       slots: [
         { role: "mainCompound", count: 2 },
         { role: "secondaryCompound", count: 2 },
@@ -230,7 +229,7 @@ const PUSH_PULL: SplitTemplateConfig = {
     },
     {
       name: "Kéo B",
-      targetMuscleGroups: ["Back", "Arms", "Core"],
+      targetMuscleGroups: ["Back", "Biceps", "Forearms", "Abdominals"],
       slots: [
         { role: "mainCompound", count: 2 },
         { role: "secondaryCompound", count: 2 },
@@ -259,15 +258,6 @@ function getTemplateForFrequency(frequency: Frequency): SplitTemplate {
     case "6 ngày":
       return "PPL"
   }
-}
-
-export function resolveDetailedMuscleGroups(broadGroups: string[]): string[] {
-  const result = new Set<string>()
-  for (const bg of broadGroups) {
-    const mapped = MUSCLE_GROUP_MAP[bg as MuscleGroup]
-    if (mapped) mapped.forEach((m: string) => result.add(m))
-  }
-  return [...result]
 }
 
 export function getTemplate(frequency: Frequency): SplitTemplateConfig {
