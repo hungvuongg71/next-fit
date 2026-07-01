@@ -64,14 +64,11 @@ function cardStyle(group: string, isSelected: boolean, gender?: Gender): CSSProp
     opacity: isSelected ? 1 : 0.7,
   }
   if (img) {
-    base.background = `
-      linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.75) 100%),
-      url(${img})
-    `
+    base.backgroundImage = `linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.75) 100%), url(${img})`
     base.backgroundSize = "cover"
     base.backgroundPosition = "center"
   } else {
-    base.background = GRADIENT_MAP[group] ?? "var(--color-surface)"
+    base.backgroundImage = GRADIENT_MAP[group] ?? "var(--color-surface)"
   }
   return base
 }
