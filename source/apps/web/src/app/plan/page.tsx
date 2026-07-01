@@ -40,7 +40,7 @@ export default function PlanPage() {
     const newPlan = generateWeeklyPlan(state.criteria, templateId)
     setWeeklyPlan(newPlan)
     setApplying(false)
-    router.push("/")
+    router.push("/?mode=plan")
   }
 
   const TEMPLATE_NAMES_VI: Record<string, string> = {
@@ -187,54 +187,6 @@ export default function PlanPage() {
           </div>
         </section>
 
-        {/* Quick link: current plan days (if plan exists) */}
-        {plan && !selectedTemplate && (
-          <section>
-            <div className="flex flex-col gap-2">
-              {plan.days.map((day, i) => {
-                const dayOfWeek = new Date().getDay()
-                const todayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-                const isToday = i === (todayIndex % plan.days.length)
-                return (
-                  <button
-                    key={i}
-                    onClick={() => {
-                      setTodayExercises(day.exercises.map((e) => ({
-                        ...e,
-                        sets: e.plannedSets,
-                        reps: e.plannedReps,
-                        restSeconds: e.plannedRestSeconds,
-                      })))
-                      router.push("/workout")
-                    }}
-                    className="w-full text-left rounded-2xl p-4 transition-all active:scale-[0.99]"
-                    style={{
-                      background: isToday ? "rgba(var(--color-primary-rgb), 0.08)" : "var(--color-surface)",
-                      border: `1px solid ${isToday ? "var(--color-primary)" : "var(--color-border)"}`,
-                    }}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="font-heading font-semibold text-sm" style={{ color: "var(--color-text)" }}>
-                        {day.dayName}
-                      </p>
-                      {isToday && (
-                        <span
-                          className="text-[10px] font-heading font-bold px-2 py-0.5 rounded-lg"
-                          style={{ background: "var(--color-primary)", color: "#fff" }}
-                        >
-                          HÔM NAY
-                        </span>
-                      )}
-                    </div>
-                    <p className="font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                      {day.exercises.length} bài · {day.targetMuscleGroups.join(", ")}
-                    </p>
-                  </button>
-                )
-              })}
-            </div>
-          </section>
-        )}
       </main>
 
       <BottomNav />
