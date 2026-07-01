@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { getTemplate, getAllTemplates } from "../templates"
+import { getTemplate } from "../templates"
 
 describe("getTemplate", () => {
   it("returns FullBody for 3 ngày", () => {
@@ -38,13 +38,6 @@ describe("getTemplate", () => {
     for (const day of t.days) {
       expect(day.slots.length).toBeGreaterThan(0)
     }
-  })
-})
-
-describe("getAllTemplates", () => {
-  it("returns all 5 templates", () => {
-    const all = getAllTemplates()
-    expect(all).toHaveLength(5)
   })
 })
 

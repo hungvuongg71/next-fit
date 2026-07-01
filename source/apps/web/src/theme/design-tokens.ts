@@ -52,8 +52,9 @@ export const PREMIUM_ATHLETIC_THEME = {
   // Typography - Font pairings from @fontsource
   typography: {
     fontFamily: {
-      display: '"Be Vietnam Pro", system-ui, sans-serif', // Bold, premium feel
-      body: '"Plus Jakarta Sans", system-ui, sans-serif', // Clean, modern readability
+      display: '"Syne", system-ui, sans-serif', // Bold, geometric, energetic
+      heading: '"Syne", system-ui, sans-serif',
+      body: '"Be Vietnam Pro", system-ui, sans-serif', // Clean, modern readability
       mono: '"Rubik Mono One", monospace', // Data displays, accent elements
     },
 
@@ -183,9 +184,10 @@ export const CYBER_ATHLETE_THEME = {
   // Typography - Bold, angular fonts
   typography: {
     fontFamily: {
-      display: '"Be Vietnam Pro", system-ui, sans-serif', // Angular, tech-forward
-      body: '"Be Vietnam Pro", system-ui, sans-serif', // Consistent geometric style
-      mono: '"Rubik Mono One", monospace', // Perfect for data visualization
+      display: '"Syne", system-ui, sans-serif',
+      heading: '"Syne", system-ui, sans-serif',
+      body: '"Be Vietnam Pro", system-ui, sans-serif',
+      mono: '"Rubik Mono One", monospace',
     },
 
     fontSize: {
@@ -319,9 +321,10 @@ export const ORGANIC_PERFORMANCE_THEME = {
   // Typography - Warm, natural serif pairing
   typography: {
     fontFamily: {
-      display: '"Plus Jakarta Sans", system-ui, sans-serif', // Warmth with modernity
-      body: '"Plus Jakarta Sans", system-ui, sans-serif', // Natural readability
-      mono: '"Rubik Mono One", monospace', // Accent/data
+      display: '"Syne", system-ui, sans-serif',
+      heading: '"Syne", system-ui, sans-serif',
+      body: '"Be Vietnam Pro", system-ui, sans-serif',
+      mono: '"Rubik Mono One", monospace',
     },
 
     fontSize: {
@@ -452,6 +455,7 @@ export interface ThemeConfig {
   readonly typography?: {
     readonly fontFamily: {
       readonly display: string
+      readonly heading?: string
       readonly body: string
       readonly mono: string
     }
@@ -508,9 +512,11 @@ export const generateCSSVariables = (theme: ThemeConfig): string => {
 
   // Typography
   if (theme.typography?.fontFamily?.display)
-    cssVars.push(`--font-family-display: ${theme.typography.fontFamily.display};`)
-  if (theme.typography?.fontFamily?.body) cssVars.push(`--font-family-body: ${theme.typography.fontFamily.body};`)
-  if (theme.typography?.fontFamily?.mono) cssVars.push(`--font-family-mono: ${theme.typography.fontFamily.mono};`)
+    cssVars.push(`--font-display: ${theme.typography.fontFamily.display};`)
+  if (theme.typography?.fontFamily?.heading)
+    cssVars.push(`--font-heading: ${theme.typography.fontFamily.heading};`)
+  if (theme.typography?.fontFamily?.body) cssVars.push(`--font-body: ${theme.typography.fontFamily.body};`)
+  if (theme.typography?.fontFamily?.mono) cssVars.push(`--font-number: ${theme.typography.fontFamily.mono};`)
 
   // Spacing
   if (theme.spacing?.xs) cssVars.push(`--spacing-xs: ${theme.spacing.xs};`)

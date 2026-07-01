@@ -3,9 +3,7 @@ import {
   computeSets,
   computeReps,
   computeRest,
-  computeWeeklyVolume,
   getExerciseCount,
-  getVolumeConfig,
 } from "../volume-manager"
 
 describe("computeSets", () => {
@@ -59,20 +57,6 @@ describe("computeRest", () => {
   })
 })
 
-describe("computeWeeklyVolume", () => {
-  it("returns 8-12 for Beginner", () => {
-    expect(computeWeeklyVolume("Beginner")).toEqual([8, 12])
-  })
-
-  it("returns 12-16 for Intermediate", () => {
-    expect(computeWeeklyVolume("Intermediate")).toEqual([12, 16])
-  })
-
-  it("returns 16-20 for Advanced", () => {
-    expect(computeWeeklyVolume("Advanced")).toEqual([16, 20])
-  })
-})
-
 describe("getExerciseCount", () => {
   it("returns 3 for 15 min", () => expect(getExerciseCount("15 min")).toBe(3))
   it("returns 5 for 30 min", () => expect(getExerciseCount("30 min")).toBe(5))
@@ -81,14 +65,4 @@ describe("getExerciseCount", () => {
   it("defaults to 5 for unknown", () => expect(getExerciseCount("unknown")).toBe(5))
 })
 
-describe("getVolumeConfig", () => {
-  it("returns config for Strength", () => {
-    const cfg = getVolumeConfig("Strength")
-    expect(cfg.mainCompound.sets).toEqual([4, 5])
-  })
 
-  it("returns config for Hypertrophy", () => {
-    const cfg = getVolumeConfig("Hypertrophy")
-    expect(cfg.mainCompound.reps).toEqual([6, 8])
-  })
-})

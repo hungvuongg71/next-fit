@@ -1,9 +1,11 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { X, Play, ChevronLeft } from "lucide-react"
+import { X, Play, ChevronLeft, ChevronDown, ChevronUp } from "lucide-react"
 import { Exercise } from "@/types"
 import { MOCK_EXERCISES } from "@/lib/data"
+import { getRelatedExercises, type ScoredExercise } from "@/lib/related-exercises"
+import { useApp } from "@/state/context"
 import ExerciseThumbnail from "./ExerciseThumbnail"
 
 interface ExerciseModalProps {
@@ -21,9 +23,11 @@ function getYouTubeEmbedUrl(url: string | undefined | null): string | null {
 }
 
 export default function ExerciseModal({ exercise, onClose, onReplace }: ExerciseModalProps) {
+  const { state } = useApp()
   const [showDetailVideo, setShowDetailVideo] = useState(false)
   const [currentExercise, setCurrentExercise] = useState<Exercise | null>(exercise)
   const [history, setHistory] = useState<Exercise[]>([])
+  const [showAllRelated, setShowAllRelated] = useState(false)
   const modalRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
 
@@ -59,9 +63,14 @@ export default function ExerciseModal({ exercise, onClose, onReplace }: Exercise
     setCurrentExercise(prev)
   }
 
-  const related = MOCK_EXERCISES.filter(
-    (e) => e.id !== currentExercise.id && e.target_muscle_group === currentExercise.target_muscle_group,
-  ).slice(0, 3)
+  const relatedExercises: ScoredExercise[] = getRelatedExercises(
+    currentExercise,
+    MOCK_EXERCISES,
+    state.criteria,
+  )
+
+  const INITIAL_DISPLAY_COUNT = 4
+  const displayed = showAllRelated ? relatedExercises : relatedExercises.slice(0, INITIAL_DISPLAY_COUNT)
 
   return (
     <div
@@ -177,29 +186,47 @@ export default function ExerciseModal({ exercise, onClose, onReplace }: Exercise
         </div>
 
         {/* Section 4: Related exercises */}
-        {related.length > 0 && (
+        {relatedExercises.length > 0 && (
           <div className="px-5 pb-6">
-            <h3 className="font-heading font-semibold text-sm mb-3" style={{ color: "var(--color-text-secondary)" }}>
-              BÀI TẬP LIÊN QUAN
-            </h3>
-            <div className="flex gap-3 overflow-x-auto pb-2">
-              {related.map((ex) => (
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-heading font-semibold text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                BÀI TẬP LIÊN QUAN
+              </h3>
+              {relatedExercises.length > INITIAL_DISPLAY_COUNT && (
+                <button
+                  onClick={() => setShowAllRelated((v) => !v)}
+                  className="flex items-center gap-1 font-heading text-xs font-semibold transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded-lg px-2 py-1"
+                  style={{ color: "var(--color-primary)" }}
+                  aria-label={showAllRelated ? "Thu gọn" : "Xem thêm"}
+                >
+                  {showAllRelated ? "Thu gọn" : `Xem thêm (${relatedExercises.length})`}
+                  {showAllRelated ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+              )}
+            </div>
+            <div className={showAllRelated ? "grid grid-cols-3 gap-3 pb-2" : "flex gap-3 overflow-x-auto pb-2"}>
+              {displayed.map(({ exercise: ex }) => (
                 <button
                   key={ex.id}
                   onClick={() => {
                     setHistory((prev) => [...prev, currentExercise])
                     setCurrentExercise(ex)
+                    setShowAllRelated(false)
                   }}
-                  className="flex-shrink-0 w-28 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] focus-visible:ring-[var(--color-primary)]"
+                  className={
+                    showAllRelated
+                      ? "rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] focus-visible:ring-[var(--color-primary)]"
+                      : "flex-shrink-0 w-28 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] focus-visible:ring-[var(--color-primary)]"
+                  }
                   aria-label={`Xem ${ex.name}`}
                 >
                   <ExerciseThumbnail
                     exercise={ex}
-                    className="w-28 rounded-xl mb-2 object-cover"
+                    className={`rounded-xl mb-2 object-cover ${showAllRelated ? "w-full" : "w-28"}`}
                     style={{ height: "80px" }}
                   />
                   <p
-                    className="font-heading text-xs font-semibold leading-tight"
+                    className="font-heading text-xs font-semibold leading-tight truncate"
                     style={{ color: "var(--color-text)" }}
                   >
                     {ex.name}

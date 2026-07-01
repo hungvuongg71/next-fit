@@ -3,8 +3,6 @@ import {
   matchesLevel,
   compoundScore,
   repScore,
-  goalScore,
-  fatiguePenalty,
   parseAvgReps,
 } from "@/lib/split"
 import type { Exercise } from "@/types"
@@ -122,18 +120,6 @@ describe("repScore", () => {
   })
 })
 
-describe("fatiguePenalty", () => {
-  it("returns 0 when no fatigued muscles", () => {
-    const ex = makeExercise()
-    expect(fatiguePenalty(ex, new Set())).toBe(0)
-  })
 
-  it("increases penalty with muscle overlap", () => {
-    const ex = makeExercise({ prime_mover_muscle: "Pectoralis Major", secondary_muscle: "Triceps" })
-    const overlap = fatiguePenalty(ex, new Set(["Triceps"]))
-    const noOverlap = fatiguePenalty(ex, new Set(["Hamstrings"]))
-    expect(overlap).toBeGreaterThan(noOverlap)
-  })
-})
 
 

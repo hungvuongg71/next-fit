@@ -1,105 +1,228 @@
-# Spec: Ưu tiên bài tập Barbell/Dumbbell trong gợi ý
+# Spec: Per-Mode Independent Exercise State
 
 ## Objective
 
-Hiện tại `suggestExercises()` lọc cứng theo equipment (chỉ lấy bài tập matching equipment). Sửa thành **ưu tiên Barbell/Dumbbell lên đầu**, nếu không đủ thì bổ sung từ các thiết bị khác trong profile.
-
-**Ví dụ:** User có equipment `["Barbell", "Dumbbell", "Cable", "Kettlebell"]`, chọn Chest, count=6:
-1. Lấy tất cả Chest + Barbell/Dumbbell → shuffle → lấy tối đa 6
-2. Nếu chưa đủ 6, bổ sung từ Chest + các equipment còn lại (Cable, Kettlebell) → shuffle → fill cho đủ 6
+Tách `suggestedExercises` (state dùng chung) thành 3 state riêng biệt — mỗi mode (Gợi ý / Giáo án / Tự chọn) quản lý danh sách bài tập độc lập. Chuyển đổi giữa các mode khôi phục đúng danh sách của mode đó.
 
 ## Tech Stack
 
-Next.js 16 + React 19 + TypeScript 5 + Vitest 4 (không đổi)
+- **Framework:** Next.js 16.2.7 (App Router)
+- **Styling:** Tailwind CSS v4 + CSS variables
 
 ## Commands
 
 ```
-Test: pnpm --filter=nextfit vitest run
-Lint: pnpm --filter=nextfit lint
+Build:  pnpm build
+Dev:    pnpm dev
+Test:   pnpm test
 ```
 
-## Project Structure
+## Project Structure (affected files)
 
 ```
-src/lib/suggestions.ts                → [EDIT] Logic ưu tiên
-src/lib/__tests__/suggestions.test.ts → [EDIT] Sửa/sửa test cho phù hợp
+src/app/page.tsx   → 3 state vars, new handlers, per-mode logic
+SPEC.md            → This spec
+tasks/plan.md      → Plan (to be written)
+tasks/todo.md      → Task tracking (to be written)
 ```
-
-Chỉ 2 files.
 
 ## Code Style
 
-```typescript
-export function suggestExercises(
-  muscleGroups: MuscleGroup[],
-  equipment: string[] = DEFAULT_EQUIPMENT,
-  count = 6,
-): Exercise[] {
-  if (muscleGroups.length === 0) return []
-  const targets = new Set(muscleGroups)
-  const equipSet = new Set(equipment.length > 0 ? equipment : DEFAULT_EQUIPMENT)
+**3 state variables, one per mode:**
 
-  const pool = MOCK_EXERCISES.filter((ex) =>
-    targets.has(ex.target_muscle_group as MuscleGroup) && equipSet.has(ex.primary_equipment),
-  )
+```tsx
+const [suggestExercises, setSuggestExercises] = useState<Exercise[]>([])
+const [planExercises, setPlanExercises] = useState<Exercise[]>([])
+const [freeExercises, setFreeExercises] = useState<Exercise[]>([])
+```
 
-  const priority = ["Barbell", "Dumbbell"]
-  const priorityExercises = pool.filter((ex) => priority.includes(ex.primary_equipment))
-  const otherExercises = pool.filter((ex) => !priority.includes(ex.primary_equipment))
+**Derived current exercises:**
 
-  const shuffledPriority = shuffle(priorityExercises)
-  const shuffledOther = shuffle(otherExercises)
+```tsx
+const currentExercises = useMemo(() => {
+  if (workoutMode === "suggest") return suggestExercises
+  if (workoutMode === "plan")   return planExercises
+  return freeExercises
+}, [workoutMode, suggestExercises, planExercises, freeExercises])
+```
 
-  const result: Exercise[] = []
-  for (const ex of shuffledPriority) {
-    if (result.length >= count) break
-    result.push(ex)
-  }
-  for (const ex of shuffledOther) {
-    if (result.length >= count) break
-    result.push(ex)
-  }
-  return result
+**Per-mode saved baselines for undo:**
+
+```tsx
+const [suggestSaved, setSuggestSaved] = useState<Exercise[]>([])
+const [planSaved, setPlanSaved] = useState<Exercise[]>([])
+const [freeSaved, setFreeSaved] = useState<Exercise[]>([])
+```
+
+**Helper to update current mode's exercises:**
+
+```tsx
+function updateExercises(fn: (prev: Exercise[]) => Exercise[]) {
+  if (workoutMode === "suggest") setSuggestExercises(fn)
+  else if (workoutMode === "plan") setPlanExercises(fn)
+  else setFreeExercises(fn)
 }
 ```
 
-Giữ nguyên shuffle giữa các bài trong cùng nhóm ưu tiên.
+**Grid heading per mode:**
+```
+Gợi ý:  "Bài tập gợi ý ({n})"
+Giáo án: "Bài tập giáo án ({n})"
+Tự chọn: "Bài tập của tôi ({n})"
+```
+
+## Layout
+
+Identical to current layout — only the exercise state model changes internally.
+
+## Mode Behavior
+
+| Mode | Exercise source | Replace vs Append | Baseline for undo |
+|---|---|---|---|
+| **Gợi ý** | `useEffect` on `selectedMuscles` → `suggestExercises(muscles, dynamicCount)` | Replace | Saved on muscle change |
+| **Giáo án** | `handleLoadPlanDay` → copy `day.exercises` | Replace | Saved on day click |
+| **Tự chọn** | `ExercisePicker` → `handleAddExercises` | Append | Empty (no undo needed) |
+
+### Suggest mode: dynamic count
+
+Số lượng bài tập gợi ý tăng theo số nhóm cơ đã chọn:
+
+| Nhóm cơ | Count |
+|---|---|
+| 1 | 6 |
+| 2 | 8 |
+| 3-4 | 10 |
+| 5-6 | 12 |
+
+```tsx
+const muscles = selectedMuscles.length > 0 ? selectedMuscles : [...MUSCLE_GROUPS] as MuscleGroup[]
+const count = muscles.length === 1 ? 6 : muscles.length <= 2 ? 8 : muscles.length <= 4 ? 10 : 12
+const exercises = suggestExercises(muscles, state.criteria?.equipment, count)
+```
+
+Bài tập được chọn ngẫu nhiên từ pool chung của tất cả nhóm cơ đã chọn (giữ nguyên logic `suggestExercises` hiện tại).
+
+### Mode switching preserves state
+
+When user switches from Gợi ý → Giáo án:
+1. Hides muscle pills, shows day cards
+2. Exercise grid now shows `planExercises` (previously saved for plan mode)
+3. When switching back to Gợi ý: `suggestExercises` (previously saved) is restored
+
+### DnD, sort, add, remove, replace
+
+All operations (`handleMoveUp`, `handleDragEnd`, `handleRemoveExercise`, `handleAddExercises`, `handleReplaceExercise`) dispatch to `updateExercises` which targets the current mode's state.
+
+### Nút Reset (per-mode)
+
+Xoá toàn bộ bài tập + baseline của mode hiện tại. Cần confirm trước khi reset.
+
+**Behavior per mode:**
+
+| Mode | Reset clears |
+|---|---|
+| Gợi ý | `suggestModeExercises` → `[]`, `suggestSaved` → `[]` |
+| Giáo án | `planExercises` → `[]`, `planSaved` → `[]`, `selectedPlanDayIndex` → `null` |
+| Tự chọn | `freeExercises` → `[]`, `freeSaved` → `[]` |
+
+**UX:**
+- Nút reset (icon `Trash2`) nằm cạnh nút "Hoàn tác" trong header exercise grid
+- Chỉ hiện khi `currentExercises.length > 0`
+- Click → dialog confirm "Xoá tất cả bài tập?" với 2 nút "Huỷ" / "Xoá"
+- Confirm → xoá exercises + baseline của mode hiện tại
+- Không ảnh hưởng đến các mode khác
+
+Per-mode: reads the current mode's saved baseline.
+
+```tsx
+const currentSaved = useMemo(() => {
+  if (workoutMode === "suggest") return suggestSaved
+  if (workoutMode === "plan")   return planSaved
+  return freeSaved
+}, [workoutMode, suggestSaved, planSaved, freeSaved])
+
+const handleUndo = () => {
+  if (workoutMode === "suggest") setSuggestExercises([...suggestSaved])
+  else if (workoutMode === "plan") setPlanExercises([...planSaved])
+  // free mode: no undo (or clears to [])
+}
+```
+
+`hasChanges` compares `currentExercises` to `currentSaved`.
+
+### Bắt Đầu Workout
+
+Uses `currentExercises`. After routing to `/workout`, reset ALL 3 states to `[]`.
+
+```tsx
+const handleStartWorkout = () => {
+  if (currentExercises.length === 0) return
+  setTodayExercises(currentExercises)
+  startWorkout()
+  router.push("/workout")
+  setSuggestExercises([])
+  setPlanExercises([])
+  setFreeExercises([])
+  setSuggestSaved([])
+  setPlanSaved([])
+  setFreeSaved([])
+}
+```
+
+### DailyExercise `onAdd`
+
+Adds exercise to the current mode's state (not all modes).
+
+### PlanEditModal removed
+
+Zone 3 already removed in previous iteration. No change needed.
+
+## Operations Refactoring Summary
+
+All these currently use `setSuggestedExercises` — change to `updateExercises`:
+
+| Handler | Action |
+|---|---|
+| `handleAddExercises` | Append with dedup → `updateExercises` |
+| `handleRemoveExercise` | Filter out → `updateExercises` |
+| `handleMoveUp` | Swap with prev → `updateExercises` |
+| `handleMoveDown` | Swap with next → `updateExercises` |
+| `handleDragEnd` | Reorder → `updateExercises` |
+| `handleReplaceExercise` | Replace at index → `updateExercises` |
+| `DailyExercise.onAdd` | Append with dedup → `updateExercises` |
+| ExercisePicker `onAdd` | Calls `handleAddExercises` already ✓ |
+| Confirm modal `onConfirm` | Calls `handleRemoveExercise` already ✓ |
+
+## Implementation Plan
+
+### Phase 1: Dynamic count in suggest mode
+1. Update `page.tsx` `useEffect` — calculate `count` based on `muscles.length`
+2. Build + test verification
+
+### Phase 2: Verify build + tests
 
 ## Testing Strategy
 
-Giữ vitest. Cập nhật/sửa test:
-
-| Test | Mô tả |
-|------|-------|
-| `trả về Barbell/Dumbbell trước` | Khi có cả Barbell và Dumbbell trong pool, chúng xuất hiện trước các equipment khác |
-| `bổ sung từ equipment khác nếu thiếu` | Filter sao cho chỉ có 1 bài Barbell, count=3 → 1 Barbell + 2 từ equipment khác |
-| `chỉ Barbell/Dumbbell nếu đủ` | Filter sao cho có >=6 bài Barbell/Dumbbell → kết quả toàn Barbell/Dumbbell |
-| `default equipment fallback` | equipment = [] → dùng default (vẫn ưu tiên Barbell/Dumbbell) |
-| `không có Barbell/Dumbbell` | Equipment list không có Barbell/Dumbbell → lấy từ equipment khác |
-| `empty muscle groups → []` | Giữ nguyên |
+- **Framework:** Vitest (existing)
+- **Coverage:** Existing 126 tests must pass
+- Only page.tsx changes (no lib logic changes)
 
 ## Boundaries
 
 **Always do:**
-- Barbell/Dumbbell luôn đứng trước trong result array
-- Shuffle trong cùng nhóm ưu tiên
-- Giữ nguyên default equipment fallback
+- Run `pnpm build` before marking done
+- Keep DnD, sort controls working in all modes
+- Each mode preserves its own state independently
 
 **Ask first:**
-- Thêm equipment khác vào priority list (ví dụ: Cable)
-- Thay đổi thứ tự ưu tiên
+- Adding new modes beyond the current 3
+- Changing how `suggestExercises` (lib function) works
 
 **Never do:**
-- Thay đổi weekly plan / session-builder logic
-- Thêm dependencies
-
-## Success Criteria
-
-1. `suggestExercises(["Chest"], ["Barbell", "Dumbbell", "Cable"], 6)` → các bài Barbell/Dumbbell đứng trước Cable
-2. `suggestExercises(["Chest"], ["Barbell", "Cable"], 3)` với 1 bài Barbell → result[0] là Barbell, result[1..2] là Cable
-3. All existing tests pass (đã update)
+- Break existing muscle → suggest flow
+- Break DnD integration
+- Introduce shared state between modes
 
 ## Open Questions
 
-Không có.
+None — requirements are clear from user answers.
