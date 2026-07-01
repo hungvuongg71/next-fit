@@ -17,15 +17,39 @@ export function suggestExercises(
   muscleGroups: MuscleGroup[],
   equipment: string[] = DEFAULT_EQUIPMENT,
   count = 6,
+  perGroup = 0,
 ): Exercise[] {
   if (muscleGroups.length === 0) return []
 
-  const targets = new Set(muscleGroups)
   const equipSet = new Set(equipment.length > 0 ? equipment : DEFAULT_EQUIPMENT)
+
+  const equipFilter = (ex: Exercise) => equipSet.has(ex.primary_equipment)
+
+  if (perGroup > 0) {
+    const result: Exercise[] = []
+    const seenIds = new Set<string>()
+    for (const group of muscleGroups) {
+      if (result.length >= count) break
+      const pool = MOCK_EXERCISES.filter((ex) => {
+        if (ex.target_muscle_group !== group) return false
+        if (!equipFilter(ex)) return false
+        if (seenIds.has(ex.id)) return false
+        return true
+      })
+      for (const ex of shuffle(pool)) {
+        if (result.length >= count || result.filter((r) => r.target_muscle_group === group).length >= perGroup) break
+        result.push(ex)
+        seenIds.add(ex.id)
+      }
+    }
+    return result
+  }
+
+  const targets = new Set(muscleGroups)
 
   const pool = MOCK_EXERCISES.filter((ex) => {
     if (!targets.has(ex.target_muscle_group as MuscleGroup)) return false
-    if (!equipSet.has(ex.primary_equipment)) return false
+    if (!equipFilter(ex)) return false
     return true
   })
 
