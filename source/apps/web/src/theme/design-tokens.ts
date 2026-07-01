@@ -52,8 +52,8 @@ export const PREMIUM_ATHLETIC_THEME = {
   // Typography - Font pairings from @fontsource
   typography: {
     fontFamily: {
-      display: '"Syne", system-ui, sans-serif', // Bold, geometric, energetic
-      heading: '"Syne", system-ui, sans-serif',
+      display: '"DM Sans", system-ui, sans-serif',
+      heading: '"DM Sans", system-ui, sans-serif',
       body: '"Be Vietnam Pro", system-ui, sans-serif', // Clean, modern readability
       mono: '"Rubik Mono One", monospace', // Data displays, accent elements
     },
@@ -184,8 +184,8 @@ export const CYBER_ATHLETE_THEME = {
   // Typography - Bold, angular fonts
   typography: {
     fontFamily: {
-      display: '"Syne", system-ui, sans-serif',
-      heading: '"Syne", system-ui, sans-serif',
+      display: '"DM Sans", system-ui, sans-serif',
+      heading: '"DM Sans", system-ui, sans-serif',
       body: '"Be Vietnam Pro", system-ui, sans-serif',
       mono: '"Rubik Mono One", monospace',
     },
@@ -321,8 +321,8 @@ export const ORGANIC_PERFORMANCE_THEME = {
   // Typography - Warm, natural serif pairing
   typography: {
     fontFamily: {
-      display: '"Syne", system-ui, sans-serif',
-      heading: '"Syne", system-ui, sans-serif',
+      display: '"DM Sans", system-ui, sans-serif',
+      heading: '"DM Sans", system-ui, sans-serif',
       body: '"Be Vietnam Pro", system-ui, sans-serif',
       mono: '"Rubik Mono One", monospace',
     },

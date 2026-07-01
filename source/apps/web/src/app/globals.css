@@ -1,7 +1,7 @@
 @import "tailwindcss";
-@import "@fontsource/syne/800.css";
-@import "@fontsource/syne/700.css";
-@import "@fontsource/syne/600.css";
+@import "@fontsource/dm-sans/700.css";
+@import "@fontsource/dm-sans/600.css";
+@import "@fontsource/dm-sans/500.css";
 @import "@fontsource/be-vietnam-pro/500.css";
 @import "@fontsource/be-vietnam-pro/400.css";
 @import "@fontsource/rubik-mono-one/400.css";
@@ -28,8 +28,8 @@
   --color-border: rgba(15, 165, 96, 0.1);
 
   /* Typography */
-  --font-display: "Syne", sans-serif;
-  --font-heading: "Syne", sans-serif;
+  --font-display: "DM Sans", sans-serif;
+  --font-heading: "DM Sans", sans-serif;
   --font-body: "Be Vietnam Pro", sans-serif;
   --font-number: "Rubik Mono One", sans-serif;
 
