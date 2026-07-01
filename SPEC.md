@@ -1,22 +1,29 @@
-# Spec: Cải thiện Trang Chủ
+# Spec: Refactor Font System
 
 ## Objective
 
-Cải thiện trải nghiệm trang chủ với Daily Recommendation làm trung tâm, kết hợp cải thiện layout và các quick actions.
+Tối ưu và đồng bộ hệ thống font cho toàn bộ Web App, hỗ trợ cả 3 themes.
 
-**User stories:**
-- Khi mở app, tôi thấy "Bài tập trong ngày" — một bài tập nổi bật phù hợp với lịch sử tập & mục tiêu của tôi, có thể xem chi tiết hoặc thêm vào workout
-- Tôi thấy "Micro-workout gợi ý hôm nay" — 2-3 bài tập nhẹ cho phiên nhanh, có nút "Bắt đầu ngay"
-- Nếu tôi đang có workout dang dở, tôi thấy banner "Tiếp tục workout" ở đầu trang
-- Tôi thấy thống kê nhanh đầu trang: số buổi tập tuần này, streak hiện tại
-- Layout gọn gàng hơn, các section rõ ràng
+**Vấn đề hiện tại:**
+- Display + heading dùng chung font (Be Vietnam Pro) → redundant, lãng phí
+- 2 font packages (`space-grotesk`, `syne`) installed nhưng không dùng
+- Organic Performance theme: heading = Plus Jakarta Sans (trùng body) → thiếu tương phản
+- Design tokens (`design-tokens.ts`) generate `--font-family-*` nhưng CSS dùng `--font-*` khác tên → không sync
+- Chưa register font trong Tailwind v4 `@theme` → không dùng được `font-sans`/`font-mono`
+
+**Đề xuất 3 phương án font pairing:**
+
+| | Display/Heading | Body | Number | Phù hợp |
+|---|---|---|---|---|
+| **A — Tối ưu (giữ nguyên)** | Be Vietnam Pro | Plus Jakarta Sans | Rubik Mono One | Cleanup, fix sync, bỏ font thừa |
+| **B — Mạnh mẽ** | Space Grotesk (đã có) | Plus Jakarta Sans | Rubik Mono One | Cá tính, năng động, thể thao |
+| **C — Tối giản** | Syne (đã có) | Be Vietnam Pro | Rubik Mono One | Hiện đại, geometric, độc đáo |
 
 ## Tech Stack
 
-- Next.js 16.2.7 (App Router), React 19.2.4, TypeScript 5
-- Tailwind CSS v4, lucide-react
+- Next.js 16.2.7, React 19.2.4, TypeScript 5
+- Tailwind CSS v4, @fontsource packages
 - Vitest + Testing Library
-- localStorage persistence
 
 ## Commands
 
@@ -31,86 +38,67 @@ Lint: pnpm lint
 
 ```
 src/
-├── app/page.tsx              → Rewrite sections, integrate new components
-├── components/ui/
-│   ├── DailyExercise.tsx     → [MỚI] Bài tập trong ngày card
-│   ├── MicroWorkout.tsx      → [MỚI] Micro-workout suggestion card
-│   ├── WorkoutBanner.tsx     → [MỚI] Resume workout banner
-│   └── QuickStats.tsx        → [MỚI] Thống kê nhanh đầu trang
-├── lib/
-│   ├── daily-recommendation.ts → [MỚI] Chọn bài daily + micro-workout
-│   └── weekly-stats.ts       → [MỚI] Tính streak, volume tuần
-├── state/context.tsx          → Giữ nguyên (đọc lastPerformances, workoutHistory)
-└── types/index.ts             → Giữ nguyên
+├── app/
+│   └── globals.css           → Sửa @import font, CSS vars, thêm @theme
+├── theme/
+│   └── design-tokens.ts      → Sync fontFamily keys với CSS vars
+└── package.json               → Gỡ font thừa (space-grotesk, syne) nếu không dùng
 ```
 
 ## Code Style
 
-```typescript
-// Ví dụ style: component nhẹ, không comment thừa
-export default function DailyExercise({ exercise, onAdd }: DailyExerciseProps) {
-  return (
-    <div className="rounded-2xl p-4" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
-      <ExerciseThumbnail exercise={exercise} className="w-full rounded-xl mb-3" style={{ height: 140 }} />
-      <h3 className="font-heading font-semibold text-sm truncate">{exercise.name}</h3>
-      <p className="font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
-        {exercise.target_muscle_group} · {exercise.difficulty_level}
-      </p>
-      <button onClick={onAdd} className="mt-2 w-full py-2 rounded-xl font-heading text-xs font-semibold"
-        style={{ background: "var(--color-primary)", color: "#fff" }}>
-        Thêm vào workout
-      </button>
-    </div>
-  )
+```css
+/* globals.css — font imports chỉ import weights cần thiết */
+@import "@fontsource/be-vietnam-pro/700.css";
+@import "@fontsource/be-vietnam-pro/600.css";
+@import "@fontsource/be-vietnam-pro/500.css";
+@import "@fontsource/plus-jakarta-sans/400.css";
+@import "@fontsource/plus-jakarta-sans/600.css";
+@import "@fontsource/rubik-mono-one/400.css";
+
+/* @theme block — register font families in Tailwind v4 */
+@theme inline {
+  --font-display: "Be Vietnam Pro", sans-serif;
+  --font-heading: "Be Vietnam Pro", sans-serif;
+  --font-body: "Plus Jakarta Sans", sans-serif;
+  --font-number: "Rubik Mono One", sans-serif;
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-text);
 }
 ```
 
 ## Testing Strategy
 
 - **Framework:** Vitest
-- **Unit tests:** `src/lib/__tests__/daily-recommendation.test.ts`, `weekly-stats.test.ts`
-- **Test concerns:**
-  - Daily recommendation: chọn bài dựa trên lịch sử, ưu tiên nhóm cơ chưa tập, không lặp
-  - Weekly stats: tính streak, volume tuần từ workoutHistory
-- **Không test component UI** (chỉ logic)
+- **Testing:** Visual check (manual) — font changes không thể unit test
+- **Verify:** `pnpm build` không lỗi, `pnpm lint` không lỗi mới
 
 ## Boundaries
 
 - **Always do:**
-  - Chạy `pnpm test` trước commit
-  - Daily exercise không lặp lại trong 7 ngày gần nhất
-  - Micro-workout chọn bài đa dạng nhóm cơ (full body 15 phút)
-  - Resume banner chỉ hiện khi có workout dang dở
+  - Import chỉ weights đang dùng (không import all weights)
+  - Đồng bộ fontFamily keys giữa design-tokens.ts và globals.css
+  - Chạy `pnpm build` sau mọi thay đổi
 
 - **Ask first:**
-  - Thay đổi Exercise interface
-  - Thêm dependency mới
-  - Sửa state/context logic
+  - Thêm font package mới (cần download về)
+  - Thay đổi tên CSS variable class (`.font-display`, `.font-heading`, etc.)
 
 - **Never do:**
-  - Xoá dữ liệu JSON exercises
-  - Xoá test hiện có
-  - Commit secret/cấu hình cá nhân
+  - Import tất cả weights của font (làm tăng bundle size)
+  - Xoá font vẫn đang được dùng
 
 ## Success Criteria
 
-- [x] `DailyExercise` component hiển thị bài tập trong ngày với thumbnail + nút "Thêm vào workout"
-- [x] `MicroWorkout` component hiển thị 2-3 bài tập cho phiên nhanh + nút "Bắt đầu ngay"
-- [x] `WorkoutBanner` hiển thị khi có workout dang dở, nút "Tiếp tục" → /workout
-- [x] `QuickStats` hiển thị số buổi tuần này + streak
-- [x] Layout trang chủ được tái cấu trúc: section rõ ràng, spacing hợp lý
-- [x] Daily recommendation không lặp bài trong 7 ngày
-- [x] Code pass `pnpm test`, `pnpm build`, `pnpm lint`
-- [x] Không break existing tests
-
-## Implementation Order (theo phân tích)
-
-1. **Daily Recommendation + Micro-workout** (core feature — phần user chọn)
-2. **QuickStats** (thống kê nhanh đầu trang — tác động lớn, code ít)
-3. **WorkoutBanner** (resume workout — logic đơn giản)
-4. **Layout refresh** (spacing, section ordering, empty state)
+- [x] Font imports chỉ giữ weights cần thiết, bỏ thừa
+- [x] CSS variables `--font-*` đồng bộ với design tokens
+- [x] `@theme` block register đủ font families cho Tailwind v4
+- [x] Cả 3 themes dùng font pairing nhất quán (không trùng body=heading)
+- [x] Bonus: gỡ `space-grotesk`, `syne` khỏi package.json nếu không dùng
+- [x] `pnpm build` pass, `pnpm test` pass
+- [x] Font rendering không bị layout shift (FOUT)
 
 ## Open Questions
 
-- [ ] Micro-workout mặc định 15 phút, có cần cho user chọn duration?
-- [ ] Workout dang dở: tự động detect khi có session trong localStorage?
+- [ ] Chọn phương án A, B, hay C?
+- [ ] Có muốn giữ Space Grotesk và Syne cho tương lai không (dù chưa dùng)?

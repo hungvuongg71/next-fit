@@ -12,7 +12,7 @@
 
 - **Aesthetic**: Luxury minimalist (Apple Watch Sport vibe)
 - **Primary Color**: Forest Green `#0FA560`
-- **Typography**: Syne (display/heading) + Be Vietnam Pro (body) + Rubik Mono One (numbers)
+- **Typography**: DM Sans (display/heading) + Be Vietnam Pro (body) + Rubik Mono One (numbers)
 - **Signature Animation**: `premium-slide` — smooth entrance with subtle bounce
 
 ### Ưu điểm
@@ -44,7 +44,7 @@
 - **Aesthetic**: Bold maximalist cyberpunk
 - **Primary Color**: Neon Cyan `#00D9FF`
 - **Secondary Color**: Neon Violet `#B024FF`
-- **Typography**: Syne (display/heading) + Be Vietnam Pro (body) + Rubik Mono One (numbers)
+- **Typography**: DM Sans (display/heading) + Be Vietnam Pro (body) + Rubik Mono One (numbers)
 - **Signature Animation**: `cyber-pulse` — pulsing neon glow effect
 
 ### Ưu điểm
@@ -76,7 +76,7 @@
 - **Aesthetic**: Warm earth tone, natural curves
 - **Primary Color**: Warm Gold `#E8A542`
 - **Secondary Color**: Burnt Sienna `#C67C3F`
-- **Typography**: Syne (display/heading) + Be Vietnam Pro (body) + Rubik Mono One (numbers)
+- **Typography**: DM Sans (display/heading) + Be Vietnam Pro (body) + Rubik Mono One (numbers)
 - **Signature Animation**: `organic-breathe` — subtle breathing effect
 
 ### Ưu điểm

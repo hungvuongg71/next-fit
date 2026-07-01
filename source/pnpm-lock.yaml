@@ -32,6 +32,9 @@ importers:
       '@fontsource/be-vietnam-pro':
         specifier: ^5.2.8
         version: 5.2.8
+      '@fontsource/dm-sans':
+        specifier: ^5.2.8
+        version: 5.2.8
       '@fontsource/rubik-mono-one':
         specifier: ^5.2.7
         version: 5.2.8
@@ -378,6 +381,9 @@ packages:
 
   '@fontsource/be-vietnam-pro@5.2.8':
     resolution: {integrity: sha512-lqTtfpkAy0GdFH0fqwR0sW4VP+3CNGaQV6SpW2TSZaNmixZMlou+2dp5ErGidrS1MPiDDPfPbfW2i358PVFLZA==}
+
+  '@fontsource/dm-sans@5.2.8':
+    resolution: {integrity: sha512-tlovG42m9ESG28WiHpLq3F5umAlm64rv0RkqTbYowRn70e9OlRr5a3yTJhrhrY+k5lftR/OFJjPzOLQzk8EfCA==}
 
   '@fontsource/rubik-mono-one@5.2.8':
     resolution: {integrity: sha512-+TVynJCT2ADs/caB2iTMjcfuihc9yz069GLN8PxGeaECSq6+6M1dmzTkdJdHCokf9Oe4UCGxJ2nBe3Ia5Z67qQ==}
@@ -2962,6 +2968,8 @@ snapshots:
   '@exodus/bytes@1.15.1': {}
 
   '@fontsource/be-vietnam-pro@5.2.8': {}
+
+  '@fontsource/dm-sans@5.2.8': {}
 
   '@fontsource/rubik-mono-one@5.2.8': {}
 
