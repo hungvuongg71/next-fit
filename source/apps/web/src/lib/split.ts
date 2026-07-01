@@ -98,7 +98,7 @@ export function repScore(
   }
 }
 
-export function goalScore(ex: Exercise, goal: Goal, gender?: string): number {
+function goalScore(ex: Exercise, goal: Goal, gender?: string): number {
   const compound = compoundScore(ex, gender)
   const avgReps = parseAvgReps(DEFAULT_REPS)
   const rep = avgReps !== null ? repScore(avgReps, goal, gender, ex.target_muscle_group) : 0.5
@@ -113,7 +113,7 @@ export function goalScore(ex: Exercise, goal: Goal, gender?: string): number {
   }
 }
 
-export function fatiguePenalty(ex: Exercise, fatiguedMuscles: Set<string>): number {
+function fatiguePenalty(ex: Exercise, fatiguedMuscles: Set<string>): number {
   if (fatiguedMuscles.size === 0) return 0
   const allMuscles = [ex.prime_mover_muscle, ex.secondary_muscle].filter(Boolean)
   const overlap = allMuscles.filter((m) => fatiguedMuscles.has(m)).length

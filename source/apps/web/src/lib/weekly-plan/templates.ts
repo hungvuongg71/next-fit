@@ -265,7 +265,7 @@ export function getTemplate(frequency: Frequency): SplitTemplateConfig {
   return TEMPLATES[id]
 }
 
-export function getAllTemplates(): SplitTemplateConfig[] {
+function getAllTemplates(): SplitTemplateConfig[] {
   return Object.values(TEMPLATES)
 }
 

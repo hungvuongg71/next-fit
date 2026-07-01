@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { suggestNextWeight, suggestWarmup, suggestWarmupSets, rotateExercise, getLogsForExercise } from "@/lib/progressive"
+import { suggestNextWeight, suggestWarmup, getLogsForExercise } from "@/lib/progressive"
 import type { Exercise, ExerciseLogEntry } from "@/types"
 
 describe("suggestNextWeight", () => {
@@ -98,101 +98,7 @@ const BASE_EXERCISE = {
   in_depth_youtube_explanation: "",
 }
 
-describe("suggestWarmupSets", () => {
-  const benchPress: Exercise = {
-    ...BASE_EXERCISE,
-    id: "bench-1",
-    name: "Barbell Bench Press",
-    target_muscle_group: "Chest",
-    difficulty_level: "Intermediate",
-    primary_equipment: "Barbell",
-  }
 
-  const pushUp: Exercise = {
-    ...BASE_EXERCISE,
-    id: "pushup-1",
-    name: "Push Up",
-    target_muscle_group: "Chest",
-    difficulty_level: "Beginner",
-    primary_equipment: "Bodyweight",
-  }
-
-  it("skips bodyweight exercises", () => {
-    const result = suggestWarmupSets([pushUp], {})
-    expect(result).toHaveLength(0)
-  })
-
-  it("generates warmup set for weighted exercise", () => {
-    const result = suggestWarmupSets([benchPress], {})
-    expect(result).toHaveLength(1)
-    expect(result[0].reps).toBe(12)
-    expect(result[0].weight).toBeGreaterThan(0)
-  })
-
-  it("uses 50% of working weight from logs", () => {
-    const logs: Record<string, ExerciseLogEntry[]> = {
-      "bench-1": [{ date: "2024-01-01", weight: 40, reps: 10, sets: 3 }],
-    }
-    const result = suggestWarmupSets([benchPress], logs)
-    expect(result[0].weight).toBe(21.3)
-  })
-})
-
-describe("rotateExercise", () => {
-  const benchPress: Exercise = {
-    ...BASE_EXERCISE,
-    id: "bench-1",
-    name: "Barbell Bench Press",
-    target_muscle_group: "Chest",
-    difficulty_level: "Intermediate",
-    primary_equipment: "Barbell",
-  }
-
-  const inclinePress: Exercise = {
-    ...BASE_EXERCISE,
-    id: "incline-1",
-    name: "Incline Barbell Press",
-    target_muscle_group: "Chest",
-    difficulty_level: "Intermediate",
-    primary_equipment: "Barbell",
-  }
-
-  const pushUp: Exercise = {
-    ...BASE_EXERCISE,
-    id: "pushup-1",
-    name: "Push Up",
-    target_muscle_group: "Chest",
-    difficulty_level: "Beginner",
-    primary_equipment: "Bodyweight",
-  }
-
-  const allExercises = [benchPress, inclinePress, pushUp]
-
-  it("returns same exercise if not in recentIds", () => {
-    const result = rotateExercise(benchPress, allExercises, new Set(["pushup-1"]))
-    expect(result.id).toBe("bench-1")
-  })
-
-  it("returns variant with same equipment if available", () => {
-    const recentIds = new Set(["bench-1"])
-    const result = rotateExercise(benchPress, allExercises, recentIds)
-    expect(result.primary_equipment).toBe("Barbell")
-    expect(result.target_muscle_group).toBe("Chest")
-  })
-
-  it("falls back to same muscle group variant", () => {
-    const recentIds = new Set(["bench-1", "incline-1"])
-    const result = rotateExercise(benchPress, allExercises, recentIds)
-    expect(result.target_muscle_group).toBe("Chest")
-  })
-
-  it("returns original if no variants available", () => {
-    const onlyOne = [benchPress]
-    const recentIds = new Set(["bench-1"])
-    const result = rotateExercise(benchPress, onlyOne, recentIds)
-    expect(result.id).toBe("bench-1")
-  })
-})
 
 describe("getLogsForExercise", () => {
   it("returns empty array for unknown exercise", () => {

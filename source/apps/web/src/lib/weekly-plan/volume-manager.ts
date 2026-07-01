@@ -30,11 +30,11 @@ const LEVEL_SET_ADJUSTMENT: Record<Level, number> = {
   Legendary: 2,
 }
 
-export function getVolumeConfig(goal: Goal): VolumeConfig {
+function getVolumeConfig(goal: Goal): VolumeConfig {
   return BASELINE_VOLUME[goal]
 }
 
-export function getSetAdjustment(level: Level): number {
+function getSetAdjustment(level: Level): number {
   return LEVEL_SET_ADJUSTMENT[level] ?? 0
 }
 
@@ -54,7 +54,7 @@ export function computeRest(role: ExerciseRole, goal: Goal): number {
   return BASELINE_VOLUME[goal][role].rest
 }
 
-export function computeWeeklyVolume(level: Level): [number, number] {
+function computeWeeklyVolume(level: Level): [number, number] {
   switch (level) {
     case "Novice":
     case "Beginner":
@@ -84,7 +84,7 @@ export function getExerciseCount(duration: string): number {
   return 5
 }
 
-export function estimateDuration(exerciseCount: number, goal: Goal): number {
+function estimateDuration(exerciseCount: number, goal: Goal): number {
   const restMap: Record<Goal, number> = { Strength: 120, Hypertrophy: 75, Endurance: 35 }
   const avgRest = restMap[goal]
   const avgSetDuration = 30

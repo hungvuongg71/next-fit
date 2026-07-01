@@ -54,7 +54,7 @@ const COMPOUND_LOWER_MUSCLES = new Set([
 
 const BARBELL_DUMBBELL = new Set(["Barbell", "Dumbbell", "Trap Bar"])
 
-export function classifyExercise(exercise: Exercise): "upperCompound" | "lowerCompound" | "accessory" {
+function classifyExercise(exercise: Exercise): "upperCompound" | "lowerCompound" | "accessory" {
   const isPrimaryCompound = BARBELL_DUMBBELL.has(exercise.primary_equipment) &&
     ["Full Body", "Upper Body", "Lower Body"].includes(exercise.body_region ?? "")
 
@@ -100,7 +100,7 @@ export function suggestWeight(
   return roundToNearest(rawWeight, 2.5)
 }
 
-export function formatWeight(weight: number | undefined): string {
+function formatWeight(weight: number | undefined): string {
   if (weight === undefined) return "Bodyweight"
   return `${weight} kg`
 }

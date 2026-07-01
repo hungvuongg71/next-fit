@@ -14,7 +14,7 @@ export function suggestNextWeight(logs: ExerciseLogEntry[]): { weight: number; r
   return { weight: last.weight, reps: last.reps + 1 }
 }
 
-export interface WarmupSetSuggestion {
+interface WarmupSetSuggestion {
   exerciseName: string
   reps: number
   weight: number
@@ -43,7 +43,7 @@ export function suggestWarmup(
   return result
 }
 
-export function suggestWarmupSets(
+function suggestWarmupSets(
   exercises: Exercise[],
   logs: Record<string, ExerciseLogEntry[]>,
 ): WarmupSetSuggestion[] {
@@ -68,7 +68,7 @@ export function suggestWarmupSets(
     })
 }
 
-export function rotateExercise(
+function rotateExercise(
   exercise: Exercise,
   allExercises: Exercise[],
   recentIds: Set<string>,

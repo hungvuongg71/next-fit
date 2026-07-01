@@ -1,6 +1,4 @@
-# Todo: Fix Stats Page React Hooks Error
+# Todo: Fix CSS Shorthand Warning
 
-- [x] Task 1: Move `summary` useMemo before the early return in StatsContent
-- [x] Verify: `pnpm vitest run` passes
-- [ ] Verify: Manual — list view renders
-- [ ] Verify: Manual — click workout → detail view renders without crash
+- [x] Task 1: Replace `background` shorthand with `backgroundImage` individual property
+- [x] Build passes: `npm run build`

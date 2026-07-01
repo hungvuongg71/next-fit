@@ -72,28 +72,6 @@ export const MOCK_EXERCISES: Exercise[] = rawExercises.map((ex, i) => ({
   in_depth_youtube_explanation: ex.in_depth_youtube_explanation,
 }))
 
-export const DEFAULT_EXERCISES = MOCK_EXERCISES.slice(0, 4)
-
 export const DEFAULT_SETS = 3
 export const DEFAULT_REPS = "10-12"
 export const DEFAULT_REST_SECONDS = 90
-
-export function getYouTubeThumbnailUrl(url: string | undefined | null): string | null {
-  if (!url) return null
-  const match = url.match(
-    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-  )
-  return match ? `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` : null
-}
-
-export function getExerciseImageUrl(exercise: Exercise): string | null {
-  return (
-    getYouTubeThumbnailUrl(exercise.in_depth_youtube_explanation) ||
-    getYouTubeThumbnailUrl(exercise.short_youtube_demonstration) ||
-    null
-  )
-}
-
-export function getExerciseGifUrl(exercise: Exercise): string | null {
-  return exercise.short_youtube_demonstration || null
-}
