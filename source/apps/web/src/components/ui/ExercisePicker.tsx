@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useMemo, useEffect, useRef } from "react"
-import { Search, X, Check } from "lucide-react"
+import { useState, useMemo, useEffect, useRef, useCallback } from "react"
+import { Search, X, Check, ChevronRight } from "lucide-react"
 import { Exercise, MuscleGroup } from "@/types"
 import { MOCK_EXERCISES } from "@/lib/data"
 import { MUSCLE_GROUPS, MUSCLE_GROUPS_VI } from "@/constants/muscles"
@@ -34,17 +34,56 @@ export default function ExercisePicker({
 }: ExercisePickerProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<MuscleGroup>(MUSCLE_GROUPS[0])
-  const [selectedEquipment, setSelectedEquipment] = useState<string>(SORTED_EQUIPMENT[0])
+  const [selectedEquipment, setSelectedEquipment] = useState<string | null>(null)
   const [showAllEquipment, setShowAllEquipment] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [previewExercise, setPreviewExercise] = useState<Exercise | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const muscleScrollRef = useRef<HTMLDivElement>(null)
+  const equipScrollRef = useRef<HTMLDivElement>(null)
+  const [muscleScrollLeft, setMuscleScrollLeft] = useState(false)
+  const [muscleScrollRight, setMuscleScrollRight] = useState(false)
+  const [equipScrollLeft, setEquipScrollLeft] = useState(false)
+  const [equipScrollRight, setEquipScrollRight] = useState(false)
+
+  const checkMuscleScroll = useCallback(() => {
+    const el = muscleScrollRef.current
+    if (!el) return
+    setMuscleScrollLeft(el.scrollLeft > 4)
+    setMuscleScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+  }, [])
+
+  const checkEquipScroll = useCallback(() => {
+    const el = equipScrollRef.current
+    if (!el) return
+    setEquipScrollLeft(el.scrollLeft > 4)
+    setEquipScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+  }, [])
+
+  useEffect(() => { checkMuscleScroll() }, [checkMuscleScroll])
+  useEffect(() => { checkEquipScroll() }, [checkEquipScroll])
+
+  const [showHint, setShowHint] = useState(false)
+  const hintTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  const dismissHint = useCallback(() => {
+    setShowHint(false)
+    sessionStorage.setItem("scrollHintSeen", "1")
+  }, [])
+
+  useEffect(() => {
+    if ((muscleScrollRight || equipScrollRight) && !sessionStorage.getItem("scrollHintSeen")) {
+      setShowHint(true)
+      hintTimerRef.current = setTimeout(dismissHint, 3000)
+      return () => clearTimeout(hintTimerRef.current)
+    }
+  }, [muscleScrollRight, equipScrollRight, dismissHint])
 
   const filtered = useMemo(() => {
     return MOCK_EXERCISES.filter((ex) => {
       if (replaceMode && ex.id === replaceMode.exerciseId) return false
       if (ex.target_muscle_group !== selectedMuscleGroup) return false
-      if (ex.primary_equipment !== selectedEquipment) return false
+      if (selectedEquipment !== null && ex.primary_equipment !== selectedEquipment) return false
       if (searchQuery) {
         const q = searchQuery.toLowerCase()
         if (!ex.name.toLowerCase().includes(q)) return false
@@ -64,7 +103,7 @@ export default function ExercisePicker({
       setSelectedMuscleGroup(
         replaceMode ? (replaceMode.muscleGroup as MuscleGroup) || MUSCLE_GROUPS[0] : MUSCLE_GROUPS[0],
       )
-      setSelectedEquipment(SORTED_EQUIPMENT[0])
+      setSelectedEquipment(null)
       setSelectedIds(new Set(externalSelected ?? []))
       setTimeout(() => inputRef.current?.focus(), 100)
     }
@@ -176,20 +215,47 @@ export default function ExercisePicker({
             <p className="font-heading font-semibold text-xs mb-2" style={{ color: "var(--color-text-secondary)" }}>
               NHÓM CƠ
             </p>
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-              {MUSCLE_GROUPS.map((mg) => (
-                <button
-                  key={mg}
-                  onClick={() => setSelectedMuscleGroup(mg)}
-                  className="px-3 py-1.5 rounded-xl font-heading font-semibold text-xs whitespace-nowrap transition-all active:scale-95 flex-shrink-0"
-                  style={{
-                    background: mg === selectedMuscleGroup ? "var(--color-primary)" : "var(--color-surface-subtle)",
-                    color: mg === selectedMuscleGroup ? "#fff" : "var(--color-text)",
-                  }}
-                >
-                  {MUSCLE_GROUPS_VI[mg]}
-                </button>
-              ))}
+            <div className="relative">
+              {muscleScrollLeft && (
+                <div className="absolute left-0 top-0 bottom-1 w-6 z-10 pointer-events-none"
+                  style={{ background: "linear-gradient(to right, var(--color-bg), transparent)" }}
+                />
+              )}
+              {muscleScrollRight && (
+                <div className="absolute right-0 top-0 bottom-1 w-6 z-10 pointer-events-none"
+                  style={{ background: "linear-gradient(to left, var(--color-bg), transparent)" }}
+                />
+              )}
+              {muscleScrollRight && showHint && (
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 z-20 pointer-events-none animate-fadeIn">
+                  <div
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-heading font-semibold whitespace-nowrap"
+                    style={{
+                      background: "var(--color-primary)",
+                      color: "#fff",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                    }}
+                  >
+                    Vuốt để xem thêm
+                    <ChevronRight size={10} aria-hidden="true" />
+                  </div>
+                </div>
+              )}
+              <div ref={muscleScrollRef} onScroll={(e) => { if (showHint) dismissHint(); checkMuscleScroll() }} className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                {MUSCLE_GROUPS.map((mg) => (
+                  <button
+                    key={mg}
+                    onClick={() => setSelectedMuscleGroup(mg)}
+                    className="px-3 py-1.5 rounded-xl font-heading font-semibold text-xs whitespace-nowrap transition-all active:scale-95 flex-shrink-0"
+                    style={{
+                      background: mg === selectedMuscleGroup ? "var(--color-primary)" : "var(--color-surface-subtle)",
+                      color: mg === selectedMuscleGroup ? "#fff" : "var(--color-text)",
+                    }}
+                  >
+                    {MUSCLE_GROUPS_VI[mg]}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -198,30 +264,57 @@ export default function ExercisePicker({
             <p className="font-heading font-semibold text-xs mb-2" style={{ color: "var(--color-text-secondary)" }}>
               THIẾT BỊ
             </p>
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-              {SORTED_EQUIPMENT.filter((eq) => showAllEquipment || POPULAR_EQUIPMENT.has(eq)).map((eq) => (
+            <div className="relative">
+              {equipScrollLeft && (
+                <div className="absolute left-0 top-0 bottom-1 w-6 z-10 pointer-events-none"
+                  style={{ background: "linear-gradient(to right, var(--color-bg), transparent)" }}
+                />
+              )}
+              {equipScrollRight && (
+                <div className="absolute right-0 top-0 bottom-1 w-6 z-10 pointer-events-none"
+                  style={{ background: "linear-gradient(to left, var(--color-bg), transparent)" }}
+                />
+              )}
+              {equipScrollRight && showHint && (
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 z-20 pointer-events-none animate-fadeIn">
+                  <div
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-heading font-semibold whitespace-nowrap"
+                    style={{
+                      background: "var(--color-primary)",
+                      color: "#fff",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                    }}
+                  >
+                    Vuốt để xem thêm
+                    <ChevronRight size={10} aria-hidden="true" />
+                  </div>
+                </div>
+              )}
+              <div ref={equipScrollRef} onScroll={(e) => { if (showHint) dismissHint(); checkEquipScroll() }} className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                {SORTED_EQUIPMENT.filter((eq) => showAllEquipment || POPULAR_EQUIPMENT.has(eq)).map((eq) => (
+                  <button
+                    key={eq}
+                    onClick={() => setSelectedEquipment((prev) => (prev === eq ? null : eq))}
+                    className="px-3 py-1.5 rounded-xl font-heading font-semibold text-xs whitespace-nowrap transition-all active:scale-95 flex-shrink-0"
+                    style={{
+                      background: eq === selectedEquipment ? "var(--color-primary)" : "var(--color-surface-subtle)",
+                      color: eq === selectedEquipment ? "#fff" : "var(--color-text)",
+                    }}
+                  >
+                    {EQUIPMENT_VI[eq]}
+                  </button>
+                ))}
                 <button
-                  key={eq}
-                  onClick={() => setSelectedEquipment(eq)}
+                  onClick={() => setShowAllEquipment(!showAllEquipment)}
                   className="px-3 py-1.5 rounded-xl font-heading font-semibold text-xs whitespace-nowrap transition-all active:scale-95 flex-shrink-0"
                   style={{
-                    background: eq === selectedEquipment ? "var(--color-primary)" : "var(--color-surface-subtle)",
-                    color: eq === selectedEquipment ? "#fff" : "var(--color-text)",
+                    color: "var(--color-primary)",
+                    background: "rgba(var(--color-primary-rgb), 0.08)",
                   }}
                 >
-                  {EQUIPMENT_VI[eq]}
+                  {showAllEquipment ? "Thu gọn" : `Xem thêm`}
                 </button>
-              ))}
-              <button
-                onClick={() => setShowAllEquipment(!showAllEquipment)}
-                className="px-3 py-1.5 rounded-xl font-heading font-semibold text-xs whitespace-nowrap transition-all active:scale-95 flex-shrink-0"
-                style={{
-                  color: "var(--color-primary)",
-                  background: "rgba(var(--color-primary-rgb), 0.08)",
-                }}
-              >
-                {showAllEquipment ? "Thu gọn" : `Xem thêm`}
-              </button>
+              </div>
             </div>
           </div>
 

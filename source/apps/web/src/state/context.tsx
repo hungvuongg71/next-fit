@@ -1,10 +1,20 @@
 "use client"
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react"
-import { AppState, UserCriteria, Exercise, ExerciseProgress, WorkoutHistoryEntry, ExerciseCompletion, WorkoutSet } from "@/types"
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react"
+import { AppState, UserCriteria, Exercise, ExerciseProgress, WorkoutHistoryEntry, ExerciseCompletion, WorkoutSet, WorkoutTimerState } from "@/types"
 import type { WeeklyPlan } from "@/lib/weekly-plan/types"
 import { STORAGE_KEYS } from "@/constants/storage"
 import { DEFAULT_SETS } from "@/lib/data"
+
+export function getElapsedSeconds(timer: WorkoutTimerState | null): number {
+  if (!timer) return 0
+  const ms = timer.accumulatedMs + (
+    timer.startedAt && !timer.isPaused
+      ? Date.now() - timer.startedAt
+      : 0
+  )
+  return Math.floor(ms / 1000)
+}
 
 interface AppContextType {
   state: AppState
@@ -26,6 +36,9 @@ interface AppContextType {
   resetTodayExercises: () => void
   setFirstVisitDone: () => void
   setWeeklyPlan: (plan: WeeklyPlan | null) => void
+  pauseWorkout: () => void
+  resumeWorkout: () => void
+  setTrackingMinimized: (v: boolean) => void
 }
 
 const defaultState: AppState = {
@@ -41,6 +54,7 @@ const defaultState: AppState = {
   workoutHistory: [],
   lastPerformances: {},
   weeklyPlan: null,
+  workoutTimer: null,
 }
 
 function loadSavedState(): Partial<AppState> | null {
@@ -79,6 +93,34 @@ function dedupeExercises(arr: Exercise[]): Exercise[] {
 }
 
 function mergeSaved(parsed: Partial<AppState>): AppState {
+  const timer = parsed.workoutTimer
+  // Backward compat: if workoutStarted but no workoutTimer, compute from localStorage WORKOUT_SESSION
+  if (parsed.workoutStarted && !timer) {
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEYS.WORKOUT_SESSION) : null
+      if (raw) {
+        const session = JSON.parse(raw)
+        if (session.elapsedSeconds !== undefined) {
+          return {
+            ...defaultState,
+            ...parsed,
+            todayExercises: parsed.todayExercises?.length ? dedupeExercises(parsed.todayExercises) : defaultState.todayExercises,
+            exerciseProgress: parsed.exerciseProgress ?? defaultState.exerciseProgress,
+            workoutHistory: parsed.workoutHistory ?? defaultState.workoutHistory,
+            lastPerformances: parsed.lastPerformances ?? defaultState.lastPerformances,
+            storagePreferenceAnswered: parsed.storagePreferenceAnswered ?? parsed.cookiesAccepted !== undefined,
+            isFirstVisit: parsed.isFirstVisit ?? (parsed.criteria ? false : true),
+            workoutTimer: {
+              startedAt: Date.now() - session.elapsedSeconds * 1000,
+              accumulatedMs: 0,
+              isPaused: session.isPaused ?? false,
+              trackingMinimized: false,
+            },
+          }
+        }
+      }
+    } catch { /* ignore */ }
+  }
   return {
     ...defaultState,
     ...parsed,
@@ -87,12 +129,14 @@ function mergeSaved(parsed: Partial<AppState>): AppState {
     workoutHistory: parsed.workoutHistory ?? defaultState.workoutHistory,
     lastPerformances: parsed.lastPerformances ?? defaultState.lastPerformances,
     storagePreferenceAnswered: parsed.storagePreferenceAnswered ?? parsed.cookiesAccepted !== undefined,
-    isFirstVisit: parsed.isFirstVisit ?? (parsed.criteria ? false : true), // If criteria exists, it's not first visit
+    isFirstVisit: parsed.isFirstVisit ?? (parsed.criteria ? false : true),
+    workoutTimer: timer ?? null,
   }
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(defaultState)
+  const [, setTick] = useState(0)
 
   useEffect(() => {
     const saved = loadSavedState()
@@ -101,12 +145,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Timer interval — chạy khi workoutStarted, trigger re-render mỗi giây
+  useEffect(() => {
+    if (!state.workoutStarted) return
+    const id = setInterval(() => setTick((t) => t + 1), 1000)
+    return () => clearInterval(id)
+  }, [state.workoutStarted])
+
+  // Save on beforeunload — cả AppState lẫn WORKOUT_SESSION (restState)
+  useEffect(() => {
+    if (!state.workoutStarted) return
+    const handler = () => {
+      localStorage.setItem(STORAGE_KEYS.STATE, JSON.stringify(state))
+    }
+    window.addEventListener("beforeunload", handler)
+    return () => window.removeEventListener("beforeunload", handler)
+  }, [state])
+
+  // Debounced save
   useEffect(() => {
     const timer = setTimeout(() => {
       localStorage.setItem(STORAGE_KEYS.STATE, JSON.stringify(state))
     }, 1000)
     return () => clearTimeout(timer)
   }, [state])
+
+  function saveStateImmediately(next: AppState) {
+    localStorage.setItem(STORAGE_KEYS.STATE, JSON.stringify(next))
+  }
 
   const setCookiesAccepted = (v: boolean) =>
     setState((prev) => ({ ...prev, cookiesAccepted: v, storagePreferenceAnswered: true }))
@@ -125,6 +191,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       workoutCompleted: false,
       currentExerciseIndex: 0,
       exerciseProgress: initProgress(prev.todayExercises),
+      workoutTimer: {
+        startedAt: Date.now(),
+        accumulatedMs: 0,
+        isPaused: false,
+        trackingMinimized: false,
+      },
     }))
 
   const completeWorkout = (durationSeconds = 0, progress?: ExerciseProgress[]) =>
@@ -181,6 +253,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         exerciseProgress: finalProgress,
         workoutHistory: [entry, ...prev.workoutHistory].slice(0, 30),
         lastPerformances: newPerformances,
+        workoutTimer: null,
       }
     })
 
@@ -191,6 +264,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       workoutCompleted: false,
       currentExerciseIndex: 0,
       exerciseProgress: [],
+      workoutTimer: null,
     }))
 
   const setCurrentExercise = (i: number) => setState((prev) => ({ ...prev, currentExerciseIndex: i }))
@@ -270,6 +344,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setWeeklyPlan = (plan: WeeklyPlan | null) =>
     setState((prev) => ({ ...prev, weeklyPlan: plan }))
 
+  const pauseWorkout = () =>
+    setState((prev) => {
+      if (!prev.workoutTimer?.startedAt) return prev
+      const accumulatedMs = prev.workoutTimer.accumulatedMs + (Date.now() - prev.workoutTimer.startedAt)
+      const next = {
+        ...prev,
+        workoutTimer: { ...prev.workoutTimer, startedAt: null, accumulatedMs, isPaused: true },
+      }
+      saveStateImmediately(next)
+      return next
+    })
+
+  const resumeWorkout = () =>
+    setState((prev) => {
+      if (!prev.workoutTimer || !prev.workoutTimer.isPaused) return prev
+      const next = {
+        ...prev,
+        workoutTimer: { ...prev.workoutTimer, startedAt: Date.now(), isPaused: false },
+      }
+      saveStateImmediately(next)
+      return next
+    })
+
+  const setTrackingMinimized = (v: boolean) =>
+    setState((prev) => {
+      if (!prev.workoutTimer) return prev
+      return { ...prev, workoutTimer: { ...prev.workoutTimer, trackingMinimized: v } }
+    })
+
   return (
     <AppContext.Provider
       value={{
@@ -292,6 +395,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         resetTodayExercises,
         setFirstVisitDone,
         setWeeklyPlan,
+        pauseWorkout,
+        resumeWorkout,
+        setTrackingMinimized,
       }}
     >
       {children}

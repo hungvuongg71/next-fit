@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Check, ChevronLeft, ChevronUp, ChevronDown, Dumbbell, Minus, Pause, Play, Plus, Trophy, AlertTriangle, RefreshCw, Trash2 } from "lucide-react"
+import { Check, ChevronLeft, ChevronUp, ChevronDown, Minus, Pause, Play, Plus, Trophy, AlertTriangle, RefreshCw, Trash2 } from "lucide-react"
 import ExerciseModal from "@/components/ui/ExerciseModal"
 import NumberPickerWheel from "@/components/ui/NumberPickerWheel"
 import RestTimer from "@/components/ui/RestTimer"
@@ -15,6 +15,9 @@ import { suggestNextWeight, getLogsForExercise } from "@/lib/progressive"
 import WarmupSection from "@/components/ui/WarmupSection"
 import ProgressChart from "@/components/ui/ProgressChart"
 import ExercisePicker from "@/components/ui/ExercisePicker"
+import WorkoutBuilder from "@/components/ui/WorkoutBuilder"
+import BottomNav from "@/components/layout/BottomNav"
+import { getElapsedSeconds } from "@/state/context"
 
 function formatElapsed(seconds: number) {
   const minutes = Math.floor(seconds / 60)
@@ -51,10 +54,9 @@ function buildProgress(exercises: Exercise[], logs: Record<string, ExerciseLogEn
 
 export default function WorkoutPage() {
   const router = useRouter()
-  const { state, updateExerciseProgress, completeWorkout, resetWorkout, startWorkout, replaceExercise, addExerciseToWorkout, removeExerciseFromWorkout, moveExercise } = useApp()
+  const { state, updateExerciseProgress, completeWorkout, resetWorkout, startWorkout, replaceExercise, addExerciseToWorkout, removeExerciseFromWorkout, moveExercise, pauseWorkout, resumeWorkout, setTrackingMinimized } = useApp()
   const lastPerf = state.lastPerformances
-  const [isPaused, setIsPaused] = useState(false)
-  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const elapsedSeconds = getElapsedSeconds(state.workoutTimer)
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null)
   const [showAddPicker, setShowAddPicker] = useState(false)
   const [replaceTarget, setReplaceTarget] = useState<Exercise | null>(null)
@@ -110,11 +112,7 @@ export default function WorkoutPage() {
     }
   }, [state.exerciseProgress.length, state.todayExercises, state.workoutStarted, updateExerciseProgress, exerciseLogs])
 
-  useEffect(() => {
-    if (isPaused || showCompleted || !state.workoutStarted) return
-    const timer = window.setInterval(() => setElapsedSeconds((seconds) => seconds + 1), 1000)
-    return () => window.clearInterval(timer)
-  }, [isPaused, showCompleted, state.workoutStarted])
+
 
   useEffect(() => {
     if (state.workoutStarted && !showCompleted) {
@@ -128,10 +126,10 @@ export default function WorkoutPage() {
   }, [state.workoutStarted, showCompleted])
 
   useEffect(() => {
-    if (!state.todayExercises.length && !showCompleted) {
+    if (state.workoutStarted && !state.todayExercises.length && !showCompleted) {
       router.replace("/")
     }
-  }, [state.todayExercises.length, showCompleted, router])
+  }, [state.workoutStarted, state.todayExercises.length, showCompleted, router])
 
   useEffect(() => {
     if (showCancelConfirm) {
@@ -280,8 +278,6 @@ export default function WorkoutPage() {
 
   const saveSession = useCallback(() => {
     const session = {
-      elapsedSeconds,
-      isPaused,
       restState: restState.active
         ? {
             active: true,
@@ -294,19 +290,13 @@ export default function WorkoutPage() {
       savedAt: Date.now(),
     }
     localStorage.setItem(STORAGE_KEYS.WORKOUT_SESSION, JSON.stringify(session))
-  }, [elapsedSeconds, isPaused, restState])
+  }, [restState])
 
   useEffect(() => {
     const raw = localStorage.getItem(STORAGE_KEYS.WORKOUT_SESSION)
     if (!raw) return
     try {
       const session = JSON.parse(raw)
-      if (session.elapsedSeconds !== undefined) {
-        setElapsedSeconds(session.elapsedSeconds)
-      }
-      if (session.isPaused) {
-        setIsPaused(true)
-      }
       if (session.restState?.active) {
         const remainingMs = session.restState.restEndTimestamp - Date.now()
         if (remainingMs > 0) {
@@ -336,43 +326,7 @@ export default function WorkoutPage() {
     }
   }, [state.workoutStarted, showCompleted])
 
-  if (!state.workoutStarted && !state.exerciseProgress.length && !showCompleted) {
-    return (
-      <div className="flex min-h-dvh flex-col items-center justify-center px-5 text-center" style={{ background: "var(--color-bg)", color: "var(--color-text)" }}>
-        <div
-          className="mb-5 flex h-20 w-20 items-center justify-center rounded-[28px]"
-          style={{ background: "rgba(var(--color-primary-rgb), 0.14)", border: "1px solid rgba(var(--color-primary-rgb), 0.28)" }}
-        >
-          <Dumbbell size={34} style={{ color: "var(--color-primary)" }} aria-hidden="true" />
-        </div>
-        <h1 className="font-display text-3xl font-extrabold">Chưa có buổi tập</h1>
-        <p className="mt-3 max-w-sm font-body text-sm leading-6" style={{ color: "var(--color-text-secondary)" }}>
-          Về trang chủ để chọn bài tập rồi bắt đầu buổi tập.
-        </p>
-        <div className="mt-7 grid w-full max-w-sm gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              startWorkout()
-              setElapsedSeconds(0)
-            }}
-            className="min-h-14 rounded-2xl font-heading font-bold"
-            style={{ background: "var(--color-primary)", color: "#fff", boxShadow: "var(--shadow-glow)" }}
-          >
-            Bắt đầu với danh sách hiện tại
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push("/")}
-            className="min-h-12 rounded-2xl font-heading font-semibold"
-            style={{ background: "var(--color-surface-subtle)", color: "var(--color-text-secondary)" }}
-          >
-            Về trang chủ
-          </button>
-        </div>
-      </div>
-    )
-  }
+
 
   if (showCompleted) {
     return (
@@ -405,52 +359,86 @@ export default function WorkoutPage() {
     )
   }
 
+  const isTracking = state.workoutStarted && !(state.workoutTimer?.trackingMinimized ?? false)
+
   return (
     <div className="min-h-dvh" style={{ background: "var(--color-bg)", color: "var(--color-text)" }}>
-      <header
-        className="sticky top-0 z-30 px-4 pb-3 pt-4"
-        style={{ background: "rgba(0,0,0,0.92)", borderBottom: "1px solid var(--color-border)", backdropFilter: "blur(20px)" }}
-      >
-        <div className="mb-3 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => setShowCancelConfirm(true)}
-            aria-label="Hủy buổi tập"
-            className="flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-            style={{ background: "rgba(255,255,255,0.06)" }}
-          >
-            <ChevronLeft size={21} style={{ color: "var(--color-text-secondary)" }} aria-hidden="true" />
-          </button>
-          <div className="text-center">
-            <p className="font-display text-base font-bold">Buổi tập hôm nay</p>
-            <p className="font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
-              {totals.completedSets}/{totals.totalSets} sets · {formatElapsed(elapsedSeconds)}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsPaused((value) => !value)}
-            aria-label={isPaused ? "Tiếp tục timer" : "Tạm dừng timer"}
-            aria-pressed={isPaused}
-            className="flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-            style={{ background: "rgba(255,255,255,0.06)" }}
-          >
-            {isPaused ? <Play size={17} style={{ color: "var(--color-primary)" }} aria-hidden="true" /> : <Pause size={17} style={{ color: "var(--color-text-secondary)" }} aria-hidden="true" />}
-          </button>
-        </div>
+      {/* Builder section (shown when no workout or tracking minimized) */}
+      {(!state.workoutStarted || (state.workoutTimer?.trackingMinimized ?? false)) && (
+        <>
+          <main className="mx-auto max-w-4xl px-4 pt-5 pb-24">
+            {(state.workoutTimer?.trackingMinimized ?? false) && (
+              <div
+                className="mb-4 p-3 rounded-2xl cursor-pointer flex items-center justify-between transition-all active:scale-[0.98]"
+                style={{ background: "rgba(var(--color-primary-rgb), 0.1)", border: "1px solid rgba(var(--color-primary-rgb), 0.2)" }}
+                onClick={() => setTrackingMinimized(false)}
+              >
+                <div>
+                  <p className="font-heading text-xs font-semibold" style={{ color: "var(--color-text)" }}>
+                    Buổi tập hôm nay
+                  </p>
+                  <p className="font-number text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
+                    {totals.completedSets}/{totals.totalSets} sets · {formatElapsed(elapsedSeconds)} · {totals.progressPct}%
+                  </p>
+                </div>
+                <span className="font-heading text-[10px] font-semibold" style={{ color: "var(--color-primary)" }}>
+                  Mở rộng →
+                </span>
+              </div>
+            )}
+            <WorkoutBuilder onStartWorkout={() => setTrackingMinimized(false)} />
+          </main>
+          <BottomNav />
+        </>
+      )}
 
-        <div className="flex items-center gap-3">
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full" style={{ background: "rgba(255,255,255,0.08)" }}>
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${totals.progressPct}%`, background: "var(--color-primary)" }}
-            />
-          </div>
-          <span className="font-number text-xs" style={{ color: "var(--color-primary)" }}>
-            {totals.progressPct}%
-          </span>
-        </div>
-      </header>
+      {/* Tracking section (shown when workout started and not minimized) */}
+      {isTracking && (
+        <>
+          <header
+            className="sticky top-0 z-30 px-4 pb-3 pt-4"
+            style={{ background: "rgba(0,0,0,0.92)", borderBottom: "1px solid var(--color-border)", backdropFilter: "blur(20px)" }}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setShowCancelConfirm(true)}
+                aria-label="Hủy buổi tập"
+                className="flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                style={{ background: "rgba(255,255,255,0.06)" }}
+              >
+                <ChevronLeft size={21} style={{ color: "var(--color-text-secondary)" }} aria-hidden="true" />
+              </button>
+              <div className="text-center">
+                <p className="font-display text-base font-bold">Buổi tập hôm nay</p>
+                <p className="font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                  {totals.completedSets}/{totals.totalSets} sets · {formatElapsed(elapsedSeconds)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => (state.workoutTimer?.isPaused ? resumeWorkout() : pauseWorkout())}
+                aria-label={state.workoutTimer?.isPaused ? "Tiếp tục timer" : "Tạm dừng timer"}
+                aria-pressed={state.workoutTimer?.isPaused}
+                className="flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                style={{ background: "rgba(255,255,255,0.06)" }}
+              >
+                {state.workoutTimer?.isPaused ? <Play size={17} style={{ color: "var(--color-primary)" }} aria-hidden="true" /> : <Pause size={17} style={{ color: "var(--color-text-secondary)" }} aria-hidden="true" />}
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full" style={{ background: "rgba(255,255,255,0.08)" }}>
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${totals.progressPct}%`, background: "var(--color-primary)" }}
+                />
+              </div>
+              <span className="font-number text-xs" style={{ color: "var(--color-primary)" }}>
+                {totals.progressPct}%
+              </span>
+            </div>
+          </header>
 
       <main className="mx-auto grid w-full max-w-4xl gap-4 px-4 pb-36 pt-4">
         <WarmupSection
@@ -701,120 +689,130 @@ export default function WorkoutPage() {
         >
           Hoàn thành
         </button>
+        <button
+          type="button"
+          onClick={() => setTrackingMinimized(true)}
+          className="min-h-14 flex-1 rounded-2xl font-heading text-sm font-semibold transition-all active:scale-[0.98]"
+          style={{ background: "var(--color-surface-subtle)", color: "var(--color-text-secondary)" }}
+        >
+          Thu gọn
+        </button>
       </div>
+      </>)}
 
-      {showCancelConfirm && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 px-4 pb-5" role="dialog" aria-modal="true" aria-labelledby="cancel-title" ref={cancelDialogRef}>
-          <div className="w-full max-w-md rounded-[28px] p-5 animate-slideUp" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl" style={{ background: "rgba(214,69,69,0.14)" }}>
-                <AlertTriangle size={20} style={{ color: "#D64545" }} aria-hidden="true" />
-              </div>
-              <h2 id="cancel-title" className="font-display text-2xl font-extrabold">
-                Hủy buổi tập?
-              </h2>
+    {/* Tracking modals */}
+    {showCancelConfirm && (
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 px-4 pb-5" role="dialog" aria-modal="true" aria-labelledby="cancel-title" ref={cancelDialogRef}>
+        <div className="w-full max-w-md rounded-[28px] p-5 animate-slideUp" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl" style={{ background: "rgba(214,69,69,0.14)" }}>
+              <AlertTriangle size={20} style={{ color: "#D64545" }} aria-hidden="true" />
             </div>
-            <p className="font-body text-sm leading-6" style={{ color: "var(--color-text-secondary)" }}>
-              Tiến trình hiện tại sẽ bị xóa. Chỉ nhấn &quot;Hoàn thành&quot; nếu bạn muốn lưu kết quả.
-            </p>
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <button
-                ref={continueBtnRef}
-                type="button"
-                onClick={() => setShowCancelConfirm(false)}
-                className="min-h-12 rounded-2xl font-heading font-semibold transition-all active:scale-95"
-                style={{ background: "var(--color-surface-subtle)", color: "var(--color-text)" }}
-              >
-                Tiếp tục tập
-              </button>
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="min-h-12 rounded-2xl font-heading font-semibold transition-all active:scale-95"
-                style={{ background: "#D64545", color: "#fff" }}
-              >
-                Hủy
-              </button>
-            </div>
+            <h2 id="cancel-title" className="font-display text-2xl font-extrabold">
+              Hủy buổi tập?
+            </h2>
+          </div>
+          <p className="font-body text-sm leading-6" style={{ color: "var(--color-text-secondary)" }}>
+            Tiến trình hiện tại sẽ bị xóa. Chỉ nhấn &quot;Hoàn thành&quot; nếu bạn muốn lưu kết quả.
+          </p>
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <button
+              ref={continueBtnRef}
+              type="button"
+              onClick={() => setShowCancelConfirm(false)}
+              className="min-h-12 rounded-2xl font-heading font-semibold transition-all active:scale-95"
+              style={{ background: "var(--color-surface-subtle)", color: "var(--color-text)" }}
+            >
+              Tiếp tục tập
+            </button>
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="min-h-12 rounded-2xl font-heading font-semibold transition-all active:scale-95"
+              style={{ background: "#D64545", color: "#fff" }}
+            >
+              Hủy
+            </button>
           </div>
         </div>
-      )}
+      </div>
+    )}
 
-      {exerciseToRemove && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 px-4 pb-5" role="dialog" aria-modal="true" aria-labelledby="remove-exercise-title">
-          <div className="w-full max-w-md rounded-[28px] p-5 animate-slideUp" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl" style={{ background: "rgba(214,69,69,0.14)" }}>
-                <AlertTriangle size={20} style={{ color: "#D64545" }} aria-hidden="true" />
-              </div>
-              <h2 id="remove-exercise-title" className="font-display text-2xl font-extrabold">
-                Xóa bài tập?
-              </h2>
+    {exerciseToRemove && (
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 px-4 pb-5" role="dialog" aria-modal="true" aria-labelledby="remove-exercise-title">
+        <div className="w-full max-w-md rounded-[28px] p-5 animate-slideUp" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl" style={{ background: "rgba(214,69,69,0.14)" }}>
+              <AlertTriangle size={20} style={{ color: "#D64545" }} aria-hidden="true" />
             </div>
-            <p className="font-body text-sm leading-6" style={{ color: "var(--color-text-secondary)" }}>
-              Bạn có chắc muốn xóa &quot;{exerciseToRemove.name}&quot; khỏi buổi tập?
-            </p>
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setExerciseToRemove(null)}
-                className="min-h-12 rounded-2xl font-heading font-semibold transition-all active:scale-95"
-                style={{ background: "var(--color-surface-subtle)", color: "var(--color-text)" }}
-              >
-                Giữ lại
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  removeExerciseFromWorkout(exerciseToRemove.id)
-                  setExerciseToRemove(null)
-                }}
-                className="min-h-12 rounded-2xl font-heading font-semibold transition-all active:scale-95"
-                style={{ background: "#D64545", color: "#fff" }}
-              >
-                Xóa
-              </button>
-            </div>
+            <h2 id="remove-exercise-title" className="font-display text-2xl font-extrabold">
+              Xóa bài tập?
+            </h2>
+          </div>
+          <p className="font-body text-sm leading-6" style={{ color: "var(--color-text-secondary)" }}>
+            Bạn có chắc muốn xóa &quot;{exerciseToRemove.name}&quot; khỏi buổi tập?
+          </p>
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setExerciseToRemove(null)}
+              className="min-h-12 rounded-2xl font-heading font-semibold transition-all active:scale-95"
+              style={{ background: "var(--color-surface-subtle)", color: "var(--color-text)" }}
+            >
+              Giữ lại
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                removeExerciseFromWorkout(exerciseToRemove.id)
+                setExerciseToRemove(null)
+              }}
+              className="min-h-12 rounded-2xl font-heading font-semibold transition-all active:scale-95"
+              style={{ background: "#D64545", color: "#fff" }}
+            >
+              Xóa
+            </button>
           </div>
         </div>
-      )}
+      </div>
+    )}
 
-      {restState.active && (
-        <RestTimer
-          exerciseName={restState.exerciseName}
-          setNumber={restState.setNumber}
-          defaultSeconds={restState.restSeconds}
-          onComplete={() => setRestState((prev) => ({ ...prev, active: false }))}
-          onSkip={() => setRestState((prev) => ({ ...prev, active: false }))}
-        />
-      )}
+    {restState.active && (
+      <RestTimer
+        exerciseName={restState.exerciseName}
+        setNumber={restState.setNumber}
+        defaultSeconds={restState.restSeconds}
+        onComplete={() => setRestState((prev) => ({ ...prev, active: false }))}
+        onSkip={() => setRestState((prev) => ({ ...prev, active: false }))}
+      />
+    )}
 
-      {selectedExercise && <ExerciseModal exercise={selectedExercise} onClose={() => setSelectedExercise(null)} />}
+    {selectedExercise && <ExerciseModal exercise={selectedExercise} onClose={() => setSelectedExercise(null)} />}
 
-      {showAddPicker && (
-        <ExercisePicker
-          isOpen
-          onClose={() => setShowAddPicker(false)}
-          onAdd={(exercises) => {
-            for (const ex of exercises) {
-              addExerciseToWorkout(ex)
-            }
-            setShowAddPicker(false)
-          }}
-        />
-      )}
-      {replaceTarget && (
-        <ExercisePicker
-          isOpen
-          onClose={() => setReplaceTarget(null)}
-          onAdd={() => {}}
-          replaceMode={replaceModeProp}
-          onReplace={(exerciseId, newExercise) => {
-            replaceExercise(exerciseId, newExercise)
-            setReplaceTarget(null)
-          }}
-        />
-      )}
-    </div>
-  )
+    {showAddPicker && (
+      <ExercisePicker
+        isOpen
+        onClose={() => setShowAddPicker(false)}
+        onAdd={(exercises) => {
+          for (const ex of exercises) {
+            addExerciseToWorkout(ex)
+          }
+          setShowAddPicker(false)
+        }}
+      />
+    )}
+    {replaceTarget && (
+      <ExercisePicker
+        isOpen
+        onClose={() => setReplaceTarget(null)}
+        onAdd={() => {}}
+        replaceMode={replaceModeProp}
+        onReplace={(exerciseId, newExercise) => {
+          replaceExercise(exerciseId, newExercise)
+          setReplaceTarget(null)
+        }}
+      />
+    )}
+  </div>
+)
 }
