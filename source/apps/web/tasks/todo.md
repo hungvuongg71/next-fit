@@ -1,4 +1,4 @@
-# Todo: Cumulative Exercise Accumulation
+# Todo: Fix pnpm Lockfile Sync for CI
 
 ## Instructions
 - Update status in real time; don't batch completions
@@ -7,27 +7,26 @@
 
 ---
 
-- [ ] Task 1: Fix suggest-mode `useEffect` to append (not replace)
-  - Acceptance: muscle changes append deduped exercises; first load still sets baseline
-  - Verify: `pnpm build`, `pnpm test`
-  - Files: `src/app/page.tsx`
+### Phase 1: Fix
 
-- [ ] Task 2: Update `savedSuggestions` and `handleUndo` for cumulative behavior
-  - Acceptance: `savedSuggestions` frozen at baseline; `handleUndo` restores to baseline
-  - Verify: `pnpm build`, `pnpm test`
-  - Files: `src/app/page.tsx`
+- [ ] **Task 1: Regenerate pnpm-lock.yaml to remove stale syne reference**
+  - Run `pnpm install --no-frozen-lockfile` in `source/`
+  - Verify with `pnpm install --frozen-lockfile`, `pnpm build`, `pnpm test`
+  - Files: `source/pnpm-lock.yaml`
 
-### Checkpoint: Core Logic
-- [ ] Build + tests pass
-- [ ] Manual: all 3 modes append correctly
-- [ ] Manual: "Hoàn tác" restores to baseline
-- [ ] Human review before continuing
+### Checkpoint: After Task 1
+- [ ] `pnpm install --frozen-lockfile` passes
+- [ ] `pnpm build` passes
+- [ ] `pnpm test` passes
+- [ ] CI simulation passes
 
-- [ ] Task 3: Verify edge cases (no duplicates, mode switching preserves list, high-participation)
-  - Acceptance: all edge cases pass
-  - Verify: `pnpm build`, `pnpm test`
+### Phase 2: CI Hardening (optional — ask human)
+
+- [ ] **Task 2: Add lockfile validation to CI** (ask first)
+  - Add explicit lockfile check in deploy.yml
+  - Files: `.github/workflows/deploy.yml`
 
 ### Checkpoint: Complete
-- [ ] All tasks done
-- [ ] Build + tests pass
+- [ ] Lockfile is in sync with package.json
+- [ ] CI would pass on `main`
 - [ ] Ready for review

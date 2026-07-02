@@ -85,6 +85,15 @@ export default function HomePage() {
   }, [])
 
   useEffect(() => {
+    if (!ready) return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get("mode") === "plan") {
+      setWorkoutMode("plan")
+      window.history.replaceState(null, "", "/")
+    }
+  }, [ready])
+
+  useEffect(() => {
     if (ready && state.isFirstVisit && !state.criteria) {
       router.replace("/onboarding")
     }

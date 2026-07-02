@@ -38,9 +38,6 @@ importers:
       '@fontsource/rubik-mono-one':
         specifier: ^5.2.7
         version: 5.2.8
-      '@fontsource/syne':
-        specifier: ^5.2.7
-        version: 5.2.7
       '@ncdai/react-wheel-picker':
         specifier: ^1.2.2
         version: 1.2.2(react@19.2.4)
@@ -387,9 +384,6 @@ packages:
 
   '@fontsource/rubik-mono-one@5.2.8':
     resolution: {integrity: sha512-+TVynJCT2ADs/caB2iTMjcfuihc9yz069GLN8PxGeaECSq6+6M1dmzTkdJdHCokf9Oe4UCGxJ2nBe3Ia5Z67qQ==}
-
-  '@fontsource/syne@5.2.7':
-    resolution: {integrity: sha512-OgWgLPSbieiSfdFXgMs0l/rspIFzVoDZxw8wKj15n39epRqO5+Uv36c0MXNDcw2GuK/TIBgpC9G8VAgs+bVm7A==}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -2972,8 +2966,6 @@ snapshots:
   '@fontsource/dm-sans@5.2.8': {}
 
   '@fontsource/rubik-mono-one@5.2.8': {}
-
-  '@fontsource/syne@5.2.7': {}
 
   '@humanfs/core@0.19.1': {}
 
