@@ -1,9 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { Dumbbell, X } from "lucide-react"
-import { useApp } from "@/state/context"
+import { useApp, getElapsedSeconds } from "@/state/context"
 import { STORAGE_KEYS } from "@/constants/storage"
 
 function formatElapsed(seconds: number) {
@@ -15,27 +14,15 @@ function formatElapsed(seconds: number) {
 export default function ActiveWorkoutBanner() {
   const router = useRouter()
   const pathname = usePathname()
-  const { state, resetWorkout } = useApp()
-  const [elapsed, setElapsed] = useState(0)
-
-  useEffect(() => {
-    if (!state.workoutStarted) return
-    const raw = localStorage.getItem(STORAGE_KEYS.WORKOUT_SESSION)
-    if (raw) {
-      try {
-        const session = JSON.parse(raw)
-        if (session.elapsedSeconds !== undefined) {
-          setElapsed(session.elapsedSeconds)
-        }
-      } catch {
-        /* ignore */
-      }
-    }
-  }, [state.workoutStarted])
+  const { state, resetWorkout, setTrackingMinimized } = useApp()
+  const elapsedSeconds = getElapsedSeconds(state.workoutTimer)
 
   if (!state.workoutStarted || pathname.startsWith("/workout")) return null
 
-  const handleContinue = () => router.push("/workout")
+  const handleContinue = () => {
+    setTrackingMinimized(false)
+    router.push("/workout")
+  }
   const handleCancel = () => {
     resetWorkout()
     localStorage.removeItem(STORAGE_KEYS.WORKOUT_SESSION)
@@ -63,7 +50,7 @@ export default function ActiveWorkoutBanner() {
               Bạn đang có buổi tập
             </p>
             <p className="mt-0.5 font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
-              Đã tập {formatElapsed(elapsed)} · Bạn có muốn tiếp tục?
+              Đã tập {formatElapsed(elapsedSeconds)} · Bạn có muốn tiếp tục?
             </p>
           </div>
           <button

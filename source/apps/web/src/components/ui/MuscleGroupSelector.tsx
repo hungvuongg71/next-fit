@@ -1,6 +1,7 @@
 "use client"
 
-import type { CSSProperties } from "react"
+import { useRef, useState, useCallback, useEffect, type CSSProperties } from "react"
+import { ChevronRight } from "lucide-react"
 import { MuscleGroup, Gender } from "@/types"
 import { MUSCLE_GROUPS, MUSCLE_GROUPS_VI } from "@/constants/muscles"
 import { BASE_PATH } from "@/constants/storage"
@@ -74,6 +75,35 @@ function cardStyle(group: string, isSelected: boolean, gender?: Gender): CSSProp
 }
 
 export default function MuscleGroupSelector({ selected, onChange, gender }: MuscleGroupSelectorProps) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
+  const [showHint, setShowHint] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  const dismissHint = useCallback(() => {
+    setShowHint(false)
+    sessionStorage.setItem("scrollHintSeen", "1")
+  }, [])
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+    setCanScrollLeft(el.scrollLeft > 4)
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+  }, [])
+
+  useEffect(() => { checkScroll() }, [checkScroll])
+
+  useEffect(() => {
+    if (canScrollRight && !sessionStorage.getItem("scrollHintSeen")) {
+      setShowHint(true)
+      timerRef.current = setTimeout(dismissHint, 3000)
+      return () => clearTimeout(timerRef.current)
+    }
+  }, [canScrollRight, dismissHint])
+
   const toggle = (group: MuscleGroup) => {
     if (selected.includes(group)) {
       onChange(selected.filter((g) => g !== group))
@@ -83,30 +113,66 @@ export default function MuscleGroupSelector({ selected, onChange, gender }: Musc
   }
 
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none snap-x snap-mandatory">
-      {MUSCLE_GROUPS.map((group) => {
-        const isSelected = selected.includes(group)
-        return (
-          <button
-            key={group}
-            onClick={() => toggle(group)}
-            className="flex shrink-0 flex-col items-center gap-1 rounded-2xl p-3 w-20 aspect-square transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-            style={cardStyle(group, isSelected, gender)}
-          >
-            <span className="mt-auto font-heading text-[10px] font-bold text-white drop-shadow-sm leading-tight text-center">
-              {MUSCLE_GROUPS_VI[group]}
-            </span>
-            {isSelected && (
-              <span
-                className="flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold"
-                style={{ background: "var(--color-primary)", color: "#fff" }}
-              >
-                ✓
+    <div className="relative">
+      {canScrollLeft && (
+        <div
+          className="absolute left-0 top-0 bottom-1 w-6 z-10 pointer-events-none"
+          style={{ background: "linear-gradient(to right, var(--color-bg), transparent)" }}
+        />
+      )}
+      {canScrollRight && (
+        <div
+          className="absolute right-0 top-0 bottom-1 w-6 z-10 pointer-events-none"
+          style={{ background: "linear-gradient(to left, var(--color-bg), transparent)" }}
+        />
+      )}
+        {canScrollRight && showHint && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 z-20 pointer-events-none animate-fadeIn">
+            <div
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-heading font-semibold whitespace-nowrap"
+              style={{
+                background: "var(--color-primary)",
+                color: "#fff",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+              }}
+            >
+              Vuốt để xem thêm
+              <ChevronRight size={10} aria-hidden="true" />
+            </div>
+          </div>
+        )}
+        <div
+          ref={scrollRef}
+          onScroll={(e) => {
+            if (showHint) dismissHint()
+            checkScroll()
+          }}
+          className="flex gap-2 overflow-x-auto pb-1 scrollbar-none snap-x snap-mandatory"
+        >
+        {MUSCLE_GROUPS.map((group) => {
+          const isSelected = selected.includes(group)
+          return (
+            <button
+              key={group}
+              onClick={() => toggle(group)}
+              className="flex shrink-0 flex-col items-center gap-1 rounded-2xl p-3 w-20 aspect-square transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+              style={cardStyle(group, isSelected, gender)}
+            >
+              <span className="mt-auto font-heading text-[10px] font-bold text-white drop-shadow-sm leading-tight text-center">
+                {MUSCLE_GROUPS_VI[group]}
               </span>
-            )}
-          </button>
-        )
-      })}
+              {isSelected && (
+                <span
+                  className="flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold"
+                  style={{ background: "var(--color-primary)", color: "#fff" }}
+                >
+                  ✓
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }

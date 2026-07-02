@@ -151,6 +151,13 @@ export interface WarmupExercise {
 
 import type { WeeklyPlan } from "@/lib/weekly-plan/types"
 
+export interface WorkoutTimerState {
+  startedAt: number | null
+  accumulatedMs: number
+  isPaused: boolean
+  trackingMinimized: boolean
+}
+
 export interface AppState {
   isFirstVisit: boolean
   cookiesAccepted: boolean
@@ -164,4 +171,5 @@ export interface AppState {
   workoutHistory: WorkoutHistoryEntry[]
   lastPerformances: Record<string, { reps: number; weight: number }>
   weeklyPlan: WeeklyPlan | null
+  workoutTimer: WorkoutTimerState | null
 }

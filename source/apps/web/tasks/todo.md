@@ -1,32 +1,40 @@
-# Todo: Fix pnpm Lockfile Sync for CI
+# Task List: Empty State Home Page
 
-## Instructions
-- Update status in real time; don't batch completions
-- Mark `completed` only after the required work is actually done, including any required verification
-- Keep exactly one `in_progress` while work remains
+## Task 1: Bỏ guard StatsCard trong page.tsx
 
----
+**Description:** Bỏ điều kiện `state.workoutHistory.length > 0` bọc StatsCard. StatsCard sẽ luôn hiển thị, streak=0, total=0 khi chưa có lịch sử.
 
-### Phase 1: Fix
+**Acceptance criteria:**
+- [ ] StatsCard render mọi lúc (kể cả `workoutHistory = []`)
+- [ ] Không có gì khác thay đổi trong page.tsx
 
-- [ ] **Task 1: Regenerate pnpm-lock.yaml to remove stale syne reference**
-  - Run `pnpm install --no-frozen-lockfile` in `source/`
-  - Verify with `pnpm install --frozen-lockfile`, `pnpm build`, `pnpm test`
-  - Files: `source/pnpm-lock.yaml`
+**Verification:**
+- [ ] Build: `pnpm --filter nextfit build`
+- [ ] Test: `pnpm --filter nextfit test`
 
-### Checkpoint: After Task 1
-- [ ] `pnpm install --frozen-lockfile` passes
-- [ ] `pnpm build` passes
-- [ ] `pnpm test` passes
-- [ ] CI simulation passes
+**Files:** `src/app/page.tsx`
 
-### Phase 2: CI Hardening (optional — ask human)
+**Scope:** XS
 
-- [ ] **Task 2: Add lockfile validation to CI** (ask first)
-  - Add explicit lockfile check in deploy.yml
-  - Files: `.github/workflows/deploy.yml`
+## Task 2: Thêm empty state trong RecentSessions.tsx
 
-### Checkpoint: Complete
-- [ ] Lockfile is in sync with package.json
-- [ ] CI would pass on `main`
-- [ ] Ready for review
+**Description:** Thay `if (history.length === 0) return null` bằng empty state UI với tiêu đề, thông báo "Chưa có buổi tập nào", và nút CTA "Bắt đầu tập luyện" dẫn `/workout`.
+
+**Acceptance criteria:**
+- [ ] `history.length === 0` → render section với title + empty message + CTA button
+- [ ] CTA button navigate đến `/workout`
+- [ ] `history.length > 0` → render danh sách (giữ nguyên logic hiện tại)
+
+**Verification:**
+- [ ] Build: `pnpm --filter nextfit build`
+- [ ] Test: `pnpm --filter nextfit test`
+- [ ] Manual: empty history → shows empty state; with history → shows list
+
+**Files:** `src/components/ui/RecentSessions.tsx`
+
+**Scope:** XS
+
+## Checkpoint: Complete
+- [ ] All acceptance criteria met
+- [ ] 126 tests pass
+- [ ] Build clean

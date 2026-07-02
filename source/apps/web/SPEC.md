@@ -1,228 +1,117 @@
-# Spec: Per-Mode Independent Exercise State
+# Spec: Empty State Home Page After Onboarding
 
 ## Objective
 
-Tách `suggestedExercises` (state dùng chung) thành 3 state riêng biệt — mỗi mode (Gợi ý / Giáo án / Tự chọn) quản lý danh sách bài tập độc lập. Chuyển đổi giữa các mode khôi phục đúng danh sách của mode đó.
+Sau khi user hoàn thành onboarding, trang chủ đang trống trơn (chỉ TopHeader + BottomNav + CookieConsent). Hiển thị các section dưới đây ngay cả khi chưa có dữ liệu tập luyện.
 
-## Tech Stack
+**User:** Người mới, vừa hoàn thành onboarding lần đầu.
 
-- **Framework:** Next.js 16.2.7 (App Router)
-- **Styling:** Tailwind CSS v4 + CSS variables
+**Success:**
+- StatsCard hiển thị streak=0, totalWorkouts=0, ẩn chart
+- RecentSessions hiển thị empty state + CTA "Bắt đầu tập luyện" → `/workout`
+- Không còn trang chủ trống sau onboarding
 
 ## Commands
 
 ```
-Build:  pnpm build
-Dev:    pnpm dev
-Test:   pnpm test
+Build: pnpm --filter nextfit build
+Dev:   pnpm --filter nextfit dev
+Test:  pnpm --filter nextfit test
 ```
 
 ## Project Structure (affected files)
 
 ```
-src/app/page.tsx   → 3 state vars, new handlers, per-mode logic
-SPEC.md            → This spec
-tasks/plan.md      → Plan (to be written)
-tasks/todo.md      → Task tracking (to be written)
+src/app/page.tsx                          → bỏ guard `history.length > 0` trên StatsCard
+src/components/ui/StatsCard.tsx           → không cần sửa (đã tự ẩn chart khi empty)
+src/components/ui/RecentSessions.tsx       → thêm empty state + CTA button
 ```
 
 ## Code Style
 
-**3 state variables, one per mode:**
+### RecentSessions empty state
 
 ```tsx
-const [suggestExercises, setSuggestExercises] = useState<Exercise[]>([])
-const [planExercises, setPlanExercises] = useState<Exercise[]>([])
-const [freeExercises, setFreeExercises] = useState<Exercise[]>([])
-```
+export default function RecentSessions({ history }: RecentSessionsProps) {
+  const router = useRouter()
 
-**Derived current exercises:**
+  if (history.length === 0) {
+    return (
+      <section>
+        <h2 className="font-display text-base font-extrabold mb-4" style={{ color: "var(--color-text)" }}>
+          Các buổi tập gần nhất
+        </h2>
+        <div
+          className="rounded-2xl p-6 text-center"
+          style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+        >
+          <p className="font-body text-sm mb-4" style={{ color: "var(--color-text-secondary)" }}>
+            Chưa có buổi tập nào. Bắt đầu buổi tập đầu tiên của bạn!
+          </p>
+          <button
+            type="button"
+            onClick={() => router.push("/workout")}
+            className="min-h-10 rounded-xl font-heading text-xs font-bold transition-all active:scale-[0.98] px-6"
+            style={{ background: "var(--color-primary)", color: "#fff" }}
+          >
+            Bắt đầu tập luyện
+          </button>
+        </div>
+      </section>
+    )
+  }
 
-```tsx
-const currentExercises = useMemo(() => {
-  if (workoutMode === "suggest") return suggestExercises
-  if (workoutMode === "plan")   return planExercises
-  return freeExercises
-}, [workoutMode, suggestExercises, planExercises, freeExercises])
-```
-
-**Per-mode saved baselines for undo:**
-
-```tsx
-const [suggestSaved, setSuggestSaved] = useState<Exercise[]>([])
-const [planSaved, setPlanSaved] = useState<Exercise[]>([])
-const [freeSaved, setFreeSaved] = useState<Exercise[]>([])
-```
-
-**Helper to update current mode's exercises:**
-
-```tsx
-function updateExercises(fn: (prev: Exercise[]) => Exercise[]) {
-  if (workoutMode === "suggest") setSuggestExercises(fn)
-  else if (workoutMode === "plan") setPlanExercises(fn)
-  else setFreeExercises(fn)
+  // ... existing list rendering
 }
 ```
 
-**Grid heading per mode:**
-```
-Gợi ý:  "Bài tập gợi ý ({n})"
-Giáo án: "Bài tập giáo án ({n})"
-Tự chọn: "Bài tập của tôi ({n})"
-```
-
-## Layout
-
-Identical to current layout — only the exercise state model changes internally.
-
-## Mode Behavior
-
-| Mode | Exercise source | Replace vs Append | Baseline for undo |
-|---|---|---|---|
-| **Gợi ý** | `useEffect` on `selectedMuscles` → `suggestExercises(muscles, dynamicCount)` | Replace | Saved on muscle change |
-| **Giáo án** | `handleLoadPlanDay` → copy `day.exercises` | Replace | Saved on day click |
-| **Tự chọn** | `ExercisePicker` → `handleAddExercises` | Append | Empty (no undo needed) |
-
-### Suggest mode: dynamic count
-
-Số lượng bài tập gợi ý tăng theo số nhóm cơ đã chọn:
-
-| Nhóm cơ | Count |
-|---|---|
-| 1 | 6 |
-| 2 | 8 |
-| 3-4 | 10 |
-| 5-6 | 12 |
+### page.tsx — bỏ guard StatsCard
 
 ```tsx
-const muscles = selectedMuscles.length > 0 ? selectedMuscles : [...MUSCLE_GROUPS] as MuscleGroup[]
-const count = muscles.length === 1 ? 6 : muscles.length <= 2 ? 8 : muscles.length <= 4 ? 10 : 12
-const exercises = suggestExercises(muscles, state.criteria?.equipment, count)
+// Trước:
+{state.workoutHistory.length > 0 && (
+  <section className="mb-6">
+    <StatsCard ... />
+  </section>
+)}
+
+// Sau:
+<section className="mb-6">
+  <StatsCard ... />
+</section>
 ```
-
-Bài tập được chọn ngẫu nhiên từ pool chung của tất cả nhóm cơ đã chọn (giữ nguyên logic `suggestExercises` hiện tại).
-
-### Mode switching preserves state
-
-When user switches from Gợi ý → Giáo án:
-1. Hides muscle pills, shows day cards
-2. Exercise grid now shows `planExercises` (previously saved for plan mode)
-3. When switching back to Gợi ý: `suggestExercises` (previously saved) is restored
-
-### DnD, sort, add, remove, replace
-
-All operations (`handleMoveUp`, `handleDragEnd`, `handleRemoveExercise`, `handleAddExercises`, `handleReplaceExercise`) dispatch to `updateExercises` which targets the current mode's state.
-
-### Nút Reset (per-mode)
-
-Xoá toàn bộ bài tập + baseline của mode hiện tại. Cần confirm trước khi reset.
-
-**Behavior per mode:**
-
-| Mode | Reset clears |
-|---|---|
-| Gợi ý | `suggestModeExercises` → `[]`, `suggestSaved` → `[]` |
-| Giáo án | `planExercises` → `[]`, `planSaved` → `[]`, `selectedPlanDayIndex` → `null` |
-| Tự chọn | `freeExercises` → `[]`, `freeSaved` → `[]` |
-
-**UX:**
-- Nút reset (icon `Trash2`) nằm cạnh nút "Hoàn tác" trong header exercise grid
-- Chỉ hiện khi `currentExercises.length > 0`
-- Click → dialog confirm "Xoá tất cả bài tập?" với 2 nút "Huỷ" / "Xoá"
-- Confirm → xoá exercises + baseline của mode hiện tại
-- Không ảnh hưởng đến các mode khác
-
-Per-mode: reads the current mode's saved baseline.
-
-```tsx
-const currentSaved = useMemo(() => {
-  if (workoutMode === "suggest") return suggestSaved
-  if (workoutMode === "plan")   return planSaved
-  return freeSaved
-}, [workoutMode, suggestSaved, planSaved, freeSaved])
-
-const handleUndo = () => {
-  if (workoutMode === "suggest") setSuggestExercises([...suggestSaved])
-  else if (workoutMode === "plan") setPlanExercises([...planSaved])
-  // free mode: no undo (or clears to [])
-}
-```
-
-`hasChanges` compares `currentExercises` to `currentSaved`.
-
-### Bắt Đầu Workout
-
-Uses `currentExercises`. After routing to `/workout`, reset ALL 3 states to `[]`.
-
-```tsx
-const handleStartWorkout = () => {
-  if (currentExercises.length === 0) return
-  setTodayExercises(currentExercises)
-  startWorkout()
-  router.push("/workout")
-  setSuggestExercises([])
-  setPlanExercises([])
-  setFreeExercises([])
-  setSuggestSaved([])
-  setPlanSaved([])
-  setFreeSaved([])
-}
-```
-
-### DailyExercise `onAdd`
-
-Adds exercise to the current mode's state (not all modes).
-
-### PlanEditModal removed
-
-Zone 3 already removed in previous iteration. No change needed.
-
-## Operations Refactoring Summary
-
-All these currently use `setSuggestedExercises` — change to `updateExercises`:
-
-| Handler | Action |
-|---|---|
-| `handleAddExercises` | Append with dedup → `updateExercises` |
-| `handleRemoveExercise` | Filter out → `updateExercises` |
-| `handleMoveUp` | Swap with prev → `updateExercises` |
-| `handleMoveDown` | Swap with next → `updateExercises` |
-| `handleDragEnd` | Reorder → `updateExercises` |
-| `handleReplaceExercise` | Replace at index → `updateExercises` |
-| `DailyExercise.onAdd` | Append with dedup → `updateExercises` |
-| ExercisePicker `onAdd` | Calls `handleAddExercises` already ✓ |
-| Confirm modal `onConfirm` | Calls `handleRemoveExercise` already ✓ |
-
-## Implementation Plan
-
-### Phase 1: Dynamic count in suggest mode
-1. Update `page.tsx` `useEffect` — calculate `count` based on `muscles.length`
-2. Build + test verification
-
-### Phase 2: Verify build + tests
 
 ## Testing Strategy
 
-- **Framework:** Vitest (existing)
-- **Coverage:** Existing 126 tests must pass
-- Only page.tsx changes (no lib logic changes)
+- **Framework:** Vitest (126 tests hiện tại)
+- **No new unit tests needed** — chỉ thay đổi render logic UI đơn giản
+- `pnpm test` pass
 
 ## Boundaries
 
 **Always do:**
-- Run `pnpm build` before marking done
-- Keep DnD, sort controls working in all modes
-- Each mode preserves its own state independently
+- StatsCard luôn render (kể cả `history = []`)
+- RecentSessions render empty state khi `history.length === 0`
+- Empty state có CTA button "Bắt đầu tập luyện" → `/workout`
+- Giữ nguyên guard redirect `/onboarding` khi `isFirstVisit && !criteria`
 
 **Ask first:**
-- Adding new modes beyond the current 3
-- Changing how `suggestExercises` (lib function) works
+- Thay đổi nội dung empty state text
+- Thêm section mới khác ngoài StatsCard / RecentSessions
 
 **Never do:**
-- Break existing muscle → suggest flow
-- Break DnD integration
-- Introduce shared state between modes
+- Xoá redirect onboarding
+- Hiển thị empty section trước khi redirect (gây flash)
+- StatsCard hiển thị chart khi không có dữ liệu
+
+## Success Criteria
+
+- [ ] User mới sau onboarding → trang chủ hiển thị StatsCard (streak 0 / tổng 0 / ẩn chart)
+- [ ] User mới sau onboarding → RecentSessions hiển thị "Chưa có buổi tập nào." + CTA
+- [ ] Click CTA → navigate đến `/workout`
+- [ ] User có lịch sử → RecentSessions render danh sách (không ảnh hưởng)
+- [ ] `pnpm build && pnpm test` pass
 
 ## Open Questions
 
-None — requirements are clear from user answers.
+- (none — scope confirmed qua questions)
