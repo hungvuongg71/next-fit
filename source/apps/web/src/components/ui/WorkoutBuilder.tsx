@@ -2,14 +2,17 @@
 
 import { useState, useEffect, useMemo, useCallback, type CSSProperties } from "react"
 import { useRouter } from "next/navigation"
-import { Plus, RefreshCw, Trash2, RotateCcw, GripVertical, ChevronUp, ChevronDown, Brain, CalendarDays, PencilLine } from "lucide-react"
+import { Plus, RefreshCw, Trash2, RotateCcw, GripVertical, Brain, CalendarDays, PencilLine } from "lucide-react"
 import {
   DndContext,
   closestCenter,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
+  DragOverlay,
   type DragEndEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core"
 import {
   SortableContext,
@@ -64,6 +67,7 @@ export default function WorkoutBuilder({ onStartWorkout }: WorkoutBuilderProps) 
   const [selectedPlanDayIndex, setSelectedPlanDayIndex] = useState<number | null>(null)
   const [selectedReplaceIndex, setSelectedReplaceIndex] = useState<number | null>(null)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [activeId, setActiveId] = useState<string | null>(null)
 
   const currentExercises = useMemo(() => {
     if (workoutMode === "suggest") return suggestModeExercises
@@ -136,25 +140,12 @@ export default function WorkoutBuilder({ onStartWorkout }: WorkoutBuilderProps) 
     setExerciseToRemove(null)
   }
 
-  const handleMoveUp = useCallback((index: number) => {
-    if (index === 0) return
-    updateExercises((prev) => {
-      const arr = [...prev]
-      ;[arr[index - 1], arr[index]] = [arr[index], arr[index - 1]]
-      return arr
-    })
-  }, [workoutMode])
-
-  const handleMoveDown = useCallback((index: number) => {
-    updateExercises((prev) => {
-      if (index >= prev.length - 1) return prev
-      const arr = [...prev]
-      ;[arr[index], arr[index + 1]] = [arr[index + 1], arr[index]]
-      return arr
-    })
-  }, [workoutMode])
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveId(event.active.id as string)
+  }, [])
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
+    setActiveId(null)
     const { active, over } = event
     if (!over || active.id === over.id) return
     updateExercises((prev) => {
@@ -168,7 +159,10 @@ export default function WorkoutBuilder({ onStartWorkout }: WorkoutBuilderProps) 
     })
   }, [workoutMode])
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+  )
 
   const handleLoadPlanDay = useCallback((day: DayPlan, index: number) => {
     setPlanExercises([...day.exercises])
@@ -346,24 +340,33 @@ export default function WorkoutBuilder({ onStartWorkout }: WorkoutBuilderProps) 
               )}
             </div>
           </div>
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDragCancel={() => setActiveId(null)}
+          >
             <SortableContext items={currentExercises.map((e) => e.id)} strategy={verticalListSortingStrategy}>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {currentExercises.map((ex, i) => (
                   <SortableExerciseCard
                     key={ex.id}
                     exercise={ex}
-                    index={i}
-                    total={currentExercises.length}
                     onView={() => setViewingExercise(ex)}
                     onReplace={() => setSelectedReplaceIndex(i)}
                     onRemove={() => setExerciseToRemove(ex)}
-                    onMoveUp={() => handleMoveUp(i)}
-                    onMoveDown={() => handleMoveDown(i)}
                   />
                 ))}
               </div>
             </SortableContext>
+            <DragOverlay>
+              {activeId ? (
+                <DraggingExerciseCard
+                  exercise={currentExercises.find((ex) => ex.id === activeId)!}
+                />
+              ) : null}
+            </DragOverlay>
           </DndContext>
 
           <button
@@ -524,24 +527,16 @@ export default function WorkoutBuilder({ onStartWorkout }: WorkoutBuilderProps) 
 
 interface SortableExerciseCardProps {
   exercise: Exercise
-  index: number
-  total: number
   onView: () => void
   onReplace: () => void
   onRemove: () => void
-  onMoveUp: () => void
-  onMoveDown: () => void
 }
 
 function SortableExerciseCard({
   exercise,
-  index,
-  total,
   onView,
   onReplace,
   onRemove,
-  onMoveUp,
-  onMoveDown,
 }: SortableExerciseCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: exercise.id })
   const style: CSSProperties = {
@@ -572,25 +567,9 @@ function SortableExerciseCard({
           {...attributes}
           {...listeners}
           aria-label="Kéo để sắp xếp"
-          className="hidden lg:flex items-center justify-center w-5 h-5 rounded touch-none cursor-grab active:cursor-grabbing hover:opacity-70 transition-opacity"
+          className="flex items-center justify-center w-5 h-5 rounded touch-none cursor-grab active:cursor-grabbing hover:opacity-70 transition-opacity"
         >
           <GripVertical size={13} style={{ color: "var(--color-text-secondary)"}} aria-hidden="true" />
-        </button>
-        <button
-          onClick={onMoveUp}
-          disabled={index === 0}
-          aria-label="Di chuyển lên"
-          className="lg:hidden flex items-center justify-center w-5 h-4 rounded hover:opacity-70 transition-opacity disabled:opacity-20"
-        >
-          <ChevronUp size={10} style={{ color: "var(--color-text-secondary)"}} aria-hidden="true" />
-        </button>
-        <button
-          onClick={onMoveDown}
-          disabled={index === total - 1}
-          aria-label="Di chuyển xuống"
-          className="lg:hidden flex items-center justify-center w-5 h-4 rounded hover:opacity-70 transition-opacity disabled:opacity-20"
-        >
-          <ChevronDown size={10} style={{ color: "var(--color-text-secondary)"}} aria-hidden="true" />
         </button>
       </div>
 
@@ -626,6 +605,49 @@ function SortableExerciseCard({
         >
           <Trash2 size={11} aria-hidden="true" />
         </button>
+      </div>
+    </div>
+  )
+}
+
+function DraggingExerciseCard({ exercise }: { exercise: Exercise }) {
+  return (
+    <div
+      className="flex items-center gap-2 rounded-2xl p-2 shadow-xl"
+      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", opacity: 0.9 }}
+    >
+      <div className="flex flex-col items-center gap-0.5 self-stretch justify-center">
+        <div className="flex items-center justify-center w-5 h-5 rounded">
+          <GripVertical size={13} style={{ color: "var(--color-text-secondary)"}} aria-hidden="true" />
+        </div>
+      </div>
+
+      <div className="rounded-lg overflow-hidden shrink-0">
+        <ExerciseThumbnail exercise={exercise} className="w-10 h-10 object-cover" />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p className="font-heading text-xs font-semibold truncate" style={{ color: "var(--color-text)" }}>
+          {exercise.name}
+        </p>
+        <p className="font-body text-[10px]" style={{ color: "var(--color-text-secondary)" }}>
+          {exercise.primary_equipment} · {exercise.target_muscle_group}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-1 shrink-0">
+        <div
+          className="flex h-7 w-7 items-center justify-center rounded-lg"
+          style={{ background: "rgba(var(--color-primary-rgb), 0.08)", color: "var(--color-primary)" }}
+        >
+          <RefreshCw size={11} aria-hidden="true" />
+        </div>
+        <div
+          className="flex h-7 w-7 items-center justify-center rounded-lg"
+          style={{ background: "rgba(214,69,69,0.12)", color: "#ff6b6b" }}
+        >
+          <Trash2 size={11} aria-hidden="true" />
+        </div>
       </div>
     </div>
   )

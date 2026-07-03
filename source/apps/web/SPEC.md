@@ -1,117 +1,77 @@
-# Spec: Empty State Home Page After Onboarding
+# Spec: Mobile Drag-and-Drop Cải thiện
 
 ## Objective
 
-Sau khi user hoàn thành onboarding, trang chủ đang trống trơn (chỉ TopHeader + BottomNav + CookieConsent). Hiển thị các section dưới đây ngay cả khi chưa có dữ liệu tập luyện.
+**Vấn đề:** Drag-and-drop exercise cards trong WorkoutBuilder không mượt trên mobile: thiếu TouchSensor, không có DragOverlay, drag handle bị ẩn trên màn hình nhỏ, thay bằng nút up/down kém trực quan.
 
-**User:** Người mới, vừa hoàn thành onboarding lần đầu.
+**Mục tiêu:** Thay thế nút up/down trên mobile bằng drag-and-drop thực sự, mượt mà, có phản hồi thị giác khi kéo.
 
-**Success:**
-- StatsCard hiển thị streak=0, totalWorkouts=0, ẩn chart
-- RecentSessions hiển thị empty state + CTA "Bắt đầu tập luyện" → `/workout`
-- Không còn trang chủ trống sau onboarding
+**User:** Người tập dùng mobile để xây dựng workout.
+
+**Success:** 
+- Kéo drag handle trên mobile cảm giác mượt, card nổi theo ngón tay (DragOverlay)
+- Không còn nút up/down
+- Không ảnh hưởng đến các chức năng khác
+
+## Tech Stack
+
+- React 19.2.4 / Next.js 16.2.7
+- @dnd-kit/core ^6.3.1
+- @dnd-kit/sortable ^10.0.0
+- @dnd-kit/utilities ^3.2.2
 
 ## Commands
 
-```
-Build: pnpm --filter nextfit build
-Dev:   pnpm --filter nextfit dev
-Test:  pnpm --filter nextfit test
+```bash
+Dev:       pnpm dev
+Build:     pnpm build
+Lint:      pnpm lint
+Typecheck: npx tsc --noEmit
 ```
 
 ## Project Structure (affected files)
 
 ```
-src/app/page.tsx                          → bỏ guard `history.length > 0` trên StatsCard
-src/components/ui/StatsCard.tsx           → không cần sửa (đã tự ẩn chart khi empty)
-src/components/ui/RecentSessions.tsx       → thêm empty state + CTA button
+WorkoutBuilder.tsx          → Component chính, chứa DnD logic hiện tại
+  └─ SortableExerciseCard   → Card sắp xếp, chứa useSortable
 ```
+
+Chỉ sửa 1 file duy nhất.
 
 ## Code Style
 
-### RecentSessions empty state
-
-```tsx
-export default function RecentSessions({ history }: RecentSessionsProps) {
-  const router = useRouter()
-
-  if (history.length === 0) {
-    return (
-      <section>
-        <h2 className="font-display text-base font-extrabold mb-4" style={{ color: "var(--color-text)" }}>
-          Các buổi tập gần nhất
-        </h2>
-        <div
-          className="rounded-2xl p-6 text-center"
-          style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-        >
-          <p className="font-body text-sm mb-4" style={{ color: "var(--color-text-secondary)" }}>
-            Chưa có buổi tập nào. Bắt đầu buổi tập đầu tiên của bạn!
-          </p>
-          <button
-            type="button"
-            onClick={() => router.push("/workout")}
-            className="min-h-10 rounded-xl font-heading text-xs font-bold transition-all active:scale-[0.98] px-6"
-            style={{ background: "var(--color-primary)", color: "#fff" }}
-          >
-            Bắt đầu tập luyện
-          </button>
-        </div>
-      </section>
-    )
-  }
-
-  // ... existing list rendering
-}
-```
-
-### page.tsx — bỏ guard StatsCard
-
-```tsx
-// Trước:
-{state.workoutHistory.length > 0 && (
-  <section className="mb-6">
-    <StatsCard ... />
-  </section>
-)}
-
-// Sau:
-<section className="mb-6">
-  <StatsCard ... />
-</section>
-```
+- Giữ nguyên style hiện tại (inline styles với CSSProperties, CSS variables)
+- Không thêm thư viện mới
+- Sử dụng `@dnd-kit` API có sẵn: `DragOverlay`, `TouchSensor`, `PointerSensor`
 
 ## Testing Strategy
 
-- **Framework:** Vitest (126 tests hiện tại)
-- **No new unit tests needed** — chỉ thay đổi render logic UI đơn giản
-- `pnpm test` pass
+- `npx tsc --noEmit` — không lỗi type
+- `pnpm build` — build thành công
+- Manual test trên mobile browser (Chrome DevTools device emulation + real device):
+  1. Kéo thả exercise bằng drag handle
+  2. Kiểm tra DragOverlay hiển thị khi kéo
+  3. Kiểm tra scroll không bị interfere khi chạm vào handle
+  4. Xoá + Thay thế bài vẫn hoạt động
 
 ## Boundaries
 
-**Always do:**
-- StatsCard luôn render (kể cả `history = []`)
-- RecentSessions render empty state khi `history.length === 0`
-- Empty state có CTA button "Bắt đầu tập luyện" → `/workout`
-- Giữ nguyên guard redirect `/onboarding` khi `isFirstVisit && !criteria`
-
-**Ask first:**
-- Thay đổi nội dung empty state text
-- Thêm section mới khác ngoài StatsCard / RecentSessions
-
-**Never do:**
-- Xoá redirect onboarding
-- Hiển thị empty section trước khi redirect (gây flash)
-- StatsCard hiển thị chart khi không có dữ liệu
+- **Always:** Chỉ sửa `WorkoutBuilder.tsx`, không thay đổi component khác
+- **Always:** Giữ `useSortable`, `SortableContext`, `verticalListSortingStrategy`
+- **Always:** Test typecheck + build trước khi done
+- **Ask first:** Đổi collision detection strategy, thay đổi activation constraint values
+- **Never:** Xoá PointerSensor, thay thế @dnd-kit bằng thư viện khác
 
 ## Success Criteria
 
-- [ ] User mới sau onboarding → trang chủ hiển thị StatsCard (streak 0 / tổng 0 / ẩn chart)
-- [ ] User mới sau onboarding → RecentSessions hiển thị "Chưa có buổi tập nào." + CTA
-- [ ] Click CTA → navigate đến `/workout`
-- [ ] User có lịch sử → RecentSessions render danh sách (không ảnh hưởng)
-- [ ] `pnpm build && pnpm test` pass
+1. Drag handle hiển thị trên mọi kích thước màn hình (không còn `hidden lg:flex`)
+2. Nút ChevronUp/ChevronDown bị xoá
+3. TouchSensor được thêm vào sensor config
+4. DragOverlay được thêm: card nổi theo ngón tay khi kéo
+5. `touch-action: none` trên drag handle
+6. Card gốc opacity 0.4 khi kéo, DragOverlay hiển thị card đầy đủ
+7. TypeScript pass, build pass
 
 ## Open Questions
 
-- (none — scope confirmed qua questions)
+(Không có — đã clarify ở phase 1)
