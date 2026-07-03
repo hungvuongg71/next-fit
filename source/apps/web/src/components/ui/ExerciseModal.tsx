@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { X, Play, ChevronLeft, ChevronDown, ChevronUp } from "lucide-react"
 import { Exercise } from "@/types"
-import { MOCK_EXERCISES } from "@/lib/data"
+import { MOCK_EXERCISES_WITH_VIDEO } from "@/lib/data"
 import { getRelatedExercises, type ScoredExercise } from "@/lib/related-exercises"
 import { useApp } from "@/state/context"
 import ExerciseThumbnail from "./ExerciseThumbnail"
@@ -65,7 +65,7 @@ export default function ExerciseModal({ exercise, onClose, onReplace }: Exercise
 
   const relatedExercises: ScoredExercise[] = getRelatedExercises(
     currentExercise,
-    MOCK_EXERCISES,
+    MOCK_EXERCISES_WITH_VIDEO,
     state.criteria,
   )
 

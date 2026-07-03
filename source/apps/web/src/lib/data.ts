@@ -72,6 +72,10 @@ export const MOCK_EXERCISES: Exercise[] = rawExercises.map((ex, i) => ({
   in_depth_youtube_explanation: ex.in_depth_youtube_explanation,
 }))
 
+export const MOCK_EXERCISES_WITH_VIDEO: Exercise[] = MOCK_EXERCISES.filter(
+  (ex) => ex.short_youtube_demonstration || ex.in_depth_youtube_explanation,
+)
+
 export const DEFAULT_SETS = 3
 export const DEFAULT_REPS = "10-12"
 export const DEFAULT_REST_SECONDS = 90

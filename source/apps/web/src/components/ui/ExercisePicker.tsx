@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import { Search, X, Check, ChevronRight } from "lucide-react"
 import { Exercise, MuscleGroup } from "@/types"
-import { MOCK_EXERCISES } from "@/lib/data"
+import { MOCK_EXERCISES_WITH_VIDEO } from "@/lib/data"
 import { MUSCLE_GROUPS, MUSCLE_GROUPS_VI } from "@/constants/muscles"
 import { EQUIPMENT, EQUIPMENT_VI, POPULAR_EQUIPMENT } from "@/constants/equipment"
 import ExerciseThumbnail from "./ExerciseThumbnail"
@@ -80,7 +80,7 @@ export default function ExercisePicker({
   }, [muscleScrollRight, equipScrollRight, dismissHint])
 
   const filtered = useMemo(() => {
-    return MOCK_EXERCISES.filter((ex) => {
+    return MOCK_EXERCISES_WITH_VIDEO.filter((ex) => {
       if (replaceMode && ex.id === replaceMode.exerciseId) return false
       if (ex.target_muscle_group !== selectedMuscleGroup) return false
       if (selectedEquipment !== null && ex.primary_equipment !== selectedEquipment) return false
@@ -139,7 +139,7 @@ export default function ExercisePicker({
   }
 
   const handleSubmit = () => {
-    const selected = MOCK_EXERCISES.filter((e) => selectedIds.has(e.id))
+    const selected = MOCK_EXERCISES_WITH_VIDEO.filter((e) => selectedIds.has(e.id))
     if (replaceMode && onReplace && selected.length > 0) {
       onReplace(replaceMode.exerciseId, selected[0])
     } else {
@@ -148,7 +148,7 @@ export default function ExercisePicker({
     onClose()
   }
 
-  const selectedExercises = useMemo(() => MOCK_EXERCISES.filter((e) => selectedIds.has(e.id)), [selectedIds])
+  const selectedExercises = useMemo(() => MOCK_EXERCISES_WITH_VIDEO.filter((e) => selectedIds.has(e.id)), [selectedIds])
 
   if (!isOpen) return null
 
