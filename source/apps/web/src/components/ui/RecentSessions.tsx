@@ -9,10 +9,8 @@ interface RecentSessionsProps {
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60)
-  if (m < 60) return `${m} phút`
-  const h = Math.floor(m / 60)
-  const rest = m % 60
-  return rest > 0 ? `${h}h${rest}p` : `${h}h`
+  const s = seconds % 60
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
 }
 
 function formatDate(iso: string): string {
@@ -39,7 +37,7 @@ export default function RecentSessions({ history }: RecentSessionsProps) {
           <button
             type="button"
             onClick={() => router.push("/workout")}
-            className="min-h-10 rounded-xl font-heading text-xs font-bold transition-all active:scale-[0.98] px-6"
+            className="animate-running-light min-h-10 rounded-xl font-heading text-xs font-bold transition-all active:scale-[0.98] px-6"
             style={{ background: "var(--color-primary)", color: "#fff" }}
           >
             Bắt đầu tập luyện

@@ -1,34 +1,42 @@
-# Implementation Plan: Empty State Home Page After Onboarding
+# Plan: Thay DM Sans bằng Sora cho font-display & font-heading
 
 ## Overview
 
-Sau onboarding, trang chủ trống trơn. Thay đổi 2 component: StatsCard luôn hiển thị, RecentSessions hiển thị empty state + CTA. Tổng cộng 2 files, 2 thay đổi nhỏ.
+Thay thế toàn bộ font `DM Sans` bằng `Sora` (Google Fonts) cho `--font-display` và `--font-heading`. Gỡ `@fontsource/dm-sans`, thêm `@fontsource/sora`.
 
-## Architecture Decisions
+## Dependency Graph
 
-- **Không thêm section mới** — chỉ sửa render logic hiện tại
-- **StatsCard** đã xử lý empty internally (ẩn chart), chỉ cần bỏ guard在外
-- **RecentSessions** thêm early return với empty state UI thay vì `return null`
+```
+Install @fontsource/sora (pnpm add)
+    │
+    ↓
+globals.css: đổi imports + CSS variables
+    │
+    ↓
+pnpm build (verify)
+```
 
 ## Task List
 
-### Phase 1: Implement
+### Task 1: Install @fontsource/sora + gỡ @fontsource/dm-sans
 
-- [ ] Task 1: Bỏ guard `workoutHistory.length > 0` trên StatsCard trong `page.tsx`
-- [ ] Task 2: Thêm empty state + CTA trong `RecentSessions.tsx`
+**Description:** `pnpm add @fontsource/sora` → `pnpm remove @fontsource/dm-sans`. Cần weights 500, 600, 700 (giống DM Sans cũ).
 
-### Checkpoint: Implement
-- [ ] Build succeeds
-- [ ] Tests pass (126)
-- [ ] Manual: new user after onboarding → sees StatsCard (streak 0 / total 0) + RecentSessions empty state
+**Verification:** `pnpm build` không lỗi
 
-## Risks and Mitigations
+**Files:** `package.json`, `pnpm-lock.yaml`
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Flash empty state before onboarding redirect | Low | Guard `isFirstVisit && !criteria` vẫn redirect trước khi render |
-| StatsCard renders chart with empty data | Low | StatsCard đã ẩn chart khi `chartData.length === 0` |
+### Task 2: Cập nhật globals.css
 
-## Open Questions
+**Description:** 
+- Thay `@import "@fontsource/dm-sans/..."` bằng `@import "@fontsource/sora/..."`
+- Đổi `--font-display` và `--font-heading` từ `"DM Sans", sans-serif` → `"Sora", sans-serif`
 
-(none)
+**Verification:** `npx tsc --noEmit`, `pnpm build`, manual check font trên UI
+
+**Files:** `src/app/globals.css`
+
+## Checkpoint: Complete
+
+- [ ] Build pass
+- [ ] Font-display và font-heading hiển thị bằng Sora
