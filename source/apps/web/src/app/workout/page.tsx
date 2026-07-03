@@ -66,6 +66,7 @@ export default function WorkoutPage() {
     [replaceTarget],
   )
   const [showCompleted, setShowCompleted] = useState(false)
+  const [finalElapsed, setFinalElapsed] = useState(0)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const cancelDialogRef = useRef<HTMLDivElement>(null)
   const continueBtnRef = useRef<HTMLButtonElement>(null)
@@ -264,6 +265,7 @@ export default function WorkoutPage() {
   }
 
   const handleComplete = () => {
+    setFinalElapsed(elapsedSeconds)
     completeWorkout(elapsedSeconds, progress)
     saveExerciseLogs()
     localStorage.removeItem(STORAGE_KEYS.WORKOUT_SESSION)
@@ -345,7 +347,7 @@ export default function WorkoutPage() {
           {totals.completedSets}/{totals.totalSets} hiệp · {Math.round(totals.totalVolume).toLocaleString("vi-VN")} kg
         </p>
         <p className="mt-4 font-number text-3xl" style={{ color: "var(--color-primary)" }}>
-          {formatElapsed(elapsedSeconds)}
+          {formatElapsed(finalElapsed)}
         </p>
         <button
           type="button"

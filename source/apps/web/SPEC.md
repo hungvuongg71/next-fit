@@ -1,24 +1,24 @@
-# Spec: Mobile Drag-and-Drop Cải thiện
+# Spec: Redesign StatsCard — Streak & Total Workouts
 
 ## Objective
 
-**Vấn đề:** Drag-and-drop exercise cards trong WorkoutBuilder không mượt trên mobile: thiếu TouchSensor, không có DragOverlay, drag handle bị ẩn trên màn hình nhỏ, thay bằng nút up/down kém trực quan.
+**Vấn đề:** StatsCard hiện tại gộp streak và tổng buổi tập trong 1 card với số nhỏ, thiếu điểm nhấn thị giác.
 
-**Mục tiêu:** Thay thế nút up/down trên mobile bằng drag-and-drop thực sự, mượt mà, có phản hồi thị giác khi kéo.
+**Mục tiêu:** Tách thành 2 card riêng biệt (streak + total), số lớn có animation đếm, giữ bar chart bên dưới.
 
-**User:** Người tập dùng mobile để xây dựng workout.
+**User:** Người dùng xem trang chủ, muốn thấy tiến trình tập luyện trực quan.
 
 **Success:** 
-- Kéo drag handle trên mobile cảm giác mượt, card nổi theo ngón tay (DragOverlay)
-- Không còn nút up/down
-- Không ảnh hưởng đến các chức năng khác
+- Streak và total là 2 card riêng, grid 2 cột
+- Số hiển thị to (text-4xl+), font-display, animation đếm từ 0 lên giá trị thật
+- Bar chart giữ nguyên ở phía dưới
+- Animation chỉ chạy 1 lần khi component mount
 
 ## Tech Stack
 
 - React 19.2.4 / Next.js 16.2.7
-- @dnd-kit/core ^6.3.1
-- @dnd-kit/sortable ^10.0.0
-- @dnd-kit/utilities ^3.2.2
+- Tailwind utility classes
+- CSS keyframes (không thêm thư viện animation mới)
 
 ## Commands
 
@@ -32,46 +32,66 @@ Typecheck: npx tsc --noEmit
 ## Project Structure (affected files)
 
 ```
-WorkoutBuilder.tsx          → Component chính, chứa DnD logic hiện tại
-  └─ SortableExerciseCard   → Card sắp xếp, chứa useSortable
+src/components/ui/StatsCard.tsx    → Redesign thành 2 card riêng + animation đếm số
 ```
 
-Chỉ sửa 1 file duy nhất.
+Chỉ sửa 1 file.
 
 ## Code Style
 
-- Giữ nguyên style hiện tại (inline styles với CSSProperties, CSS variables)
-- Không thêm thư viện mới
-- Sử dụng `@dnd-kit` API có sẵn: `DragOverlay`, `TouchSensor`, `PointerSensor`
+- Giữ nguyên pattern: Tailwind classes + inline styles với CSS variables
+- Animation đếm số: dùng `useState` + `useEffect` với `setInterval` / `requestAnimationFrame`
+- 2 card dùng `grid grid-cols-2 gap-3`
+- Số dùng `className="font-display text-4xl font-extrabold"`
+- Icon dùng lucide-react (Flame, Calendar) sẵn có
+
+```tsx
+// Animation đếm số pattern
+const [count, setCount] = useState(0)
+useEffect(() => {
+  if (target === 0) return
+  const duration = 800
+  const steps = 30
+  const increment = target / steps
+  let current = 0
+  const timer = setInterval(() => {
+    current += increment
+    if (current >= target) {
+      setCount(target)
+      clearInterval(timer)
+    } else {
+      setCount(Math.round(current))
+    }
+  }, duration / steps)
+  return () => clearInterval(timer)
+}, [target])
+```
 
 ## Testing Strategy
 
-- `npx tsc --noEmit` — không lỗi type
+- `npx tsc --noEmit` — 0 errors
 - `pnpm build` — build thành công
-- Manual test trên mobile browser (Chrome DevTools device emulation + real device):
-  1. Kéo thả exercise bằng drag handle
-  2. Kiểm tra DragOverlay hiển thị khi kéo
-  3. Kiểm tra scroll không bị interfere khi chạm vào handle
-  4. Xoá + Thay thế bài vẫn hoạt động
+- Manual test:
+  1. Load trang chủ → thấy 2 card, số đếm animation
+  2. Streak = 0 → hiển thị 0, không animation
+  3. Test responsive: 2 cột trên desktop, 1 cột trên mobile nhỏ
 
 ## Boundaries
 
-- **Always:** Chỉ sửa `WorkoutBuilder.tsx`, không thay đổi component khác
-- **Always:** Giữ `useSortable`, `SortableContext`, `verticalListSortingStrategy`
-- **Always:** Test typecheck + build trước khi done
-- **Ask first:** Đổi collision detection strategy, thay đổi activation constraint values
-- **Never:** Xoá PointerSensor, thay thế @dnd-kit bằng thư viện khác
+- **Always:** Chỉ sửa StatsCard.tsx
+- **Always:** Dùng `--color-primary-rgb` cho màu sắc
+- **Always:** Animation chỉ chạy 1 lần khi mount
+- **Ask first:** Thêm thư viện animation, thay đổi layout page.tsx
+- **Never:** Xoá bar chart, thay đổi logic streak/total từ weekly-stats
 
 ## Success Criteria
 
-1. Drag handle hiển thị trên mọi kích thước màn hình (không còn `hidden lg:flex`)
-2. Nút ChevronUp/ChevronDown bị xoá
-3. TouchSensor được thêm vào sensor config
-4. DragOverlay được thêm: card nổi theo ngón tay khi kéo
-5. `touch-action: none` trên drag handle
-6. Card gốc opacity 0.4 khi kéo, DragOverlay hiển thị card đầy đủ
-7. TypeScript pass, build pass
+1. 2 card riêng: streak (Flame) + total (Calendar)
+2. Số to font-display, animation đếm từ 0 → giá trị thật trong ~800ms
+3. Bar chart giữ nguyên bên dưới 2 card
+4. Responsive: 2 cột, xuống 1 cột trên mobile nhỏ
+5. TypeScript pass, build pass
 
 ## Open Questions
 
-(Không có — đã clarify ở phase 1)
+(Không có)

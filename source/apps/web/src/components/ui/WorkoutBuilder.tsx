@@ -192,7 +192,7 @@ export default function WorkoutBuilder({ onStartWorkout }: WorkoutBuilderProps) 
     <div>
       <div className="flex items-center gap-2 mb-4">
         <h2 className="font-display text-base font-extrabold" style={{ color: "var(--color-text)" }}>
-          🏋️ Xây dựng bài tập
+          🏋️ XÂY DỰNG BÀI TẬP
         </h2>
       </div>
 

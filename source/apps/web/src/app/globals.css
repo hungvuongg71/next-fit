@@ -1,10 +1,16 @@
 @import "tailwindcss";
-@import "@fontsource/dm-sans/700.css";
-@import "@fontsource/dm-sans/600.css";
-@import "@fontsource/dm-sans/500.css";
+@import "@fontsource/sora/700.css";
+@import "@fontsource/sora/600.css";
+@import "@fontsource/sora/500.css";
 @import "@fontsource/be-vietnam-pro/500.css";
 @import "@fontsource/be-vietnam-pro/400.css";
 @import "@fontsource/rubik-mono-one/400.css";
+
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
 
 /* ========================================
    PREMIUM ATHLETIC THEME (Default)
@@ -28,8 +34,8 @@
   --color-border: rgba(15, 165, 96, 0.1);
 
   /* Typography */
-  --font-display: "DM Sans", sans-serif;
-  --font-heading: "DM Sans", sans-serif;
+  --font-display: "Sora", sans-serif;
+  --font-heading: "Sora", sans-serif;
   --font-body: "Be Vietnam Pro", sans-serif;
   --font-number: "Rubik Mono One", sans-serif;
 
@@ -306,6 +312,40 @@ body {
 }
 .animate-spin-slow {
   animation: spin-slow 2s linear infinite;
+}
+
+@keyframes running-light-spin {
+  from { --angle: 0deg; }
+  to { --angle: 360deg; }
+}
+.animate-running-light {
+  position: relative;
+  isolation: isolate;
+}
+.animate-running-light::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--angle),
+    transparent 0%,
+    transparent 78%,
+    rgba(var(--color-primary-rgb), 0.9) 88%,
+    rgba(255, 255, 255, 0.95) 92%,
+    rgba(var(--color-primary-rgb), 0.9) 96%,
+    transparent 100%
+  );
+  animation: running-light-spin 2s linear infinite;
+  z-index: -1;
+}
+.animate-running-light::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: inherit;
+  z-index: -1;
 }
 
 @media (prefers-reduced-motion: reduce) {

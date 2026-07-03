@@ -32,11 +32,11 @@ importers:
       '@fontsource/be-vietnam-pro':
         specifier: ^5.2.8
         version: 5.2.8
-      '@fontsource/dm-sans':
-        specifier: ^5.2.8
-        version: 5.2.8
       '@fontsource/rubik-mono-one':
         specifier: ^5.2.7
+        version: 5.2.8
+      '@fontsource/sora':
+        specifier: ^5.2.8
         version: 5.2.8
       '@ncdai/react-wheel-picker':
         specifier: ^1.2.2
@@ -379,11 +379,11 @@ packages:
   '@fontsource/be-vietnam-pro@5.2.8':
     resolution: {integrity: sha512-lqTtfpkAy0GdFH0fqwR0sW4VP+3CNGaQV6SpW2TSZaNmixZMlou+2dp5ErGidrS1MPiDDPfPbfW2i358PVFLZA==}
 
-  '@fontsource/dm-sans@5.2.8':
-    resolution: {integrity: sha512-tlovG42m9ESG28WiHpLq3F5umAlm64rv0RkqTbYowRn70e9OlRr5a3yTJhrhrY+k5lftR/OFJjPzOLQzk8EfCA==}
-
   '@fontsource/rubik-mono-one@5.2.8':
     resolution: {integrity: sha512-+TVynJCT2ADs/caB2iTMjcfuihc9yz069GLN8PxGeaECSq6+6M1dmzTkdJdHCokf9Oe4UCGxJ2nBe3Ia5Z67qQ==}
+
+  '@fontsource/sora@5.2.8':
+    resolution: {integrity: sha512-1G6iTXUx8rcCKzi3mjaTQ1DE8PQz0OmW3Qnku+64S+bqRr1o/gGeiw8fxIQhhBU9ZP8ZofIqai7o00DNOPnlDw==}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -2963,9 +2963,9 @@ snapshots:
 
   '@fontsource/be-vietnam-pro@5.2.8': {}
 
-  '@fontsource/dm-sans@5.2.8': {}
-
   '@fontsource/rubik-mono-one@5.2.8': {}
+
+  '@fontsource/sora@5.2.8': {}
 
   '@humanfs/core@0.19.1': {}
 
