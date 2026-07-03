@@ -7,6 +7,7 @@ import { ArrowRight, Check, Dumbbell, ShieldCheck } from "lucide-react"
 import { useApp } from "@/state/context"
 import { Duration, Equipment, Frequency, Gender, Goal, Level, UserCriteria } from "@/types"
 import CookieConsent from "@/components/ui/CookieConsent"
+import NumberPickerWheel from "@/components/ui/NumberPickerWheel"
 
 import { DURATIONS, FREQUENCIES } from "@/constants/workout"
 import { EQUIPMENT, EQUIPMENT_VI, POPULAR_EQUIPMENT } from "@/constants/equipment"
@@ -72,6 +73,9 @@ export default function OnboardingPage() {
   const [height, setHeight] = useState("")
   const [allowStorage, setAllowStorage] = useState(true)
   const [showAllEquipment, setShowAllEquipment] = useState(false)
+
+  const weightInt = weight !== "" ? Math.floor(Number(weight)) : null
+  const weightDec = weight !== "" ? Math.round((Number(weight) - Math.floor(Number(weight))) * 10) : null
 
   const weightValid = weight !== "" && Number(weight) >= 20 && Number(weight) <= 300
   const heightValid = height !== "" && Number(height) >= 100 && Number(height) <= 250
@@ -139,20 +143,26 @@ export default function OnboardingPage() {
         </div>
       </header>
 
+      <div
+        className="sticky top-0 z-20 px-5 pt-1 pb-2"
+        style={{ background: "var(--color-bg)" }}
+      >
+        <div className="h-1.5 overflow-hidden rounded-full" style={{ background: "rgba(255,255,255,0.08)" }}>
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{ width: `${progress}%`, background: "var(--color-primary)" }}
+          />
+        </div>
+      </div>
+
       <main className="relative z-10 px-5 pb-36">
         <section className="mb-7">
           <h1 className="max-w-sm font-display text-4xl font-extrabold leading-[1.02]">
             Khảo sát nhanh để dựng buổi tập hôm nay.
           </h1>
           <p className="mt-3 max-w-md font-body text-sm leading-6" style={{ color: "var(--color-text-secondary)" }}>
-            Chọn 6 tiêu chí cốt lõi. NextFit sẽ lưu lại trong trình duyệt và dùng làm nền cho flow Home → Workout → Stats.
+            Chọn 6 tiêu chí cốt lõi. NextFit sẽ lưu lại để cá nhân hóa gợi ý bài tập cho bạn.
           </p>
-          <div className="mt-5 h-1.5 overflow-hidden rounded-full" style={{ background: "rgba(255,255,255,0.08)" }}>
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${progress}%`, background: "var(--color-primary)" }}
-            />
-          </div>
         </section>
 
         <section className="mb-6 rounded-3xl p-4" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
@@ -262,45 +272,72 @@ export default function OnboardingPage() {
             <p className="mb-3 font-heading text-xs font-semibold uppercase tracking-[0.24em]" style={{ color: "var(--color-text-secondary)" }}>
               Cân nặng & Chiều cao
             </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1.5 block font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                  Cân nặng (kg)
-                </label>
-                <input
-                  type="number"
-                  min={20}
-                  max={300}
-                  step={0.5}
-                  value={weight}
-                  onChange={(e) => setWeight(e.target.value)}
-                  placeholder="VD: 70"
-                  className="min-h-11 w-full rounded-2xl px-4 font-heading text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+
+            <div className="mb-3">
+              <label className="mb-2 block font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                Cân nặng (kg)
+              </label>
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1">
+                <div
+                  className="rounded-2xl overflow-hidden"
                   style={{
                     background: "rgba(255,255,255,0.045)",
                     border: `1px solid ${weightValid ? "var(--color-primary)" : "var(--color-border)"}`,
-                    color: "var(--color-text)",
                   }}
-                />
+                >
+                  <NumberPickerWheel
+                    value={weightInt ?? 70}
+                    onChange={(v) => {
+                      const dec = weightDec ?? 0
+                      setWeight(v !== null ? `${v}.${dec}` : "")
+                    }}
+                    min={20}
+                    max={300}
+                    step={1}
+                    ariaLabel="Cân nặng phần nguyên"
+                  />
+                </div>
+                <span className="font-heading text-lg font-bold" style={{ color: "var(--color-text-secondary)" }}>.</span>
+                <div
+                  className="rounded-2xl overflow-hidden"
+                  style={{
+                    background: "rgba(255,255,255,0.045)",
+                    border: `1px solid ${weightValid ? "var(--color-primary)" : "var(--color-border)"}`,
+                  }}
+                >
+                  <NumberPickerWheel
+                    value={weightDec ?? 0}
+                    onChange={(v) => {
+                      const int = weightInt ?? 70
+                      setWeight(v !== null ? `${int}.${v}` : "")
+                    }}
+                    min={0}
+                    max={9}
+                    step={1}
+                    ariaLabel="Cân nặng phần thập phân"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="mb-1.5 block font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                  Chiều cao (cm)
-                </label>
-                <input
-                  type="number"
+            </div>
+
+            <div>
+              <label className="mb-2 block font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                Chiều cao (cm)
+              </label>
+              <div
+                className="rounded-2xl overflow-hidden"
+                style={{
+                  background: "rgba(255,255,255,0.045)",
+                  border: `1px solid ${heightValid ? "var(--color-primary)" : "var(--color-border)"}`,
+                }}
+              >
+                <NumberPickerWheel
+                  value={height !== "" ? Number(height) : 170}
+                  onChange={(v) => setHeight(v !== null ? String(v) : "")}
                   min={100}
                   max={250}
                   step={1}
-                  value={height}
-                  onChange={(e) => setHeight(e.target.value)}
-                  placeholder="VD: 175"
-                  className="min-h-11 w-full rounded-2xl px-4 font-heading text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-                  style={{
-                    background: "rgba(255,255,255,0.045)",
-                    border: `1px solid ${heightValid ? "var(--color-primary)" : "var(--color-border)"}`,
-                    color: "var(--color-text)",
-                  }}
+                  ariaLabel="Chiều cao (cm)"
                 />
               </div>
             </div>

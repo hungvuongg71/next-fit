@@ -1,6 +1,6 @@
 import type { Exercise, Level, Goal, Gender } from "@/types"
 import type { SessionBuilderInput, PlannedExercise, ExerciseRole } from "./types"
-import { MOCK_EXERCISES } from "@/lib/data"
+import { MOCK_EXERCISES_WITH_VIDEO } from "@/lib/data"
 import { matchesLevel, compoundScore, parseAvgReps } from "@/lib/split"
 import { computeSets, computeReps, computeRest } from "./volume-manager"
 import { suggestWeight } from "./weight-suggestion"
@@ -62,7 +62,7 @@ export function buildDaySession(input: SessionBuilderInput): PlannedExercise[] {
 
   const detailedGroups = new Set(targetMuscleGroups)
 
-  const candidates = MOCK_EXERCISES.filter((ex) => {
+  const candidates = MOCK_EXERCISES_WITH_VIDEO.filter((ex) => {
     if (!detailedGroups.has(ex.target_muscle_group)) return false
     if (!equipmentMatches(ex, equipment)) return false
     if (!matchesLevel(ex.difficulty_level, level)) return false

@@ -1,5 +1,5 @@
 import { Exercise, MuscleGroup } from "@/types"
-import { MOCK_EXERCISES } from "@/lib/data"
+import { MOCK_EXERCISES_WITH_VIDEO } from "@/lib/data"
 
 const DEFAULT_EQUIPMENT = ["Barbell", "Dumbbell", "Cable", "Bodyweight"]
 const PRIORITY_EQUIPMENT = new Set(["Barbell", "Dumbbell"])
@@ -30,7 +30,7 @@ export function suggestExercises(
     const seenIds = new Set<string>()
     for (const group of muscleGroups) {
       if (result.length >= count) break
-      const pool = MOCK_EXERCISES.filter((ex) => {
+      const pool = MOCK_EXERCISES_WITH_VIDEO.filter((ex) => {
         if (ex.target_muscle_group !== group) return false
         if (!equipFilter(ex)) return false
         if (seenIds.has(ex.id)) return false
@@ -47,7 +47,7 @@ export function suggestExercises(
 
   const targets = new Set(muscleGroups)
 
-  const pool = MOCK_EXERCISES.filter((ex) => {
+  const pool = MOCK_EXERCISES_WITH_VIDEO.filter((ex) => {
     if (!targets.has(ex.target_muscle_group as MuscleGroup)) return false
     if (!equipFilter(ex)) return false
     return true
