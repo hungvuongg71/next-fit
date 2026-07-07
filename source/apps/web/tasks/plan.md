@@ -1,42 +1,34 @@
-# Plan: Thay DM Sans bằng Sora cho font-display & font-heading
+# Plan: Chặn iOS Safari zoom khi focus vào input
 
-## Overview
+## Root Cause
 
-Thay thế toàn bộ font `DM Sans` bằng `Sora` (Google Fonts) cho `--font-display` và `--font-heading`. Gỡ `@fontsource/dm-sans`, thêm `@fontsource/sora`.
+iOS Safari tự động zoom vào input/select khi font-size < 16px. Viewport meta trong `layout.tsx` không có `maximum-scale` / `user-scalable`.
 
-## Dependency Graph
+## Fix
 
-```
-Install @fontsource/sora (pnpm add)
-    │
-    ↓
-globals.css: đổi imports + CSS variables
-    │
-    ↓
-pnpm build (verify)
-```
+Thêm viewport meta với `maximum-scale=1, user-scalable=no` vào `<head>` trong `layout.tsx`. Next.js có thể set viewport qua `export const viewport` metadata API.
 
 ## Task List
 
-### Task 1: Install @fontsource/sora + gỡ @fontsource/dm-sans
+### Task 1: Thêm viewport meta chặn zoom
 
-**Description:** `pnpm add @fontsource/sora` → `pnpm remove @fontsource/dm-sans`. Cần weights 500, 600, 700 (giống DM Sans cũ).
+**Description:** Thêm `export const viewport = { maximumScale: 1, userScalable: false }` trong `layout.tsx`.
 
-**Verification:** `pnpm build` không lỗi
+**Acceptance criteria:**
+- [ ] Focus vào input trên iOS Safari không zoom
+- [ ] Pinch-to-zoom bị disabled trên toàn app
 
-**Files:** `package.json`, `pnpm-lock.yaml`
+**Verification:**
+- [ ] `npx tsc --noEmit` — 0 errors
+- [ ] `pnpm build` — build thành công
+- [ ] Manual: test trên iOS Safari / Chrome devtools device mode
 
-### Task 2: Cập nhật globals.css
+**Dependencies:** None
 
-**Description:** 
-- Thay `@import "@fontsource/dm-sans/..."` bằng `@import "@fontsource/sora/..."`
-- Đổi `--font-display` và `--font-heading` từ `"DM Sans", sans-serif` → `"Sora", sans-serif`
-
-**Verification:** `npx tsc --noEmit`, `pnpm build`, manual check font trên UI
-
-**Files:** `src/app/globals.css`
+**Files touched:**
+- `src/app/layout.tsx` (thêm viewport export)
 
 ## Checkpoint: Complete
 
-- [ ] Build pass
-- [ ] Font-display và font-heading hiển thị bằng Sora
+- [ ] TypeScript pass, build pass
+- [ ] iOS không zoom khi focus input

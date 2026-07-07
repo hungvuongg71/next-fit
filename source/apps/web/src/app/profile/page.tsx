@@ -5,6 +5,7 @@ import { Activity, Check, Clock3, Dumbbell, Edit3, User } from "lucide-react"
 import BottomNav from "@/components/layout/BottomNav"
 import TopHeader from "@/components/layout/TopHeader"
 import ThemeSwitcher from "@/components/ui/ThemeSwitcher"
+import NumberPickerWheel from "@/components/ui/NumberPickerWheel"
 import { useApp } from "@/state/context"
 import type { Equipment, Gender, Goal, Level, UserCriteria } from "@/types"
 import { DURATIONS, FREQUENCIES } from "@/constants/workout"
@@ -165,8 +166,9 @@ export default function ProfilePage() {
   const [editingField, setEditingField] = useState<EditableField | null>(null)
   const [tempEquipment, setTempEquipment] = useState<Equipment[]>([])
   const [showAllEquip, setShowAllEquip] = useState(false)
-  const [tempWeight, setTempWeight] = useState("")
-  const [tempHeight, setTempHeight] = useState("")
+  const [tempWeightInt, setTempWeightInt] = useState(70)
+  const [tempWeightDec, setTempWeightDec] = useState(0)
+  const [tempHeight, setTempHeight] = useState(170)
 
   if (!criteria) {
     return (
@@ -228,10 +230,10 @@ export default function ProfilePage() {
 
   function handleBodyDone() {
     if (!criteria) return
-    const w = tempWeight ? Number(tempWeight) : undefined
-    const h = tempHeight ? Number(tempHeight) : undefined
-    if (w !== undefined && (w < 20 || w > 300)) return
-    if (h !== undefined && (h < 100 || h > 250)) return
+    const w = tempWeightInt + tempWeightDec * 0.1
+    const h = tempHeight
+    if (w < 20 || w > 300) return
+    if (h < 100 || h > 250) return
     const updated: UserCriteria = { ...criteria, weight: w, height: h }
     saveAndRegenerate(updated)
   }
@@ -248,8 +250,10 @@ export default function ProfilePage() {
       if (prev === field) return null
       if (field === "equipment") setTempEquipment([...criteria.equipment])
       if (field === "body") {
-        setTempWeight(criteria.weight?.toString() ?? "")
-        setTempHeight(criteria.height?.toString() ?? "")
+        const w = criteria.weight ?? 70
+        setTempWeightInt(Math.floor(w))
+        setTempWeightDec(Math.round((w - Math.floor(w)) * 10))
+        setTempHeight(criteria.height ?? 170)
       }
       return field
     })
@@ -342,41 +346,71 @@ export default function ProfilePage() {
                     <label className="mb-1.5 block font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
                       Cân nặng (kg)
                     </label>
-                    <input
-                      type="number"
-                      min={20}
-                      max={300}
-                      step={0.5}
-                      value={tempWeight}
-                      onChange={(e) => setTempWeight(e.target.value)}
-                      placeholder="VD: 70"
-                      className="min-h-10 w-full rounded-2xl px-4 font-heading text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-                      style={{
-                        background: "rgba(255,255,255,0.045)",
-                        border: "1px solid var(--color-border)",
-                        color: "var(--color-text)",
-                      }}
-                    />
+                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1">
+                      <div
+                        className="rounded-2xl overflow-hidden"
+                        style={{
+                          background: "rgba(255,255,255,0.045)",
+                          border: "1px solid var(--color-border)",
+                          transition: "border-color 0.2s",
+                        }}
+                      >
+                        <NumberPickerWheel
+                          value={tempWeightInt}
+                          onChange={(v) => {
+                            if (v !== null) setTempWeightInt(v)
+                          }}
+                          min={20}
+                          max={300}
+                          step={1}
+                          ariaLabel="Cân nặng phần nguyên"
+                        />
+                      </div>
+                      <span className="font-heading text-lg font-bold" style={{ color: "var(--color-text-secondary)" }}>.</span>
+                      <div
+                        className="rounded-2xl overflow-hidden"
+                        style={{
+                          background: "rgba(255,255,255,0.045)",
+                          border: "1px solid var(--color-border)",
+                          transition: "border-color 0.2s",
+                        }}
+                      >
+                        <NumberPickerWheel
+                          value={tempWeightDec}
+                          onChange={(v) => {
+                            if (v !== null) setTempWeightDec(v)
+                          }}
+                          min={0}
+                          max={9}
+                          step={1}
+                          ariaLabel="Cân nặng phần thập phân"
+                        />
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <label className="mb-1.5 block font-body text-xs" style={{ color: "var(--color-text-secondary)" }}>
                       Chiều cao (cm)
                     </label>
-                    <input
-                      type="number"
-                      min={100}
-                      max={250}
-                      step={1}
-                      value={tempHeight}
-                      onChange={(e) => setTempHeight(e.target.value)}
-                      placeholder="VD: 175"
-                      className="min-h-10 w-full rounded-2xl px-4 font-heading text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+                    <div
+                      className="rounded-2xl overflow-hidden"
                       style={{
                         background: "rgba(255,255,255,0.045)",
                         border: "1px solid var(--color-border)",
-                        color: "var(--color-text)",
+                        transition: "border-color 0.2s",
                       }}
-                    />
+                    >
+                      <NumberPickerWheel
+                        value={tempHeight}
+                        onChange={(v) => {
+                          if (v !== null) setTempHeight(v)
+                        }}
+                        min={100}
+                        max={250}
+                        step={1}
+                        ariaLabel="Chiều cao (cm)"
+                      />
+                    </div>
                   </div>
                 </div>
                 <button

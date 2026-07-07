@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { AppProvider } from '@/state/context'
 import ActiveWorkoutBanner from '@/components/ui/ActiveWorkoutBanner'
@@ -8,6 +8,11 @@ export const metadata: Metadata = {
   description:
     'NextFit — Gym Workout Planner cá nhân hoá. Gợi ý bài tập theo mục tiêu, trình độ, thiết bị. Lên giáo án tuần, theo dõi lịch sử tập luyện. Dành cho người tập Việt Nam.',
   icons: { icon: '/next-fit/favicon.ico' },
+}
+
+export const viewport: Viewport = {
+  maximumScale: 1,
+  userScalable: false,
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
