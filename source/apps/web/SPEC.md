@@ -1,24 +1,24 @@
-# Spec: Redesign StatsCard — Streak & Total Workouts
+# Spec: Profile — Thay input number bằng NumberPickerWheel
 
 ## Objective
 
-**Vấn đề:** StatsCard hiện tại gộp streak và tổng buổi tập trong 1 card với số nhỏ, thiếu điểm nhấn thị giác.
+**Vấn đề:** Profile page dùng `<input type="number">` cho cân nặng và chiều cao, trong khi Onboarding dùng `NumberPickerWheel` (wheel picker). UX không đồng nhất.
 
-**Mục tiêu:** Tách thành 2 card riêng biệt (streak + total), số lớn có animation đếm, giữ bar chart bên dưới.
+**Mục tiêu:** Thay thế input native ở Profile bằng `NumberPickerWheel` giống hệt Onboarding.
 
-**User:** Người dùng xem trang chủ, muốn thấy tiến trình tập luyện trực quan.
+**User:** Người dùng chỉnh sửa thông tin cá nhân trên Profile.
 
-**Success:** 
-- Streak và total là 2 card riêng, grid 2 cột
-- Số hiển thị to (text-4xl+), font-display, animation đếm từ 0 lên giá trị thật
-- Bar chart giữ nguyên ở phía dưới
-- Animation chỉ chạy 1 lần khi component mount
+**Success:**
+- Weight: 2 wheel picker (int 20-300 + dec 0-9) ngăn cách bởi `.`
+- Height: 1 wheel picker (100-250, step 1)
+- Style giống Onboarding (border đổi màu khi valid/invalid)
+- Giữ nguyên logic save (`handleBodyDone` + `saveAndRegenerate`)
 
 ## Tech Stack
 
 - React 19.2.4 / Next.js 16.2.7
-- Tailwind utility classes
-- CSS keyframes (không thêm thư viện animation mới)
+- `NumberPickerWheel` component đã có sẵn
+- `@ncdai/react-wheel-picker`
 
 ## Commands
 
@@ -32,39 +32,29 @@ Typecheck: npx tsc --noEmit
 ## Project Structure (affected files)
 
 ```
-src/components/ui/StatsCard.tsx    → Redesign thành 2 card riêng + animation đếm số
+src/app/profile/page.tsx    → Thay <input> bằng NumberPickerWheel
 ```
 
 Chỉ sửa 1 file.
 
 ## Code Style
 
-- Giữ nguyên pattern: Tailwind classes + inline styles với CSS variables
-- Animation đếm số: dùng `useState` + `useEffect` với `setInterval` / `requestAnimationFrame`
-- 2 card dùng `grid grid-cols-2 gap-3`
-- Số dùng `className="font-display text-4xl font-extrabold"`
-- Icon dùng lucide-react (Flame, Calendar) sẵn có
+- Giữ nguyên pattern: inline styles + Tailwind + CSS variables
+- Dùng `NumberPickerWheel` props: `value`, `onChange`, `min`, `max`, `step`, `ariaLabel`
+- Border validation style giống Onboarding: `1px solid ${valid ? "var(--color-primary)" : "var(--color-border)"}`
 
 ```tsx
-// Animation đếm số pattern
-const [count, setCount] = useState(0)
-useEffect(() => {
-  if (target === 0) return
-  const duration = 800
-  const steps = 30
-  const increment = target / steps
-  let current = 0
-  const timer = setInterval(() => {
-    current += increment
-    if (current >= target) {
-      setCount(target)
-      clearInterval(timer)
-    } else {
-      setCount(Math.round(current))
-    }
-  }, duration / steps)
-  return () => clearInterval(timer)
-}, [target])
+<NumberPickerWheel
+  value={tempWeightInt ?? 70}
+  onChange={(v) => {
+    const dec = tempWeightDec ?? 0
+    setTempWeight(v !== null ? `${v}.${dec}` : "")
+  }}
+  min={20}
+  max={300}
+  step={1}
+  ariaLabel="Cân nặng phần nguyên"
+/>
 ```
 
 ## Testing Strategy
@@ -72,26 +62,25 @@ useEffect(() => {
 - `npx tsc --noEmit` — 0 errors
 - `pnpm build` — build thành công
 - Manual test:
-  1. Load trang chủ → thấy 2 card, số đếm animation
-  2. Streak = 0 → hiển thị 0, không animation
-  3. Test responsive: 2 cột trên desktop, 1 cột trên mobile nhỏ
+  1. Profile → nhấn "Cân nặng & Chiều cao" → thấy wheel picker
+  2. Chọn giá trị → "Xong" → lưu thành công
+  3. Kiểm tra validation (20-300 weight, 100-250 height)
 
 ## Boundaries
 
-- **Always:** Chỉ sửa StatsCard.tsx
-- **Always:** Dùng `--color-primary-rgb` cho màu sắc
-- **Always:** Animation chỉ chạy 1 lần khi mount
-- **Ask first:** Thêm thư viện animation, thay đổi layout page.tsx
-- **Never:** Xoá bar chart, thay đổi logic streak/total từ weekly-stats
+- **Always:** Chỉ sửa Profile page
+- **Always:** Giữ nguyên logic `handleBodyDone`, `saveAndRegenerate`
+- **Ask first:** Thay đổi layout tổng thể của Profile page
+- **Never:** Xoá NumberPickerWheel, thay đổi Onboarding
 
 ## Success Criteria
 
-1. 2 card riêng: streak (Flame) + total (Calendar)
-2. Số to font-display, animation đếm từ 0 → giá trị thật trong ~800ms
-3. Bar chart giữ nguyên bên dưới 2 card
-4. Responsive: 2 cột, xuống 1 cột trên mobile nhỏ
+1. Weight dùng 2 wheel picker (int + dec) giống Onboarding
+2. Height dùng 1 wheel picker giống Onboarding
+3. Border đổi màu theo valid/invalid
+4. Save hoạt động đúng
 5. TypeScript pass, build pass
 
 ## Open Questions
 
-(Không có)
+(Không có — đã clarify)
